@@ -68,6 +68,7 @@ def run(tmp_path, monkeypatch):
         out = reports / "findings.json"
         return code_, (json.loads(out.read_text()) if out.exists() else None)
     _run.code = code
+    _run.config = config
     return _run
 
 
@@ -110,3 +111,34 @@ def test_no_report_carries_the_secret_value(run):
     for name in ("review-brief.md", "findings.json", "summary.md", "summary.html"):
         assert SECRET not in (Path(main.REPORTS_DIR) / name).read_text(), name
     assert 'TOKEN = *' in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+
+
+# --- exit codes: 1 is a verdict, never an accident --------------------------
+
+def test_a_clean_gate_exits_0(run):
+    run.config.write_text("fail_on: none\n")
+    assert run()[0] == main.EXIT_PASS
+
+
+def test_an_invalid_config_exits_2_not_1(run):
+    run.config.write_text("fail_on: severe\n")
+    assert run()[0] == main.EXIT_USAGE
+
+
+def test_a_malformed_expiry_exits_2(run):
+    run.config.write_text("ignore:\n  - rule: CVE-1\n    reason: r\n    expires: soon\n")
+    assert run()[0] == main.EXIT_USAGE
+
+
+def test_a_missing_report_under_strict_exits_3(run):
+    run.config.write_text("strict: true\n")
+    (Path(main.NATIVE_DIR) / "semgrep.sarif").unlink()
+    assert run()[0] == main.EXIT_SCAN
+
+
+def test_a_collector_crash_exits_3(run, monkeypatch):
+    def boom(*a, **kw):
+        raise RuntimeError("bug")
+    monkeypatch.setattr(main, "merge", boom)
+    monkeypatch.setenv("ASS_UPDATE_BASELINE", "")
+    assert main.run() == main.EXIT_SCAN

@@ -52,6 +52,9 @@
   `ignore:` accepts a `fingerprint` for single-finding triage verdicts.
 - **Secret-free reports** — Gitleaks runs with `--redact`; no report the run
   produces carries a secret value.
+- **Distinct exit codes** — 0 pass, 1 policy breach, 2 usage/config error,
+  3 scan did not complete; a compose or bash failure can no longer pass for a
+  policy verdict.
 - **GitLab security reports** — `scripts/gitlab-reports.py` converts
   `findings.json` into GitLab's native sast / secret_detection /
   dependency_scanning formats (validated against schemas 15.0.7 and 15.2.4);
@@ -75,8 +78,6 @@ the first step of an AI agent's security review. CI integrations come later.
       its state in a user cache dir rather than the tool checkout.
 - [ ] **Prebuilt collector image** — compose pulls it (`image:`) instead of
       building on first run.
-- [ ] **Distinct exit codes** — policy breach vs. tool failure vs. config error,
-      so a caller (or an agent) knows whether to fix code or fix the setup.
 - [ ] **Diff mode** — scan only what a change touched (Semgrep
       `--baseline-commit`, Gitleaks commit range) for fast agent iterations.
 - [ ] **MCP server / agent skill** — `scan`, `findings`, `explain`, `suppress`

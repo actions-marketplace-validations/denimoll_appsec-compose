@@ -30,7 +30,9 @@ from pathlib import Path
 try:
     import yaml
 except ImportError:
-    sys.exit("PyYAML is required on the host: pip3 install pyyaml")
+    # Exit 2 (setup problem), not sys.exit(msg)'s 1, which reads as a verdict.
+    print("ERROR: PyYAML is required on the host: pip3 install pyyaml", file=sys.stderr)
+    sys.exit(2)
 
 
 def _load_schema():
@@ -288,7 +290,17 @@ def main(argv: list[str] | None = None) -> int:
                         help="where to write .env and excludes/ (default: the tool directory)")
     out_dir = parser.parse_args(argv).out_dir.resolve()
 
-    cfg = yaml.safe_load(CFG.read_text()) or {}
+    try:
+        cfg = yaml.safe_load(CFG.read_text()) or {}
+    except OSError as exc:
+        print(f"ERROR: cannot read {CFG}: {exc.strerror}", file=sys.stderr)
+        return 2
+    except yaml.YAMLError as exc:
+        print(f"ERROR: {CFG.name} is not valid YAML: {exc}", file=sys.stderr)
+        return 2
+    if not isinstance(cfg, dict):
+        print(f"ERROR: {CFG.name} must be a mapping of settings", file=sys.stderr)
+        return 2
     # Fail on the host, before a single container starts, and name every problem.
     try:
         _load_schema().check(cfg, known_scanners=set(TOOLS))

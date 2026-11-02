@@ -230,7 +230,7 @@ Each finding is compared against the threshold for its own category.
 ## Failing loudly (`strict`)
 
 Scanners always exit `0`, so a crashed engine would otherwise look like a clean
-result. With `strict: true` (or `--strict`) the run fails with exit `2` — rather
+result. With `strict: true` (or `--strict`) the run fails with exit `3` — rather
 than counting as "0 findings" — when either:
 
 - a scanner that was expected to report produced nothing readable, or
@@ -411,10 +411,20 @@ summaries. To see the resolved engines without running a scan:
 
 ## Policy / exit codes
 
-The **collector** decides pass/fail: exit `1` if any finding is at or above
-`fail_on`, else `0`. Scanners themselves always exit `0`, so a noisy finding
-never breaks the scan phase — only the policy does. `run.sh` propagates the
-collector's exit code, which makes this safe to drop into a CI gate.
+The **collector** decides pass/fail; scanners themselves always exit `0`, so a
+noisy finding never breaks the scan phase — only the policy does. Each exit
+code tells the caller — a person, a CI job, an AI agent — what to fix:
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `0` | the policy gate passed | — |
+| `1` | the gate failed: findings at/above `fail_on` | fix or triage the findings |
+| `2` | usage or configuration error (bad flag, invalid `scan-config.yml`, missing target, `require_pinned` unmet, `offline` without a cache, a `--build` target that does not build) | fix the invocation or config |
+| `3` | the scan did not complete (Docker unavailable, a collector crash, a missing or unreadable report under `strict`, an image that could not be pulled) | fix the environment; there is no verdict to trust |
+
+`1` means exactly one thing: a verdict was reached and it is "fail". Compose
+and bash both report their own failures as `1`, so `run.sh` checks that the
+collector actually wrote a verdict and maps everything else to `3`.
 
 ## CI/CD
 

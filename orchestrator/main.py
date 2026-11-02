@@ -9,8 +9,11 @@ from __future__ import annotations
 import json
 import os
 import sys
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
+
+import yaml
 
 import baseline as bl
 import brief
@@ -33,6 +36,14 @@ BASELINE_PATH = "/app/appsec-baseline.json"
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
 SCHEMA_VERSION = "1.0"
+
+# Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
+# way of not reaching a verdict maps elsewhere, so a caller never mistakes a
+# broken scan for findings, or a clean exit for a clean codebase.
+EXIT_PASS = 0      # the policy gate passed
+EXIT_POLICY = 1    # the policy gate failed
+EXIT_USAGE = 2     # invalid configuration: fix scan-config.yml
+EXIT_SCAN = 3      # the scan is incomplete or unreadable: no trustworthy verdict
 
 
 def _provenance(cfg, image_mode: bool) -> dict:
@@ -57,7 +68,11 @@ def _provenance(cfg, image_mode: bool) -> dict:
 
 
 def main() -> int:
-    cfg = load_config()
+    try:
+        cfg = load_config()
+    except (ValueError, yaml.YAMLError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return EXIT_USAGE
 
     # Generate SARIF for tools that have no native SARIF (keeps the raw report).
     trufflehog_json_to_sarif(Path(NATIVE_DIR, "trufflehog.json"),
@@ -80,7 +95,7 @@ def main() -> int:
         target = os.environ.get("ASS_IMAGE") or "the built image"
         print(f"ERROR: failed to pull or scan {target}. "
               f"Check the image reference and registry credentials.", file=sys.stderr)
-        return 2
+        return EXIT_SCAN
 
     # strict: a scanner that was expected to report but didn't (crashed, OOM,
     # wrote unparseable output) must not pass as "0 findings".
@@ -91,7 +106,7 @@ def main() -> int:
         if result.reports_errored:
             print(f"ERROR: strict mode — unreadable report(s): "
                   f"{'; '.join(result.reports_errored)}", file=sys.stderr)
-        return 2
+        return EXIT_SCAN
 
     # Blind-spot check: an SCA engine that resolved nothing looks exactly like a
     # project with no vulnerable dependencies, and the gate cannot tell them apart.
@@ -103,7 +118,7 @@ def main() -> int:
         for warning in coverage.warnings:
             print(f"ERROR: strict mode — {warning.message} {warning.advice}",
                   file=sys.stderr)
-        return 2
+        return EXIT_SCAN
 
     # Tools that could not determine a severity are ranked by the user's
     # `unknown_severity`, before anything merges or compares them.
@@ -112,7 +127,11 @@ def main() -> int:
     merged, stats = merge(result.findings, enabled=cfg.dedup)
     # Fingerprints exist before suppression, so an ignore entry can name one.
     bl.assign(merged, CODE_DIR)
-    kept, suppressed, expired = apply_ignore(merged, cfg.ignore)
+    try:
+        kept, suppressed, expired = apply_ignore(merged, cfg.ignore)
+    except ValueError as exc:            # e.g. a malformed `expires`
+        print(f"ERROR: invalid ignore entry: {exc}", file=sys.stderr)
+        return EXIT_USAGE
 
     # Exploitability enrichment runs after the merge, so each CVE is looked up
     # once and the alias set is at its widest.
@@ -128,13 +147,13 @@ def main() -> int:
         if enrichment.error and cfg.strict:
             print(f"ERROR: strict mode — CVE-PaaS enrichment failed "
                   f"({enrichment.error})", file=sys.stderr)
-            return 2
+            return EXIT_SCAN
 
     # --update-baseline: snapshot current findings as the accepted state, no gate.
     if os.environ.get("ASS_UPDATE_BASELINE") == "1":
         n = bl.save(BASELINE_PATH, kept)
         print(f"Baseline updated: {n} fingerprint(s) -> appsec-baseline.json")
-        return 0
+        return EXIT_PASS
 
     # Baseline mode: gate only on findings new since the accepted baseline.
     delta = None
@@ -265,8 +284,18 @@ def main() -> int:
           f" | review-brief.md"
           f"{sbom_note} | native/")
     print("=" * 60)
-    return policy.exit_code
+    return EXIT_POLICY if policy.exit_code else EXIT_PASS
+
+
+def run() -> int:
+    """Entry point. An uncaught exception would exit 1 — a policy failure."""
+    try:
+        return main()
+    except Exception:
+        traceback.print_exc()
+        print("ERROR: the collector crashed; no verdict was reached", file=sys.stderr)
+        return EXIT_SCAN
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run())

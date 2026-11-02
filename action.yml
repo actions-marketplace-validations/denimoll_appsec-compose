@@ -43,7 +43,7 @@ inputs:
       (critical|high|medium|low|none). Empty keeps the config's policy.
     default: ""
   strict:
-    description: Fail (exit 2) when an enabled scanner produced no readable report.
+    description: Fail (exit 3) when an enabled scanner produced no readable report.
     default: "false"
   upload-sarif:
     description: >-
@@ -60,7 +60,7 @@ inputs:
 
 outputs:
   exit-code:
-    description: Policy verdict of the collector (0 = pass, 1 = policy breach, 2 = error).
+    description: "0 = pass, 1 = policy breach, 2 = usage/config error, 3 = scan did not complete."
     value: ${{ steps.scan.outputs.exit-code }}
   findings:
     description: Path to findings.json.

@@ -13,16 +13,28 @@
 # it can be called from another project's checkout (CI, the GitHub Action).
 #
 # Reads scan-config.yml, runs the enabled scanners over the target (repo or
-# image) and writes reports to ./reports/. Exit code mirrors the collector's
-# policy verdict (0 = pass, 1 = fail).
-set -euo pipefail
+# image) and writes reports to ./reports/.
+#
+# Exit codes — each tells the caller (a person, CI, an agent) what to fix:
+#   0  pass
+#   1  the policy gate failed: findings at/above fail_on — fix or triage them
+#   2  usage or configuration error — fix the invocation or scan-config.yml
+#   3  the scan did not complete — a scanner, Docker or the collector failed,
+#      so there is no trustworthy verdict
+# 1 means exactly one thing: a verdict was reached and it is "fail". Anything
+# that goes wrong on the way maps to 3, never to 1.
+set -Eeuo pipefail
+EXIT_PASS=0; EXIT_POLICY=1; EXIT_USAGE=2; EXIT_SCAN=3
+# set -e would exit with whatever the failing command returned — usually 1,
+# which reads as a policy failure. Docker being down is not a finding.
+trap 'echo "Error: scan aborted: \`$BASH_COMMAND\` failed (line $LINENO)" >&2; exit $EXIT_SCAN' ERR
 
 usage() {
   echo "Usage: $0 <path-to-repo> [--fail-on L] [--strict] [--require-pinned] [--update-baseline]" >&2
   echo "       $0 <path-to-repo> [--config <file>] [--baseline <file>] [--reports <dir>] [--name <slug>]" >&2
   echo "       $0 --image <ref> [--registry-user U --registry-pass P] [--fail-on L]" >&2
   echo "       $0 --build <context> [--dockerfile <path>] [--fail-on L]" >&2
-  exit 2
+  exit $EXIT_USAGE
 }
 
 # Scanners that can scan a container image (the rest are source-only).
@@ -94,7 +106,7 @@ cd "$SCRIPT_DIR"
 
 # Resolve the per-project state paths (defaults keep the single-project layout).
 if [[ -n "$CONFIG_FILE" ]]; then
-  [[ -f "$CONFIG_FILE" ]] || { echo "Error: config '$CONFIG_FILE' not found" >&2; exit 2; }
+  [[ -f "$CONFIG_FILE" ]] || { echo "Error: config '$CONFIG_FILE' not found" >&2; exit $EXIT_USAGE; }
   ASS_CONFIG_FILE="$CONFIG_FILE"; export ASS_CONFIG_FILE
 fi
 if [[ -n "$REPORTS_DIR" ]]; then
@@ -149,14 +161,14 @@ registry_of() {
 IMAGE_MODE=0; TARGET_LABEL=""
 if [[ -n "$BUILD_CTX" ]]; then
   IMAGE_MODE=1
-  [[ -e "$BUILD_CTX" ]] || { echo "Error: build context '$BUILD_CTX' not found" >&2; exit 2; }
+  [[ -e "$BUILD_CTX" ]] || { echo "Error: build context '$BUILD_CTX' not found" >&2; exit $EXIT_USAGE; }
   tag="appsec-compose-build:scan"
   echo "Building image from $BUILD_CTX ..."
-  if [[ -n "$DOCKERFILE" ]]; then
-    docker build -f "$DOCKERFILE" -t "$tag" "$BUILD_CTX"
-  else
-    docker build -t "$tag" "$BUILD_CTX"
-  fi
+  # A target that does not build is a problem with the input, not the scan.
+  build_args=(-t "$tag")
+  [[ -n "$DOCKERFILE" ]] && build_args+=(-f "$DOCKERFILE")
+  docker build "${build_args[@]}" "$BUILD_CTX" \
+    || { echo "Error: could not build $BUILD_CTX" >&2; exit $EXIT_USAGE; }
   docker save "$tag" -o "$ASS_ARCHIVE_DIR/image.tar"
   export ASS_IMAGE_TAR="/archive/image.tar"
   SCAN_TARGET="$SCRIPT_DIR/.img-empty"
@@ -176,7 +188,7 @@ elif [[ -n "$IMAGE_REF" ]]; then
     echo "Registry auth : configured for $reg"
   fi
 elif [[ -n "$TARGET" ]]; then
-  [[ -d "$TARGET" ]] || { echo "Error: target '$TARGET' is not a directory" >&2; exit 2; }
+  [[ -d "$TARGET" ]] || { echo "Error: target '$TARGET' is not a directory" >&2; exit $EXIT_USAGE; }
   SCAN_TARGET="$(cd "$TARGET" && pwd)"
   TARGET_LABEL="$SCAN_TARGET"
 else
@@ -189,7 +201,9 @@ export SCAN_TARGET
 # targets. Command substitution hides a non-zero exit, so capture first and
 # propagate: render-env fails deliberately (e.g. require_pinned with an
 # incomplete lock).
-render_out="$(python3 scripts/render-env.py --out-dir "$RUN_DIR")" || exit $?
+# render-env exits 2 for a config problem; anything else is a crash.
+render_out="$(python3 scripts/render-env.py --out-dir "$RUN_DIR")" || {
+  rc=$?; [[ $rc == "$EXIT_USAGE" ]] || rc=$EXIT_SCAN; exit $rc; }
 eval "$render_out"
 [[ -n "$FAIL_ON_OVERRIDE" ]] && export FAIL_ON="$FAIL_ON_OVERRIDE"
 
@@ -202,6 +216,10 @@ mkdir -p "$REPORTS/native" cache/semgrep cache/trivy cache/grype semgrep-rules
 # guards would happily upload as if it were current.
 rm -f "$REPORTS"/native/*.sarif "$REPORTS"/native/*.json
 rm -f "$REPORTS"/sbom.*.json
+# Same for the consolidated reports: their absence after the collector is how
+# a collector that never ran is told apart from one that returned a verdict.
+rm -f "$REPORTS"/findings.json "$REPORTS"/summary.md "$REPORTS"/summary.html \
+      "$REPORTS"/review-brief.md
 # Ensure the baseline file exists so Docker can bind-mount it (empty = no baseline).
 BASELINE="${ASS_BASELINE_FILE:-$SCRIPT_DIR/appsec-baseline.json}"
 [[ -f "$BASELINE" ]] || echo '{"fingerprints": []}' > "$BASELINE"
@@ -211,17 +229,17 @@ if [[ "$IMAGE_MODE" == "1" ]]; then
   keep=""
   for s in $ASS_ENABLED; do [[ "$IMAGE_TOOLS" == *" $s "* ]] && keep="$keep $s"; done
   ASS_ENABLED="$(echo "$keep" | xargs || true)"
-  [[ -z "$ASS_ENABLED" ]] && { echo "Error: image mode needs trivy/grype/syft enabled" >&2; exit 2; }
+  [[ -z "$ASS_ENABLED" ]] && { echo "Error: image mode needs trivy/grype/syft enabled" >&2; exit $EXIT_USAGE; }
 fi
 
 if [[ -z "${ASS_ENABLED// }" ]]; then
-  echo "Error: no scanners enabled in scan-config.yml" >&2; exit 2
+  echo "Error: no scanners enabled in scan-config.yml" >&2; exit $EXIT_USAGE
 fi
 export ASS_ENABLED   # tell the collector which scanners actually ran
 
 if [[ "$ASS_OFFLINE" == "1" && "$IMAGE_MODE" != "1" && ! -s cache/semgrep/default.yaml ]]; then
   echo "Error: offline=true but no cache found. Run ./preload.sh first (with network)." >&2
-  exit 2
+  exit $EXIT_USAGE
 fi
 
 [[ -n "${ASS_CONFIG_FILE:-}" ]] && echo "Config   : $ASS_CONFIG_FILE"
@@ -242,10 +260,24 @@ compose up --no-deps $ASS_ENABLED
 
 # Collector reads the reports and returns the policy exit code. --no-deps so it
 # doesn't re-trigger the scanners via depends_on.
-set +e
-compose run --rm --no-deps --build collector
-code=$?
-set -e
+# `|| code=$?`, not set +e: the ERR trap fires regardless of set -e, and
+# would turn a "fail" verdict into a broken scan.
+code=0
+compose run --rm --no-deps --build collector || code=$?
+# Compose reports its own failures (an image that does not build, a daemon
+# that went away) as 1 too. A real verdict always leaves a findings.json,
+# except when only the baseline was being snapshotted.
+verdict_written=0
+[[ -s "$REPORTS/findings.json" || "${ASS_UPDATE_BASELINE:-}" == "1" ]] && verdict_written=1
+case "$code" in
+  "$EXIT_PASS"|"$EXIT_POLICY")
+    if [[ $verdict_written == 0 ]]; then
+      echo "Error: the collector did not produce a verdict (exit $code)" >&2
+      code=$EXIT_SCAN
+    fi ;;
+  "$EXIT_USAGE"|"$EXIT_SCAN") ;;
+  *) echo "Error: the collector failed (exit $code)" >&2; code=$EXIT_SCAN ;;
+esac
 
 compose down --remove-orphans >/dev/null 2>&1 || true
 
