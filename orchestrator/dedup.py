@@ -59,7 +59,11 @@ class DedupStats:
 def _norm_file(path: str) -> str:
     # Align paths across tools: some report relative ("app.py"), others report
     # the container mount ("/code/app.py"). /code is our fixed mount root.
-    p = (path or "").lstrip("./").lstrip("/")
+    # Strip "./" and "/" as prefixes only: lstrip("./") would also eat the dot
+    # of ".github/" and point at a file that does not exist.
+    p = path or ""
+    while p.startswith(("./", "/")):
+        p = p[2:] if p.startswith("./") else p[1:]
     if p.startswith("code/"):
         p = p[len("code/"):]
     return p
@@ -91,12 +95,20 @@ def _merge_group(group: list[Finding]) -> Finding:
 
     description = next((f.description for f in group if f.description), "")
     url = next((f.url for f in group if f.url), "")
+    fixed_version = next((f.fixed_version for f in group if f.fixed_version), "")
+    cwe = sorted({c for f in group for c in f.cwe}, key=lambda c: int(c[4:]))
+    # Columns locate a secret's span on the line; TruffleHog reports none, so
+    # borrow them from an engine that flagged the same line.
+    span = next((f for f in [rep, *group]
+                 if f.column is not None and f.line == rep.line), rep)
 
     return Finding(
         tool=rep.tool, category=rep.category, rule_id=rule_id, severity=severity,
         message=rep.message, file=rep.file, line=rep.line, package=rep.package,
         aliases=aliases, tools=tools, description=description, url=url,
-        severity_stated=bool(verdicts),
+        severity_stated=bool(verdicts), end_line=span.end_line,
+        column=span.column, end_column=span.end_column, cwe=cwe,
+        fixed_version=fixed_version,
     )
 
 

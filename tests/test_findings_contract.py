@@ -1,0 +1,95 @@
+"""findings.json is a published contract: run the collector end to end over
+fixture reports and hold its output to schemas/findings.schema.json."""
+import json
+from pathlib import Path
+
+import jsonschema
+import pytest
+
+import main
+from config import load_config
+
+SCHEMA = json.loads((Path(__file__).resolve().parent.parent
+                     / "schemas" / "findings.schema.json").read_text())
+
+
+SECRET = "sk_live_9fQ2rT7xLm4Pz8Wc"
+
+
+def _sarif(results, rules=()):
+    return {"version": "2.1.0", "runs": [{
+        "tool": {"driver": {"name": "t", "rules": list(rules)}}, "results": results}]}
+
+
+def _loc(uri, line=None):
+    region = {"region": {"startLine": line}} if line else {}
+    return [{"physicalLocation": {"artifactLocation": {"uri": uri}, **region}}]
+
+
+@pytest.fixture
+def run(tmp_path, monkeypatch):
+    code, reports = tmp_path / "code", tmp_path / "reports"
+    native = reports / "native"
+    code.mkdir()
+    native.mkdir(parents=True)
+    (code / "app.py").write_text("import os\nos.system(cmd)\n")
+    (code / "requirements.txt").write_text("flask==1.0\n")
+    (code / "settings.py").write_text(f'DEBUG = False\nTOKEN = "{SECRET}"\n')
+    (native / "semgrep.sarif").write_text(json.dumps(_sarif(
+        [{"ruleId": "py.exec", "level": "error", "message": {"text": "exec"},
+          "locations": _loc("/code/app.py", 2)}],
+        [{"id": "py.exec", "properties": {"tags": ["CWE-78: OS Command Injection"]}}])))
+    (native / "trivy-fs.sarif").write_text(json.dumps(_sarif(
+        [{"ruleId": "CVE-2023-1", "level": "error",
+          "message": {"text": "Package: flask\nInstalled Version: 1.0\n"
+                              "Fixed Version: 2.2.5"},
+          "locations": _loc("/code/requirements.txt")}],
+        [{"id": "CVE-2023-1", "properties": {"tags": ["HIGH"]}}])))
+    (native / "trivy-config.sarif").write_text(json.dumps(_sarif([])))
+    (native / "gitleaks.sarif").write_text(json.dumps(_sarif(
+        [{"ruleId": "generic-api-key", "level": "error",
+          "message": {"text": "generic-api-key has detected secret"},
+          "locations": [{"physicalLocation": {
+              "artifactLocation": {"uri": "/code/settings.py"},
+              "region": {"startLine": 2, "startColumn": 10, "endColumn": 30}}}]}])))
+    config = tmp_path / "scan-config.yml"
+    config.write_text("baseline: true\n")
+
+    monkeypatch.setattr(main, "REPORTS_DIR", str(reports))
+    monkeypatch.setattr(main, "NATIVE_DIR", str(native))
+    monkeypatch.setattr(main, "CODE_DIR", str(code))
+    monkeypatch.setattr(main, "BASELINE_PATH", str(tmp_path / "baseline.json"))
+    monkeypatch.setattr(main, "load_config", lambda: load_config(str(config)))
+    monkeypatch.setenv("ASS_ENABLED", "semgrep trivy gitleaks")
+
+    def _run(update_baseline=False):
+        monkeypatch.setenv("ASS_UPDATE_BASELINE", "1" if update_baseline else "")
+        code_ = main.main()
+        out = reports / "findings.json"
+        return code_, (json.loads(out.read_text()) if out.exists() else None)
+    _run.code = code
+    return _run
+
+
+def test_findings_json_matches_the_published_schema(run):
+    exit_code, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    assert exit_code == doc["policy"]["exit_code"] == 1
+    by_cat = {f["category"]: f for f in doc["findings"]}
+    assert by_cat["sast"]["cwe"] == ["CWE-78"]
+    assert by_cat["sca"]["fixed_version"] == "2.2.5"
+
+
+def test_a_line_shift_does_not_make_known_findings_new(run):
+    assert run(update_baseline=True)[0] == 0
+    # Two lines added above the flagged call; the engine now reports line 4.
+    (run.code / "app.py").write_text("import os\n\n# moved down\nos.system(cmd)\n")
+    native = Path(main.NATIVE_DIR) / "semgrep.sarif"
+    sarif = json.loads(native.read_text())
+    sarif["runs"][0]["results"][0]["locations"] = _loc("/code/app.py", 4)
+    native.write_text(json.dumps(sarif))
+    exit_code, doc = run()
+    assert doc["baseline"] == {"enabled": True, "new": 0, "known": 3, "fixed": 0,
+                               "legacy_format": False}
+    assert exit_code == 0
+

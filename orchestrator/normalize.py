@@ -96,6 +96,12 @@ class Finding:
     # True when the tool stated this severity itself, rather than us deriving
     # it from a CVSS score or a coarse SARIF level. Merging prefers verdicts.
     severity_stated: bool = False
+    end_line: int | None = None
+    column: int | None = None         # 1-based, as in SARIF
+    end_column: int | None = None
+    cwe: list[str] = field(default_factory=list)       # e.g. ["CWE-89"]
+    fixed_version: str = ""           # SCA: version(s) that fix it, as reported
+    fingerprint: str = ""             # stable identity, set by baseline.assign
 
     def __post_init__(self):
         if not self.tools:
@@ -160,8 +166,20 @@ def _security_severity(props: dict) -> str | None:
         return None
 
 
+_CWE = re.compile(r"\bCWE-(\d+)\b", re.IGNORECASE)
+
+
+def _cwes(rule: dict, res: dict) -> list[str]:
+    """CWE ids from the rule's tags (Semgrep: "CWE-89: Improper ...")."""
+    tags = [*((rule.get("properties") or {}).get("tags") or []),
+            *((res.get("properties") or {}).get("tags") or [])]
+    found = {f"CWE-{m}" for tag in tags for m in _CWE.findall(str(tag))}
+    return sorted(found, key=lambda c: int(c[4:]))
+
+
 _TRIVY_PKG = re.compile(r"Package:\s*(.+)")
 _TRIVY_VER = re.compile(r"Installed Version:\s*(.+)")
+_TRIVY_FIX = re.compile(r"Fixed Version:\s*(.+)")
 # OSV message: "Package 'urllib3@1.23.0' is vulnerable to ..."
 _OSV_PKG = re.compile(r"Package '([^']+)'")
 
@@ -245,22 +263,29 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
             ).strip()
             url = rule.get("helpUri", "") or ""
 
-            file_path, line = "", None
+            file_path, region = "", {}
             locs = res.get("locations") or []
             if locs:
                 phys = (locs[0].get("physicalLocation") or {})
                 file_path = _clean_path((phys.get("artifactLocation") or {}).get("uri", ""))
-                line = (phys.get("region") or {}).get("startLine")
+                region = phys.get("region") or {}
 
-            package = None
+            package, fixed = None, ""
             if category == "sca" and tool in _SCA_PACKAGE:
                 package = _SCA_PACKAGE[tool](msg)
+            if category == "sca" and tool == "trivy":
+                m = _TRIVY_FIX.search(msg)
+                fixed = m.group(1).strip() if m else ""
 
             findings.append(Finding(
                 tool=tool, category=category, rule_id=str(rule_id), severity=sev,
-                message=msg or str(rule_id), file=file_path, line=line,
+                message=msg or str(rule_id), file=file_path,
+                line=region.get("startLine"),
                 package=package, description=description, url=url,
                 severity_stated=stated is not None,
+                end_line=region.get("endLine"), column=region.get("startColumn"),
+                end_column=region.get("endColumn"), cwe=_cwes(rule, res),
+                fixed_version=fixed,
             ))
     return findings
 
@@ -292,13 +317,15 @@ def _parse_grype_json(path: Path, tool: str, category: str) -> list[Finding]:
                        or (related[0].get("description") if related else "")
                        or "").strip()
         url = vuln.get("dataSource", "") or ""
+        fix = vuln.get("fix") or {}
+        fixed = ", ".join(fix.get("versions") or []) if fix.get("state") == "fixed" else ""
 
         findings.append(Finding(
             tool=tool, category=category, rule_id=str(vid), severity=sev,
             message=f"{vid} in {package or name}", file=file_path, line=None,
             package=package, aliases=aliases, description=description, url=url,
             # Grype's native JSON carries its own verdict, not a raw score.
-            severity_stated=True,
+            severity_stated=True, fixed_version=fixed,
         ))
     return findings
 

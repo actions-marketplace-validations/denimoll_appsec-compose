@@ -25,7 +25,7 @@ SCANNER = {"enabled", "version", "rules"}
 ENRICH = {"cve_paas"}
 CVE_PAAS = {"enabled", "url", "api_key_env", "mode", "timeout",
             "fail_on_exploitable"}
-IGNORE = {"rule", "file", "package", "category", "reason", "expires"}
+IGNORE = {"rule", "file", "package", "category", "fingerprint", "reason", "expires"}
 FAIL_ON = set(CATEGORIES) | {"default"}
 
 

@@ -2,7 +2,8 @@
 
 An ignore entry may specify any of: `rule` (glob, matched against the finding's
 rule_id OR any alias), `file` (glob on the path), `package` (glob on
-name@version), `category`. A finding is suppressed when EVERY field present in
+name@version), `category`, `fingerprint` (exact; one specific finding, as
+reported in findings.json). A finding is suppressed when EVERY field present in
 the entry matches. Suppressed findings are removed from the gate and the
 summary counts, but recorded with their reason for the audit trail.
 
@@ -18,7 +19,7 @@ from fnmatch import fnmatch
 
 from normalize import Finding
 
-_SELECTORS = ("rule", "file", "package", "category")
+_SELECTORS = ("rule", "file", "package", "category", "fingerprint")
 
 
 @dataclass
@@ -64,6 +65,8 @@ def _matches(entry: dict, f: Finding) -> bool:
     if entry.get("package") and not fnmatch(f.package or "", str(entry["package"])):
         return False
     if entry.get("category") and f.category != entry["category"]:
+        return False
+    if entry.get("fingerprint") and f.fingerprint != str(entry["fingerprint"]):
         return False
     # An empty entry (no selectors) must not match everything.
     return any(entry.get(k) for k in _SELECTORS)

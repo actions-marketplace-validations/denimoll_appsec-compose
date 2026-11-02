@@ -144,3 +144,23 @@ def test_the_representative_comes_from_the_tools_that_decided():
     ])
     # message/location follow the verdict, not the loudest score
     assert merged[0].severity == "low"
+
+
+def test_merge_keeps_fix_cwe_and_borrows_the_secret_span():
+    gitleaks = Finding("gitleaks", "secrets", "aws", "high", "m", "a.py", 3,
+                       column=5, end_column=25)
+    truffle = Finding("trufflehog", "secrets", "th.aws", "critical", "m", "a.py", 3)
+    merged, _ = merge([gitleaks, truffle])
+    assert (merged[0].tool, merged[0].column, merged[0].end_column) == ("trufflehog", 5, 25)
+
+    a = sca("trivy", "CVE-1", "flask@1.0")
+    a.fixed_version, a.cwe = "1.1", ["CWE-79"]
+    b = sca("grype", "CVE-1", "flask@1.0")
+    b.cwe = ["CWE-20"]
+    merged, _ = merge([b, a])
+    assert merged[0].fixed_version == "1.1" and merged[0].cwe == ["CWE-20", "CWE-79"]
+
+
+def test_norm_file_keeps_the_dot_of_a_hidden_directory():
+    assert _norm_file("/code/.github/workflows/ci.yml") == ".github/workflows/ci.yml"
+    assert _norm_file("./.env") == ".env"

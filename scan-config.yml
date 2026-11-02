@@ -141,6 +141,8 @@ ignore: []
 #   - rule: "generic.*"                 # glob over rule ids
 #     category: secrets
 #     reason: "false positives in sample data"
+#   - fingerprint: 3f9a…                # exactly one finding (findings.json)
+#     reason: "triaged: input is a constant"
 
 # ---- Offline / air-gapped --------------------------------------------
 offline: false             # true => use DBs/rules preloaded by ./preload.sh,

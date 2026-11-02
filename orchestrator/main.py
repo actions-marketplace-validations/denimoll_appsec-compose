@@ -28,6 +28,11 @@ NATIVE_DIR = f"{REPORTS_DIR}/native"
 CODE_DIR = "/code"
 BASELINE_PATH = "/app/appsec-baseline.json"
 
+# Version of the findings.json contract (schemas/findings.schema.json). Bump
+# the major for anything a consumer could break on: a removed or renamed field,
+# a changed meaning; the minor for additions.
+SCHEMA_VERSION = "1.0"
+
 
 def _provenance(cfg, image_mode: bool) -> dict:
     """What produced this report — the engines, their DBs, and the target."""
@@ -104,6 +109,8 @@ def main() -> int:
     unknown_count = resolve_unknown(result.findings, cfg.unknown_severity)
 
     merged, stats = merge(result.findings, enabled=cfg.dedup)
+    # Fingerprints exist before suppression, so an ignore entry can name one.
+    bl.assign(merged, CODE_DIR)
     kept, suppressed, expired = apply_ignore(merged, cfg.ignore)
 
     # Exploitability enrichment runs after the merge, so each CVE is looked up
@@ -134,12 +141,13 @@ def main() -> int:
         delta = bl.classify(kept, bl.load(BASELINE_PATH))
     gate_findings = delta.new if delta is not None else None
     policy = evaluate(kept, cfg, raw_findings=result.findings, gate_findings=gate_findings)
-    new_fps = {bl.fingerprint(f) for f in delta.new} if delta else set()
+    new_fps = {f.fingerprint for f in delta.new} if delta else set()
     for f in kept:                       # transient flag for the HTML report
-        f.is_new = bool(delta) and bl.fingerprint(f) in new_fps
+        f.is_new = bool(delta) and f.fingerprint in new_fps
 
     # Machine-readable consolidated output (for ASPM/ASOC ingestion).
     consolidated = {
+        "schema_version": SCHEMA_VERSION,
         "provenance": _provenance(cfg, image_mode),
         "policy": {
             "fail_on": policy.threshold,
@@ -173,6 +181,7 @@ def main() -> int:
             "new": len(delta.new) if delta else None,
             "known": len(delta.known) if delta else None,
             "fixed": delta.fixed if delta else None,
+            "legacy_format": delta.legacy if delta else None,
         },
         "coverage": {
             "manifests": coverage.manifests,
@@ -188,7 +197,7 @@ def main() -> int:
         "reports_missing": result.reports_missing,
         "reports_errored": result.reports_errored,
         "findings": [{**finding_to_dict(f),
-                      **({"new": bl.fingerprint(f) in new_fps} if delta else {})}
+                      **({"new": f.fingerprint in new_fps} if delta else {})}
                      for f in kept],
         "suppressed": [{**finding_to_dict(s.finding), "reason": s.reason}
                        for s in suppressed],
@@ -237,6 +246,9 @@ def main() -> int:
     if delta is not None:
         print(f"  baseline: {len(delta.new)} new, {len(delta.known)} known, "
               f"{delta.fixed} fixed")
+        if delta.legacy:
+            print("  ! baseline uses v1 fingerprints, which break when lines shift; "
+                  "re-snapshot it with --update-baseline")
     if policy.exploitable_breaching:
         print(f"  ({policy.exploitable_breaching} breaching on exploitability "
               f"alone, below the severity threshold)")

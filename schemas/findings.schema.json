@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/denimoll/appsec-compose/schemas/findings.schema.json",
+  "title": "appsec-compose findings.json",
+  "description": "Consolidated, de-duplicated findings of one appsec-compose run. `schema_version` follows major.minor: the major changes only when a field is removed, renamed or changes meaning; additions bump the minor, so consumers must ignore fields they do not know.",
+  "type": "object",
+  "required": ["schema_version", "provenance", "policy", "dedup", "baseline",
+               "coverage", "severity_counts", "category_counts", "tool_counts",
+               "reports_found", "reports_missing", "reports_errored",
+               "findings", "suppressed"],
+  "properties": {
+    "schema_version": {"type": "string", "pattern": "^1\\.[0-9]+$"},
+    "provenance": {
+      "type": "object",
+      "required": ["appsec_compose", "generated", "target", "offline", "engines", "databases"],
+      "properties": {
+        "appsec_compose": {"type": "string", "description": "Tool version."},
+        "generated": {"type": "string", "description": "UTC, ISO 8601."},
+        "target": {"type": "string", "description": "`filesystem`, `docker-archive` or the scanned image ref."},
+        "offline": {"type": "boolean"},
+        "engines": {"type": "object", "additionalProperties": {"type": "string"},
+                    "description": "Engine -> resolved image ref (a digest when pinned)."},
+        "databases": {"type": "object", "additionalProperties": {"type": "string"},
+                      "description": "Vulnerability database -> date it was built."}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["fail_on", "fail_on_by_category", "fail_on_exploitable", "strict",
+                   "breaching", "exploitable_breaching", "exit_code"],
+      "properties": {
+        "fail_on": {"$ref": "#/$defs/threshold"},
+        "fail_on_by_category": {"type": "object", "additionalProperties": {"$ref": "#/$defs/threshold"}},
+        "fail_on_exploitable": {"type": "boolean"},
+        "strict": {"type": "boolean"},
+        "breaching": {"type": "integer", "minimum": 0},
+        "exploitable_breaching": {"type": "integer", "minimum": 0},
+        "exit_code": {"type": "integer", "enum": [0, 1], "description": "0 = pass, 1 = the policy gate failed."}
+      }
+    },
+    "dedup": {
+      "type": "object",
+      "required": ["enabled", "raw_findings", "unique_findings", "duplicates_removed"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "raw_findings": {"type": "integer", "minimum": 0},
+        "unique_findings": {"type": "integer", "minimum": 0},
+        "duplicates_removed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "suppressed_count": {"type": "integer", "minimum": 0},
+    "expired_suppressions": {
+      "type": "array",
+      "items": {"type": "object", "required": ["selectors", "expires"],
+                "properties": {"selectors": {"type": "string"}, "expires": {"type": "string"}}}
+    },
+    "enrichment": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "mode": {"type": ["string", "null"]},
+        "requested": {"type": "integer"},
+        "resolved": {"type": "integer"},
+        "reprioritized": {"type": "integer"},
+        "exploitable": {"type": "integer"},
+        "error": {"type": ["string", "null"]}
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "new": {"type": ["integer", "null"]},
+        "known": {"type": ["integer", "null"]},
+        "fixed": {"type": ["integer", "null"]},
+        "legacy_format": {"type": ["boolean", "null"],
+                          "description": "True when matched against a v1 (line-number) baseline."}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["manifests", "ecosystems", "sbom_components", "warnings"],
+      "properties": {
+        "manifests": {"type": "array", "items": {"type": "string"}},
+        "ecosystems": {"type": "array", "items": {"type": "string"}},
+        "sbom_components": {"type": ["integer", "null"]},
+        "warnings": {
+          "type": "array",
+          "items": {"type": "object", "required": ["kind", "message", "advice"],
+                    "properties": {"kind": {"type": "string"}, "message": {"type": "string"},
+                                   "advice": {"type": "string"}}}
+        }
+      }
+    },
+    "severity_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "category_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "tool_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "reports_found": {"type": "array", "items": {"type": "string"}},
+    "reports_missing": {"type": "array", "items": {"type": "string"}},
+    "reports_errored": {"type": "array", "items": {"type": "string"}},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "suppressed": {
+      "type": "array",
+      "items": {"allOf": [{"$ref": "#/$defs/finding"},
+                          {"type": "object", "required": ["reason"],
+                           "properties": {"reason": {"type": "string"}}}]}
+    }
+  },
+  "$defs": {
+    "severity": {"enum": ["critical", "high", "medium", "low", "info"]},
+    "threshold": {"enum": ["critical", "high", "medium", "low", "info", "none"]},
+    "finding": {
+      "type": "object",
+      "required": ["fingerprint", "tool", "tools", "category", "rule_id", "severity",
+                   "severity_stated", "message", "file", "line", "aliases"],
+      "properties": {
+        "fingerprint": {"type": "string", "pattern": "^[0-9a-f]{40}$",
+                        "description": "Stable identity across runs: anchored on the flagged code, not its line number. Usable as an `ignore` selector."},
+        "tool": {"type": "string", "description": "Engine whose report represents the merged finding."},
+        "tools": {"type": "array", "items": {"type": "string"}, "minItems": 1,
+                  "description": "Every engine that reported it."},
+        "category": {"enum": ["sast", "sca", "secrets", "iac"]},
+        "rule_id": {"type": "string", "description": "A CVE id when one is known, else the engine's rule id."},
+        "aliases": {"type": "array", "items": {"type": "string"}},
+        "severity": {"$ref": "#/$defs/severity"},
+        "severity_stated": {"type": "boolean",
+                            "description": "True when an engine stated the severity; false when derived from CVSS or the SARIF level."},
+        "scanner_severity": {"type": "string", "description": "The engines' severity before CVE-PaaS reprioritization, if any."},
+        "message": {"type": "string"},
+        "description": {"type": "string"},
+        "url": {"type": "string"},
+        "file": {"type": "string", "description": "Repo-relative path (an OS path in image mode)."},
+        "line": {"type": ["integer", "null"], "minimum": 1},
+        "end_line": {"type": ["integer", "null"], "minimum": 1},
+        "column": {"type": ["integer", "null"], "minimum": 1},
+        "end_column": {"type": ["integer", "null"], "minimum": 1},
+        "cwe": {"type": "array", "items": {"type": "string", "pattern": "^CWE-[0-9]+$"}},
+        "package": {"type": ["string", "null"], "description": "SCA: name@version."},
+        "fixed_version": {"type": "string", "description": "SCA: version(s) that fix it, as the engine reported them; empty when none is known."},
+        "priority": {"type": "string"},
+        "epss": {"type": ["number", "null"]},
+        "kev": {"type": "boolean"},
+        "poc": {"type": "boolean"},
+        "nuclei": {"type": "boolean"},
+        "exploitable": {"type": "boolean"},
+        "new": {"type": "boolean", "description": "Present only in baseline mode."}
+      }
+    }
+  }
+}

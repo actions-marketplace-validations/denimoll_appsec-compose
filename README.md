@@ -287,7 +287,7 @@ reports/
 │   ├── checkov.sarif
 │   ├── grype.sarif         # + grype.json (carries CVE/GHSA aliases for dedup)
 │   └── trufflehog.json     # + generated trufflehog.sarif
-├── findings.json           # consolidated, de-duplicated findings + counts
+├── findings.json           # consolidated findings + counts (versioned contract)
 ├── sbom.trivy.cdx.json     # CycloneDX SBOM (Trivy; .spdx.json if enabled)
 ├── sbom.syft.cdx.json      # Syft SBOM (CycloneDX + SPDX, if enabled)
 ├── summary.md              # human summary
@@ -298,6 +298,21 @@ reports/
 table with **category filters**, expandable **details** (description + advisory
 link per finding), and — in baseline mode — a **NEW** flag on findings added
 since the accepted snapshot. It is fully self-contained (no external assets).
+
+### `findings.json` contract
+
+`findings.json` is the machine-readable interface for ASPM imports, CI scripts
+and AI agents, and it is versioned: `schema_version` (`1.0`) refers to
+[`schemas/findings.schema.json`](schemas/findings.schema.json). The major only
+changes when a field is removed, renamed or changes meaning; additions bump the
+minor, so ignore fields you do not know.
+
+Each finding carries a `fingerprint` (stable across runs, see
+[Baseline](#baseline-gate-on-new-findings)), its full location (`line`,
+`end_line`, `column`, `end_column`), the `cwe` ids its rule declares, every
+engine that reported it (`tools`), whether the severity was stated by an engine
+or derived from CVSS (`severity_stated`), and for SCA the `fixed_version` the
+engine knows of.
 
 ## Provenance
 
@@ -399,7 +414,12 @@ ignore:
   - rule: "generic.*"
     category: secrets
     reason: "false positives in sample data"
+  - fingerprint: 3f9a…                  # exactly one finding, from findings.json
+    reason: "triaged: input is a constant"
 ```
+
+`fingerprint` pins one finding rather than a pattern — the right selector for a
+triage verdict on a single result, whether a person or an agent made it.
 
 Suppressed findings are excluded from `fail_on` but recorded in `findings.json`
 under `suppressed` (with the reason) for the audit trail.
@@ -448,7 +468,24 @@ Accept the current findings and fail only on **new** ones thereafter:
 ./run.sh /path/to/repo
 ```
 
-Each finding gets a stable fingerprint `(category, id, file, package, line)`.
+Each finding gets a fingerprint anchored on **what** was flagged, not where it
+sits, so adding a line above a known finding does not make it new:
+
+| Category | Identity |
+|---|---|
+| SAST, IaC | rule + file + the flagged line's code (whitespace-normalized) |
+| IaC with a cross-engine equivalent | policy class + file |
+| Secrets | file + the line with the secret masked out — no secret material is ever hashed |
+| SCA | vulnerability (CVE preferred over aliases) + package name + manifest |
+
+Identical code flagged twice in one file is told apart by order of appearance.
+SCA ignores the installed version on purpose: bumping to a version that is still
+vulnerable is the same accepted risk. When the source cannot be read (image
+mode, a file over 5 MB) the line number stands in.
+
+Baselines from earlier releases (no `version` field) used line numbers. They are still honoured with
+the old scheme, and the run asks you to re-snapshot with `--update-baseline`.
+
 Runs report `new` / `known` / `fixed` counts (in the console, summary and
 `findings.json`), and `fail_on` applies to **new** findings only. Re-run
 `--update-baseline` to re-accept the current state.

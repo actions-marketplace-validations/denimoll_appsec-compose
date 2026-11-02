@@ -173,3 +173,44 @@ def test_grype_unknown_is_the_absence_of_a_verdict(tmp_path):
     """It must reach `unknown_severity` like every other tool's, not become info."""
     assert _grype(tmp_path, "Unknown").severity == "unknown"
     assert _grype(tmp_path, "").severity == "unknown"
+
+
+# --- detail fields: span, CWE, fix ------------------------------------------
+
+def test_sarif_region_span_and_cwe_are_kept(tmp_path):
+    rule = _rule("py.sqli", tags=["CWE-89: Improper Neutralization of SQL",
+                                  "OWASP-A03:2021 - Injection", "security"])
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif([{
+        "ruleId": "py.sqli", "level": "error", "message": {"text": "m"},
+        "locations": [{"physicalLocation": {
+            "artifactLocation": {"uri": "/code/app.py"},
+            "region": {"startLine": 4, "endLine": 5,
+                       "startColumn": 2, "endColumn": 9}}}],
+    }], rules=[rule])))
+    f = load_findings(str(tmp_path), expected={"semgrep.sarif"}).findings[0]
+    assert (f.line, f.end_line, f.column, f.end_column) == (4, 5, 2, 9)
+    assert f.cwe == ["CWE-89"]
+
+
+def test_trivy_fixed_version_is_read_from_the_message(tmp_path):
+    (tmp_path / "trivy-fs.sarif").write_text(json.dumps(_sarif([{
+        "ruleId": "CVE-2021-1", "level": "error",
+        "message": {"text": "Package: flask\nInstalled Version: 1.0\n"
+                            "Vulnerability CVE-2021-1\nSeverity: HIGH\n"
+                            "Fixed Version: 1.1.4, 2.0.1\nLink: [CVE-2021-1](x)"},
+        "locations": [{"physicalLocation": {
+            "artifactLocation": {"uri": "/code/requirements.txt"}}}],
+    }])))
+    f = load_findings(str(tmp_path), expected={"trivy-fs.sarif"}).findings[0]
+    assert f.fixed_version == "1.1.4, 2.0.1"
+
+
+def test_grype_fixed_version_only_when_a_fix_exists(tmp_path):
+    def fixed(fix):
+        (tmp_path / "grype.json").write_text(json.dumps({"matches": [{
+            "vulnerability": {"id": "CVE-9", "severity": "High", "fix": fix},
+            "artifact": {"name": "pkg", "version": "1.0", "locations": []},
+        }]}))
+        return load_findings(str(tmp_path), expected={"grype.json"}).findings[0].fixed_version
+    assert fixed({"versions": ["1.2.0"], "state": "fixed"}) == "1.2.0"
+    assert fixed({"versions": [], "state": "not-fixed"}) == ""
