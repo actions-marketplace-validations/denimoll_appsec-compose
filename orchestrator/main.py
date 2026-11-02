@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import baseline as bl
+import brief
 import coverage as cov
 import enrich as enr
 from config import load_config
@@ -208,6 +209,8 @@ def main() -> int:
     render(result, policy, kept, stats, REPORTS_DIR,
            suppressed_count=len(suppressed), delta=delta, coverage=coverage,
            enrichment=enrichment, expired=expired, provenance=provenance)
+    brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
+                 CODE_DIR, excludes, image_mode, new_fps if delta else None)
 
     # Console summary.
     total = sum(policy.severity_counts.values())
@@ -259,6 +262,7 @@ def main() -> int:
     sboms = sorted(p.name for p in Path(REPORTS_DIR).glob("sbom.*.json"))
     sbom_note = (" | " + " | ".join(sboms)) if sboms else ""
     print(f"Reports: {REPORTS_DIR}/summary.md | summary.html | findings.json"
+          f" | review-brief.md"
           f"{sbom_note} | native/")
     print("=" * 60)
     return policy.exit_code

@@ -93,3 +93,20 @@ def test_a_line_shift_does_not_make_known_findings_new(run):
                                "legacy_format": False}
     assert exit_code == 0
 
+
+def test_review_brief_shows_the_flagged_code_and_the_blind_spots(run):
+    _, doc = run()
+    brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    sast = next(f for f in doc["findings"] if f["category"] == "sast")
+    assert sast["fingerprint"] in brief
+    assert ">   2 | os.system(cmd)" in brief
+    assert "flask@1.0` → fixed in 2.2.5" in brief
+    assert "Cross-file data flow" in brief and "Git history" in brief
+    assert "GATING" in brief
+
+
+def test_no_report_carries_the_secret_value(run):
+    run()
+    for name in ("review-brief.md", "findings.json", "summary.md", "summary.html"):
+        assert SECRET not in (Path(main.REPORTS_DIR) / name).read_text(), name
+    assert 'TOKEN = *' in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()

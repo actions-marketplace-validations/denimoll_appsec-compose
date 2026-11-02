@@ -29,6 +29,7 @@ class Config:
     baseline: bool = False
     strict: bool = False
     offline: bool = False
+    secrets_history: bool = False
     ignore: list = field(default_factory=list)
     scanners: dict = field(default_factory=dict)
     enrich: dict = field(default_factory=dict)   # enrich.cve_paas block
@@ -85,6 +86,7 @@ def load_config(path: str = "/app/scan-config.yml") -> Config:
         baseline=bool(raw.get("baseline", False)),
         strict=bool(raw.get("strict", False)),
         offline=bool(raw.get("offline", False)),
+        secrets_history=bool(raw.get("secrets_history", False)),
         ignore=raw.get("ignore", []) or [],
         scanners=raw.get("scanners", {}) or {},
         enrich=enrich.config_from(raw),

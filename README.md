@@ -288,6 +288,7 @@ reports/
 │   ├── grype.sarif         # + grype.json (carries CVE/GHSA aliases for dedup)
 │   └── trufflehog.json     # + generated trufflehog.sarif
 ├── findings.json           # consolidated findings + counts (versioned contract)
+├── review-brief.md         # hand-off for a human or AI-agent security review
 ├── sbom.trivy.cdx.json     # CycloneDX SBOM (Trivy; .spdx.json if enabled)
 ├── sbom.syft.cdx.json      # Syft SBOM (CycloneDX + SPDX, if enabled)
 ├── summary.md              # human summary
@@ -313,6 +314,26 @@ Each finding carries a `fingerprint` (stable across runs, see
 engine that reported it (`tools`), whether the severity was stated by an engine
 or derived from CVSS (`severity_stated`), and for SCA the `fixed_version` the
 engine knows of.
+
+### `review-brief.md` — hand-off to a reviewer
+
+The scan is usually the start of a review, not the end — more and more often
+the reviewer is an AI agent. `review-brief.md` is written for that reader,
+compact enough to go straight into its context:
+
+- **Scope** — engines and their exact images, DB dates, the languages present,
+  what was excluded, the gate in force.
+- **Blind spots** — what this run did not or could not check: disabled
+  categories, unresolved manifests, git history, cross-file data flow (Semgrep
+  CE is intra-file), SCA reachability, and the logic no pattern matcher models
+  (authorization, business rules). Silence from the scanners there is not
+  evidence, and the reviewer is told so.
+- **Findings** — gating first, then new, then by severity, each with its
+  fingerprint and the flagged code in context (secrets masked; no secret value
+  reaches any of the collector's reports). The first 150 are detailed, the rest
+  counted.
+- **Recording a verdict** — a false positive or accepted risk goes into
+  `ignore:` by fingerprint, with a reason and an expiry.
 
 ## Provenance
 
