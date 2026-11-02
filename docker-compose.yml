@@ -105,11 +105,13 @@ services:
     # git history (needs a .git in the repo). --exit-code 0 keeps it green.
     # Do not go back to `detect`: it survives as a deprecated alias that exits 0
     # and writes an empty report, i.e. it silently finds nothing.
+    # --redact: this SARIF is uploaded to code scanning and kept as a CI
+    # artifact, and must not carry the secret it reports.
     command:
       - >-
         set -f;
         gitleaks $$GITLEAKS_CMD /code --config=/excludes/gitleaks.toml $$GITLEAKS_LOG_OPTS
-        --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0
+        --redact --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0
     environment:
       GITLEAKS_CMD: ${GITLEAKS_CMD:-dir}
       GITLEAKS_LOG_OPTS: ${GITLEAKS_LOG_OPTS:-}
