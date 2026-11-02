@@ -12,9 +12,15 @@ Image pinning: if image-digests.lock maps a tool's `repo:tag` to a
 `repo@sha256:...` digest (written by ./pin.sh), the resolved <TOOL>_IMAGE uses
 the digest; otherwise it uses the plain tag. <TOOL>_TAGREF always holds the tag
 form (consumed by pin.sh).
+
+Output: `.env` and `excludes/` go to the tool directory by default (what a raw
+`docker compose`, pin.sh and preload.sh read). `--out-dir DIR` writes them to
+DIR instead — run.sh renders into a private per-run directory so concurrent
+runs never overwrite each other.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
@@ -137,10 +143,9 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
     }
 
 
-def _write_exclude_files(patterns: list[str]) -> None:
+def _write_exclude_files(patterns: list[str], out: Path) -> None:
     """Generate the exclude configs for engines that take no exclusion flag."""
-    out = ROOT / EXCLUDES_DIR
-    out.mkdir(exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
     regexes = [_path_regex(str(p).strip().strip("/")) for p in patterns
                if str(p).strip()]
     header = "# Generated from scan-config.yml by scripts/render-env.py — do not edit.\n"
@@ -277,7 +282,12 @@ def _is_pinned(env: dict[str, str], prefix: str, pins: dict[str, str]) -> bool:
     return "@sha256:" in env.get(f"{prefix}_IMAGE", "")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Render scan-config.yml into .env")
+    parser.add_argument("--out-dir", type=Path, default=ROOT,
+                        help="where to write .env and excludes/ (default: the tool directory)")
+    out_dir = parser.parse_args(argv).out_dir.resolve()
+
     cfg = yaml.safe_load(CFG.read_text()) or {}
     # Fail on the host, before a single container starts, and name every problem.
     try:
@@ -313,7 +323,7 @@ def main() -> int:
     # list replaces them entirely.
     raw_excludes = cfg.get("exclude", None)
     excludes = DEFAULT_EXCLUDES if raw_excludes is None else list(raw_excludes or [])
-    _write_exclude_files(excludes)
+    _write_exclude_files(excludes, out_dir / EXCLUDES_DIR)
 
     # Gitleaks scans the working tree by default; `secrets_history` walks the
     # full history and `secrets_history_range` narrows it to a commit range
@@ -386,7 +396,8 @@ def main() -> int:
               file=sys.stderr)
         return 2
 
-    (ROOT / ".env").write_text(
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / ".env").write_text(
         "# Generated from scan-config.yml by scripts/render-env.py — do not edit.\n"
         + "".join(f"{k}={q(v)}\n" for k, v in env.items())
     )

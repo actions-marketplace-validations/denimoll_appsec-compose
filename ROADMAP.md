@@ -16,7 +16,9 @@
 - **Reports** — native SARIF per tool, `findings.json`, CycloneDX/SPDX SBOM, and
   a self-contained HTML summary (severity cards, category filters, per-finding
   details + advisory links, NEW badges in baseline mode).
-- **CI/CD** — GitHub Actions + GitLab templates; GHCR collector-image publish.
+- **CI/CD** — reusable GitHub Action (`uses: denimoll/appsec-compose@v1`) and an
+  includable GitLab template (`templates/gitlab/`) for other projects; GHCR
+  collector-image publish.
 - **Scan scope** — one `exclude:` list translated into every engine's own
   exclusion mechanism; recommended defaults out of the box.
 - **Policy per category** — `fail_on` as a map (secrets/sca/sast/iac), plus
@@ -37,7 +39,8 @@
 - **Smoke test** — `scripts/smoke-test.sh` runs the whole pipeline over a
   vulnerable fixture and asserts every engine reported; gates CI.
 - **Multi-project primitives** — `--config`, `--baseline`, `--reports`,
-  `--name` (per-run `COMPOSE_PROJECT_NAME`); `cache/` stays shared.
+  `--name` (per-run `COMPOSE_PROJECT_NAME`), per-run `.env` / `excludes/` so
+  runs from one clone can overlap; `cache/` stays shared.
 - **Tests** — pytest suite over the collector, gating the CI scan job.
 
 ## Release: 1.1.0
@@ -58,7 +61,7 @@ A "project" = a named **profile** (a scan-config) applied to a target entity.
   - [x] `COMPOSE_PROJECT_NAME=appsec-<slug>` per run — isolate containers/volumes.
   - [x] `render-env.py` accepts a config path.
   - [x] Keep `cache/` (Trivy/Grype/Semgrep DBs) global/shared across projects.
-  - [ ] Per-run `.env` / `excludes/` so projects can run **concurrently**.
+  - [x] Per-run `.env` / `excludes/` so projects can run **concurrently**.
 - [ ] **Profiles** — one main profile or several reusable profiles (which
       practices/engines, SBOM formats, policy, etc.).
 - [ ] **Projects** — entities with their own name, path/address (repo URL or

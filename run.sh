@@ -5,8 +5,12 @@
 #   ./run.sh --image <ref>   [--fail-on L]        # scan a container image
 #
 # State can be moved out of this directory, so one clone can scan several
-# projects: --config, --baseline and --reports. Containers are namespaced per
-# run, but .env and excludes/ are still shared — run projects sequentially.
+# projects: --config, --baseline and --reports. Each run renders its .env and
+# excludes/ into a private directory under .run/ (removed on exit), so runs from
+# one clone can overlap — give each its own --name and --reports.
+#
+# Relative paths are resolved against the directory run.sh was invoked from, so
+# it can be called from another project's checkout (CI, the GitHub Action).
 #
 # Reads scan-config.yml, runs the enabled scanners over the target (repo or
 # image) and writes reports to ./reports/. Exit code mirrors the collector's
@@ -23,6 +27,9 @@ usage() {
 
 # Scanners that can scan a container image (the rest are source-only).
 IMAGE_TOOLS=" trivy grype syft "
+
+# Captured before anything changes directory: user paths are relative to it.
+CALLER_PWD="$PWD"
 
 TARGET=""; IMAGE_REF=""; BUILD_CTX=""; DOCKERFILE=""; FAIL_ON_OVERRIDE=""
 CONFIG_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""
@@ -45,9 +52,11 @@ while [[ $# -gt 0 ]]; do
     -v|--version)
       here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
       echo "appsec-compose $(cat "$here/VERSION" 2>/dev/null || echo unknown)"
-      # Re-render so the refs shown are the ones a scan would actually use.
-      python3 "$here/scripts/render-env.py" >/dev/null 2>&1 || true
-      python3 - "$here/.env" <<'PYEOF'
+      # Re-render so the refs shown are the ones a scan would actually use —
+      # into a throwaway dir, so --version never touches any run's state.
+      tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+      python3 "$here/scripts/render-env.py" --out-dir "$tmp" >/dev/null 2>&1 || true
+      python3 - "$tmp/.env" <<'PYEOF'
 import re, sys
 try:
     lines = open(sys.argv[1]).read().splitlines()
@@ -71,22 +80,30 @@ PYEOF
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Resolve every user-supplied path against the caller's directory, then work
+# from the tool directory (compose resolves its ./cache etc. relative to it).
+abspath() { [[ "$1" = /* ]] && echo "$1" || echo "$CALLER_PWD/$1"; }
+[[ -n "$TARGET" ]] && TARGET="$(abspath "$TARGET")"
+[[ -n "$BUILD_CTX" ]] && BUILD_CTX="$(abspath "$BUILD_CTX")"
+[[ -n "$DOCKERFILE" ]] && DOCKERFILE="$(abspath "$DOCKERFILE")"
+[[ -n "$CONFIG_FILE" ]] && CONFIG_FILE="$(abspath "$CONFIG_FILE")"
+[[ -n "$REPORTS_DIR" ]] && REPORTS_DIR="$(abspath "$REPORTS_DIR")"
+[[ -n "$BASELINE_FILE" ]] && BASELINE_FILE="$(abspath "$BASELINE_FILE")"
 cd "$SCRIPT_DIR"
 
 # Resolve the per-project state paths (defaults keep the single-project layout).
-abspath() { [[ "$1" = /* ]] && echo "$1" || echo "$PWD/$1"; }
-
 if [[ -n "$CONFIG_FILE" ]]; then
   [[ -f "$CONFIG_FILE" ]] || { echo "Error: config '$CONFIG_FILE' not found" >&2; exit 2; }
-  ASS_CONFIG_FILE="$(abspath "$CONFIG_FILE")"; export ASS_CONFIG_FILE
+  ASS_CONFIG_FILE="$CONFIG_FILE"; export ASS_CONFIG_FILE
 fi
 if [[ -n "$REPORTS_DIR" ]]; then
   mkdir -p "$REPORTS_DIR/native"
-  ASS_REPORTS_DIR="$(abspath "$REPORTS_DIR")"; export ASS_REPORTS_DIR
+  ASS_REPORTS_DIR="$REPORTS_DIR"; export ASS_REPORTS_DIR
 fi
 if [[ -n "$BASELINE_FILE" ]]; then
   [[ -f "$BASELINE_FILE" ]] || printf '{"fingerprints": []}' > "$BASELINE_FILE"
-  ASS_BASELINE_FILE="$(abspath "$BASELINE_FILE")"; export ASS_BASELINE_FILE
+  ASS_BASELINE_FILE="$BASELINE_FILE"; export ASS_BASELINE_FILE
 fi
 # Namespace the containers so two projects never collide on service names.
 if [[ -n "$PROJECT_NAME" ]]; then
@@ -94,9 +111,25 @@ if [[ -n "$PROJECT_NAME" ]]; then
   COMPOSE_PROJECT_NAME="appsec-${slug%-}"
   export COMPOSE_PROJECT_NAME
 fi
+# Per-run state: the rendered .env, the generated excludes/, a saved image tar
+# (build mode) and registry credentials. Private to this run so concurrent runs
+# never overwrite each other's config, and removed on exit so credentials don't
+# outlive the scan. It sits in the tool directory rather than $TMPDIR because
+# Docker must be able to bind-mount it: with a socket-mounted CI runner the
+# daemon sees the build dir on the same path, but not the job's /tmp.
+mkdir -p .run
+RUN_DIR="$(mktemp -d "$SCRIPT_DIR/.run/run.XXXXXX")"
+trap 'rm -rf "$RUN_DIR"' EXIT
+ASS_EXCLUDES_DIR="$RUN_DIR/excludes"; ASS_ARCHIVE_DIR="$RUN_DIR/archive"
+export ASS_EXCLUDES_DIR ASS_ARCHIVE_DIR
+mkdir -p "$ASS_EXCLUDES_DIR" "$ASS_ARCHIVE_DIR"
+
+# Every compose call reads this run's .env, never the tool directory's.
+compose() { docker compose --env-file "$RUN_DIR/.env" "$@"; }
+
 # Empty dir for the (unused) /code mount in image mode; in-project so Docker can
-# always bind-mount it. .img-archive holds a saved image tar in build mode.
-mkdir -p .img-empty .img-archive excludes
+# always bind-mount it. Shared: nothing ever writes to it.
+mkdir -p .img-empty
 
 # The collector runs non-root; give it the host identity so it can write into
 # the bind-mounted reports/ and appsec-baseline.json.
@@ -124,7 +157,7 @@ if [[ -n "$BUILD_CTX" ]]; then
   else
     docker build -t "$tag" "$BUILD_CTX"
   fi
-  docker save "$tag" -o .img-archive/image.tar
+  docker save "$tag" -o "$ASS_ARCHIVE_DIR/image.tar"
   export ASS_IMAGE_TAR="/archive/image.tar"
   SCAN_TARGET="$SCRIPT_DIR/.img-empty"
   TARGET_LABEL="built image from $BUILD_CTX"
@@ -136,10 +169,10 @@ elif [[ -n "$IMAGE_REF" ]]; then
   if [[ -n "$REG_USER" && -n "$REG_PASS" ]]; then
     reg="$(registry_of "$IMAGE_REF")"
     b64="$(printf '%s:%s' "$REG_USER" "$REG_PASS" | base64 | tr -d '\n')"
-    mkdir -p .docker-auth
-    printf '{"auths":{"%s":{"auth":"%s"}}}' "$reg" "$b64" > .docker-auth/config.json
-    chmod 600 .docker-auth/config.json
-    export ASS_DOCKER_CONFIG="$SCRIPT_DIR/.docker-auth"
+    mkdir -p "$RUN_DIR/docker-auth"
+    printf '{"auths":{"%s":{"auth":"%s"}}}' "$reg" "$b64" > "$RUN_DIR/docker-auth/config.json"
+    chmod 600 "$RUN_DIR/docker-auth/config.json"
+    export ASS_DOCKER_CONFIG="$RUN_DIR/docker-auth"
     echo "Registry auth : configured for $reg"
   fi
 elif [[ -n "$TARGET" ]]; then
@@ -151,17 +184,18 @@ else
 fi
 export SCAN_TARGET
 
-# Render scan-config.yml -> .env (versions + flags) and read the enabled list.
-# render-env reads ASS_IMAGE to pick filesystem vs image targets.
-# Command substitution hides a non-zero exit, so capture first and propagate:
-# render-env fails deliberately (e.g. require_pinned with an incomplete lock).
-render_out="$(python3 scripts/render-env.py)" || exit $?
+# Render scan-config.yml -> this run's .env + excludes/ (versions + flags) and
+# read the enabled list. render-env reads ASS_IMAGE to pick filesystem vs image
+# targets. Command substitution hides a non-zero exit, so capture first and
+# propagate: render-env fails deliberately (e.g. require_pinned with an
+# incomplete lock).
+render_out="$(python3 scripts/render-env.py --out-dir "$RUN_DIR")" || exit $?
 eval "$render_out"
 [[ -n "$FAIL_ON_OVERRIDE" ]] && export FAIL_ON="$FAIL_ON_OVERRIDE"
 
 # Cache stays global: the vulnerability DBs are shared across every project.
 REPORTS="${ASS_REPORTS_DIR:-$SCRIPT_DIR/reports}"
-mkdir -p "$REPORTS/native" cache/semgrep cache/trivy cache/grype semgrep-rules excludes
+mkdir -p "$REPORTS/native" cache/semgrep cache/trivy cache/grype semgrep-rules
 
 # Clear last run's native reports. A scanner that is disabled (or that now
 # fails) would otherwise leave a stale SARIF behind, which CI's hashFiles()
@@ -199,21 +233,21 @@ echo "Mode     : $([[ "$ASS_OFFLINE" == "1" ]] && echo offline || echo online)"
 [[ "${ASS_STRICT:-}" == "1" ]] && echo "strict   : a missing scanner report fails the run"
 [[ "${ASS_UPDATE_BASELINE:-}" == "1" ]] && echo "baseline : updating snapshot"
 
-docker compose down --remove-orphans >/dev/null 2>&1 || true
+compose down --remove-orphans >/dev/null 2>&1 || true
 
 # Run the enabled scanners in parallel (one-shot). Plain `up` (no
 # --abort-on-container-exit) waits for every listed service to finish.
 # shellcheck disable=SC2086
-docker compose up --no-deps $ASS_ENABLED
+compose up --no-deps $ASS_ENABLED
 
 # Collector reads the reports and returns the policy exit code. --no-deps so it
 # doesn't re-trigger the scanners via depends_on.
 set +e
-docker compose run --rm --no-deps --build collector
+compose run --rm --no-deps --build collector
 code=$?
 set -e
 
-docker compose down --remove-orphans >/dev/null 2>&1 || true
+compose down --remove-orphans >/dev/null 2>&1 || true
 
 echo
 echo "Done. See $REPORTS/summary.md (exit code: $code)"

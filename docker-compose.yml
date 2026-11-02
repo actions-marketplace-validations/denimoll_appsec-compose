@@ -9,6 +9,9 @@
 #
 # Image versions and the *_RULES / *_FLAGS below come from .env (see
 # scripts/render-env.py); the defaults here keep raw `docker compose` working.
+# run.sh renders a private .env per run and passes it with --env-file; it also
+# points ASS_EXCLUDES_DIR / ASS_ARCHIVE_DIR at that run's directory. Their
+# defaults (./excludes, ./.img-archive) are where a plain `render-env.py` writes.
 
 name: appsec-compose
 
@@ -27,14 +30,14 @@ x-scan-volumes: &scan-volumes
 x-image-volumes: &image-volumes
   - *code-mount
   - ${ASS_REPORTS_DIR:-./reports}:/reports
-  - ./.img-archive:/archive:ro
+  - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
   - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
 # Generated per-engine exclude configs (gitleaks TOML, trufflehog regex list).
 x-exclude-volumes: &exclude-volumes
   - *code-mount
   - ${ASS_REPORTS_DIR:-./reports}:/reports
-  - ./excludes:/excludes:ro
+  - ${ASS_EXCLUDES_DIR:-./excludes}:/excludes:ro
 
 # Every scanner runs one shot through a shell and must exit 0: findings are the
 # collector's business, so a noisy engine never breaks the scan phase.
@@ -91,7 +94,7 @@ services:
       - *code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
       - ./cache/trivy:/root/.cache/trivy
-      - ./.img-archive:/archive:ro
+      - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
       - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
   # ---- Secrets ----------------------------------------------------------
@@ -152,7 +155,7 @@ services:
       - *code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
       - ./cache/grype:/cache/grype
-      - ./.img-archive:/archive:ro
+      - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
       - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
   # ---- Secrets (alternative) -------------------------------------------

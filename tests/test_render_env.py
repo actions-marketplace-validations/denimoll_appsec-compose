@@ -68,9 +68,8 @@ def test_empty_entries_are_dropped(renv):
         == "--exclude=x"
 
 
-def test_write_exclude_files_generates_engine_configs(renv, tmp_path, monkeypatch):
-    monkeypatch.setattr(renv, "ROOT", tmp_path)
-    renv._write_exclude_files(["node_modules", ".venv"])
+def test_write_exclude_files_generates_engine_configs(renv, tmp_path):
+    renv._write_exclude_files(["node_modules", ".venv"], tmp_path / "excludes")
     toml = (tmp_path / "excludes" / "gitleaks.toml").read_text()
     assert "useDefault = true" in toml and "[[allowlists]]" in toml
     assert toml.count("'''") == 4                  # two quoted regexes
@@ -79,12 +78,31 @@ def test_write_exclude_files_generates_engine_configs(renv, tmp_path, monkeypatc
 
 
 def test_write_exclude_files_with_no_excludes_still_writes_valid_configs(
-        renv, tmp_path, monkeypatch):
-    monkeypatch.setattr(renv, "ROOT", tmp_path)
-    renv._write_exclude_files([])
+        renv, tmp_path):
+    renv._write_exclude_files([], tmp_path / "excludes")
     toml = (tmp_path / "excludes" / "gitleaks.toml").read_text()
     assert "useDefault = true" in toml and "[[allowlists]]" not in toml
     assert (tmp_path / "excludes" / "trufflehog.txt").read_text() == ""
+
+
+def test_out_dir_keeps_a_run_out_of_the_tool_directory(tmp_path):
+    """run.sh renders per run; nothing may land in (or race on) the shared dir."""
+    import os
+    import subprocess
+    import sys
+    env_file = ROOT / ".env"
+    before = env_file.stat().st_mtime_ns if env_file.exists() else None
+    out = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "render-env.py"),
+         "--out-dir", str(tmp_path / "run")],
+        capture_output=True, text=True, check=True,
+        env={**os.environ, "ASS_CONFIG_FILE": str(ROOT / "scan-config.yml")})
+    assert "ASS_ENABLED=" in out.stdout
+    assert "SEMGREP_IMAGE=" in (tmp_path / "run" / ".env").read_text()
+    assert (tmp_path / "run" / "excludes" / "gitleaks.toml").is_file()
+    assert (tmp_path / "run" / "excludes" / "trufflehog.txt").is_file()
+    after = env_file.stat().st_mtime_ns if env_file.exists() else None
+    assert before == after
 
 
 def test_is_pinned_detects_digest_refs(renv):

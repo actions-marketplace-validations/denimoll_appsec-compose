@@ -1,11 +1,13 @@
-# appsec-compose — GitLab CI template.
+# appsec-compose — this repository's own pipeline.
 #
-# appsec-compose bind-mounts the repo into scanner containers, so the Docker
-# daemon must see the checkout on the SAME path as the job. The reliable setup
-# is a runner with the host Docker socket mounted (executor = docker with
-# `volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/builds:/builds"]`,
-# or a shell runner with Docker installed). Plain dind will NOT work, because
-# the dind daemon cannot see $CI_PROJECT_DIR.
+# Other projects include the reusable template instead:
+# templates/gitlab/appsec-compose.yml. Its header carries the runner
+# requirement (the host Docker socket, not dind — the daemon must see the
+# checkout on the same path as the job). This pipeline includes that same
+# template and points it at this checkout rather than fetching a release.
+
+include:
+  - local: templates/gitlab/appsec-compose.yml
 
 stages: [test, scan]
 
@@ -21,33 +23,7 @@ appsec-compose:tests:
 
 appsec-compose:
   stage: scan
-  image: docker:29
   needs: ["appsec-compose:tests"]
   variables:
-    DOCKER_HOST: unix:///var/run/docker.sock
-  before_script:
-    - apk add --no-cache bash python3 py3-yaml
-  script:
-    # Run the scan; don't let the policy gate abort before we collect reports.
-    - ./run.sh "$CI_PROJECT_DIR" || true
-    # Re-apply the policy gate as the job's exit status.
-    - python3 -c "import json,sys; sys.exit(json.load(open('reports/findings.json'))['policy']['exit_code'])"
-  cache:
-    key: "appsec-db"
-    paths:
-      - cache/
-  artifacts:
-    when: always
-    paths:
-      - reports/
-    reports:
-      # GitLab ingests these natively: the SBOM feeds Dependency Scanning and
-      # the SAST/secret SARIF feed the corresponding security dashboards.
-      cyclonedx:
-        - reports/sbom.trivy.cdx.json
-      sast:
-        - reports/native/semgrep.sarif
-      secret_detection:
-        - reports/native/gitleaks.sarif
-      dependency_scanning:
-        - reports/native/trivy-fs.sarif
+    # Dogfood the checkout under test, not a published release.
+    APPSEC_COMPOSE_DIR: $CI_PROJECT_DIR
