@@ -80,8 +80,9 @@ the first step of an AI agent's security review. CI integrations come later.
       building on first run.
 - [ ] **Diff mode** — scan only what a change touched (Semgrep
       `--baseline-commit`, Gitleaks commit range) for fast agent iterations.
-- [ ] **MCP server / agent skill** — `scan`, `findings`, `explain`, `suppress`
-      over the same CLI and `findings.json` contract.
+- [x] **MCP server / agent skill** — `scan`, `findings`, `finding`, `brief`,
+      `suppress` over the same CLI and `findings.json` contract
+      ([`appsec_mcp/`](appsec_mcp/README.md)).
 - [ ] **Coverage gaps** — CI/CD workflow scanning (zizmor), dependency licenses,
       malicious-package advisories on by default.
 - [ ] **Public benchmark** — precision/recall on known-vulnerable projects.

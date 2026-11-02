@@ -1,0 +1,4 @@
+# Host-side requirements of the MCP server (python3 -m appsec_mcp).
+# The scanners and the collector still run in Docker.
+mcp==2.3.0
+PyYAML==6.0.3

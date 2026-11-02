@@ -394,6 +394,21 @@ compact enough to go straight into its context:
 - **Recording a verdict** — a false positive or accepted risk goes into
   `ignore:` by fingerprint, with a reason and an expiry.
 
+### Driving it from an AI agent (MCP)
+
+[`appsec_mcp/`](appsec_mcp/README.md) is an MCP server (stdio) over the same
+CLI and `findings.json`: an agent calls `scan`, pages through `findings`, reads
+one `finding` with its code (secrets masked), and records a verdict with
+`suppress` — an `ignore:` entry with a reason and an expiry in the project's
+`.appsec-compose.yml`. Install and register it:
+
+```bash
+python3 -m venv ~/.venvs/appsec-mcp
+~/.venvs/appsec-mcp/bin/pip install -r appsec_mcp/requirements.txt
+claude mcp add --scope user appsec-compose -- \
+  ~/.venvs/appsec-mcp/bin/python "$PWD/appsec_mcp"
+```
+
 ## Provenance
 
 Every report records what produced it — the appsec-compose version, each
@@ -644,6 +659,7 @@ preload.sh              # offline cache populator
 scan-config.yml         # the single file you edit
 scripts/render-env.py   # scan-config.yml -> .env
 orchestrator/           # Python collector (config, normalize, policy, summary)
+appsec_mcp/             # MCP server for AI agents (scan, triage, suppress)
 tests/                  # collector unit tests (pytest)
 ```
 
