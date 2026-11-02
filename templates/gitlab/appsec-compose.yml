@@ -77,6 +77,10 @@
       tool="${APPSEC_COMPOSE_DIR:-$CI_BUILDS_DIR/appsec-compose-$CI_JOB_ID}"
       rm -rf appsec-reports
       if [ -d "$tool/reports" ]; then cp -R "$tool/reports" appsec-reports; fi
+      # GitLab's security reports have their own format; SARIF is rejected.
+      if [ -f appsec-reports/findings.json ]; then
+        python3 "$tool/scripts/gitlab-reports.py" appsec-reports/findings.json appsec-reports/gitlab
+      fi
       if [ -d "$tool/cache" ]; then
         rm -rf .appsec-compose-cache
         mv "$tool/cache" .appsec-compose-cache
@@ -91,16 +95,18 @@
     paths:
       - appsec-reports/
     reports:
-      # GitLab ingests these natively: the SBOM feeds Dependency Scanning and
-      # the SAST/secret SARIF feed the corresponding security dashboards.
+      # GitLab's own report formats, converted from findings.json (deduped,
+      # suppressions applied, stable ids) by scripts/gitlab-reports.py. The
+      # security widgets and dashboards that read them are a GitLab Ultimate
+      # feature; on other tiers the files are still in the artifact.
+      sast:
+        - appsec-reports/gitlab/gl-sast-report.json
+      secret_detection:
+        - appsec-reports/gitlab/gl-secret-detection-report.json
+      dependency_scanning:
+        - appsec-reports/gitlab/gl-dependency-scanning-report.json
       cyclonedx:
         - appsec-reports/sbom.trivy.cdx.json
-      sast:
-        - appsec-reports/native/semgrep.sarif
-      secret_detection:
-        - appsec-reports/native/gitleaks.sarif
-      dependency_scanning:
-        - appsec-reports/native/trivy-fs.sarif
 
 appsec-compose:
   extends: .appsec-compose
