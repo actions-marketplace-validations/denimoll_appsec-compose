@@ -1,6 +1,6 @@
 # Roadmap
 
-## Shipped (on `develop`, pending the 1.0.0 release)
+## Shipped
 
 - **Engines** — Semgrep (SAST), Trivy (SCA/IaC/SBOM), Gitleaks (secrets),
   Checkov (IaC) by default; Grype + OSV-Scanner (SCA), TruffleHog (secrets),
@@ -16,7 +16,7 @@
 - **Reports** — native SARIF per tool, `findings.json`, CycloneDX/SPDX SBOM, and
   a self-contained HTML summary (severity cards, category filters, per-finding
   details + advisory links, NEW badges in baseline mode).
-- **CI/CD** — reusable GitHub Action (`uses: denimoll/appsec-compose@v1`) and an
+- **CI/CD** — reusable GitHub Action (`uses: denimoll/appsec-compose@v.X.Y.Z`) and an
   includable GitLab template (`templates/gitlab/`) for other projects; GHCR
   collector-image publish.
 - **Scan scope** — one `exclude:` list translated into every engine's own
@@ -42,26 +42,61 @@
   `--name` (per-run `COMPOSE_PROJECT_NAME`), per-run `.env` / `excludes/` so
   runs from one clone can overlap; `cache/` stays shared.
 - **Tests** — pytest suite over the collector, gating the CI scan job.
+- **Content-anchored fingerprints (v2)** — baseline identity follows the flagged
+  code, not its line number, so unrelated edits no longer surface known
+  findings as new; v1 baselines still honoured. Secret values never hashed.
+- **`findings.json` contract** — `schema_version` + JSON Schema
+  (`schemas/findings.schema.json`); fingerprint, full span, CWE, fixed version.
+- **Review brief** — `review-brief.md` hands the scan to a human or AI-agent
+  reviewer: scope, blind spots, findings with code context, verdict format.
+  `ignore:` accepts a `fingerprint` for single-finding triage verdicts.
+- **Secret-free reports** — Gitleaks runs with `--redact`; no report the run
+  produces carries a secret value.
+- **GitLab security reports** — `scripts/gitlab-reports.py` converts
+  `findings.json` into GitLab's native sast / secret_detection /
+  dependency_scanning formats (validated against schemas 15.0.7 and 15.2.4);
+  the template no longer hands GitLab SARIF it cannot parse.
 
-## Release: 1.1.0
+## Release: 1.2.0
 
 - [ ] **Re-validate on a real production project** (gate — must pass before
-      tagging). Gate behaviour changed in three places this cycle (per-category
-      `fail_on`, `strict`, `exclude:`), so existing projects may shift.
+      tagging). Baseline fingerprints changed format (v1 baselines are still
+      read, but should be re-snapshotted), and `findings.json` gained a contract.
 - [ ] Merge `develop` → `main`.
-- [ ] Tag `v1.1.0` + GitHub Release (triggers the collector image publish to GHCR).
+- [ ] Tag `v.1.2.0` + GitHub Release (triggers the collector image publish to GHCR).
 
-## Multi-project & UI (primary future direction)
+## Primary direction: local and AI-assisted review
+
+The product a person installs and runs on their own machine — by hand, or as
+the first step of an AI agent's security review. CI integrations come later.
+
+- [ ] **Run without cloning** — one installable entry point
+      (`appsec-compose scan <path>`) that works from any directory and keeps
+      its state in a user cache dir rather than the tool checkout.
+- [ ] **Prebuilt collector image** — compose pulls it (`image:`) instead of
+      building on first run.
+- [ ] **Distinct exit codes** — policy breach vs. tool failure vs. config error,
+      so a caller (or an agent) knows whether to fix code or fix the setup.
+- [ ] **Diff mode** — scan only what a change touched (Semgrep
+      `--baseline-commit`, Gitleaks commit range) for fast agent iterations.
+- [ ] **MCP server / agent skill** — `scan`, `findings`, `explain`, `suppress`
+      over the same CLI and `findings.json` contract.
+- [ ] **Coverage gaps** — CI/CD workflow scanning (zizmor), dependency licenses,
+      malicious-package advisories on by default.
+- [ ] **Public benchmark** — precision/recall on known-vulnerable projects.
+
+## CI integrations (later — current versions work)
+
+- [ ] Run the GitHub Action and the GitLab template in real pipelines.
+- [ ] Optional moving tag (e.g. `v.1`) for the Action, moved by the release
+      workflow; until then, pin an exact `v.X.Y.Z` tag or a commit SHA.
+
+## Multi-project & UI (later)
 
 A "project" = a named **profile** (a scan-config) applied to a target entity.
+The enabling primitives are done (`--config`/`--baseline`/`--reports`/`--name`,
+per-run state, shared `cache/`).
 
-- [ ] **Enabling primitives** (each independently useful):
-  - [x] `run.sh --config <path> --baseline <path> --reports <dir>` — decouple
-        state from the tool directory.
-  - [x] `COMPOSE_PROJECT_NAME=appsec-<slug>` per run — isolate containers/volumes.
-  - [x] `render-env.py` accepts a config path.
-  - [x] Keep `cache/` (Trivy/Grype/Semgrep DBs) global/shared across projects.
-  - [x] Per-run `.env` / `excludes/` so projects can run **concurrently**.
 - [ ] **Profiles** — one main profile or several reusable profiles (which
       practices/engines, SBOM formats, policy, etc.).
 - [ ] **Projects** — entities with their own name, path/address (repo URL or
@@ -74,7 +109,6 @@ A "project" = a named **profile** (a scan-config) applied to a target entity.
 ## Integrations & extras (backlog)
 
 - [ ] **ASPM/ASOC push** — DefectDojo (API import), DependencyTrack (SBOM upload).
-- [ ] Prebuilt collector image consumed by compose (`image:` instead of `build:`).
 - [ ] Richer **delta report** in HTML (new/fixed diff beyond the baseline NEW flag).
 - [ ] More engines as needed (e.g. KICS).
 - [ ] Extend the IaC equivalence map beyond Dockerfile rules (Terraform, K8s).

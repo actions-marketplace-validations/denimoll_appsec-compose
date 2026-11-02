@@ -3,15 +3,15 @@
 # Include it from your .gitlab-ci.yml (pin the include AND the tool ref):
 #
 #   include:
-#     - remote: https://raw.githubusercontent.com/denimoll/appsec-compose/vX.Y.Z/templates/gitlab/appsec-compose.yml
+#     - remote: https://raw.githubusercontent.com/denimoll/appsec-compose/v.1.2.0/templates/gitlab/appsec-compose.yml
 #     # or, from a GitLab mirror:
 #     # - project: security/appsec-compose
-#     #   ref: vX.Y.Z
+#     #   ref: v.1.2.0
 #     #   file: templates/gitlab/appsec-compose.yml
 #
 #   appsec-compose:
 #     variables:
-#       APPSEC_COMPOSE_REF: vX.Y.Z            # tag or commit SHA of the tool
+#       APPSEC_COMPOSE_REF: v.1.2.0            # tag or commit SHA of the tool
 #       APPSEC_COMPOSE_CONFIG: .gitlab/scan-config.yml
 #
 # The job fetches the tool at APPSEC_COMPOSE_REF next to the checkout (not
@@ -35,7 +35,7 @@
     APPSEC_COMPOSE_REPO: https://github.com/denimoll/appsec-compose.git
     # Branch, tag or full commit SHA. Pin a release tag or a SHA: a moving ref
     # changes the engines and the gate under you.
-    APPSEC_COMPOSE_REF: v1
+    APPSEC_COMPOSE_REF: v.1.2.0
     # Use an existing checkout of the tool instead of fetching one.
     APPSEC_COMPOSE_DIR: ""
     APPSEC_COMPOSE_TARGET: $CI_PROJECT_DIR
