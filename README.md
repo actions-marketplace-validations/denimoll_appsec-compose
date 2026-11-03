@@ -1,526 +1,117 @@
 # appsec-compose
 
-One-command, OSS AppSec static scan for any code repository. Runs **SAST, SCA,
-secret scanning and IaC** checks via proven open-source engines, then collects
-the results into native reports plus a human-readable summary and a CycloneDX
-SBOM — ready to read yourself or upload to an ASPM/ASOC (DefectDojo,
-DependencyTrack, …).
+One command runs a full OSS static security scan of a repository — **SAST, SCA,
+secrets, IaC and CI/CD workflows** — through proven engines (Semgrep, Trivy,
+Gitleaks, Checkov, zizmor, …), merges what they find into one de-duplicated,
+fingerprinted result, and gates on it with an exit code that says what to fix.
 
-It is a **thin, stateless orchestrator**: no database, no web UI, no workers.
-Each scanner runs as a one-shot Docker Compose service; a small Python collector
-aggregates the reports and produces a CI-meaningful exit code.
+It is built to be the first step of a security review, by a person or by an AI
+agent: every run also writes a **review brief** — what was checked, what could
+not be, and the flagged code — and an MCP server lets an agent scan, triage and
+record verdicts itself.
 
-What's planned (multi-project profiles, scheduling, a minimal UI, ASPM push) is
-tracked in [ROADMAP.md](ROADMAP.md).
+A thin, stateless orchestrator: no database, no UI, no workers. Each engine runs
+as a one-shot container; a small Python collector does the rest.
 
-## Engines
+## Install and run locally (no clone)
 
-| Category | Tool | Default | Output |
-|---|---|---|---|
-| SAST | [Semgrep](https://semgrep.dev) | on | `semgrep.sarif` |
-| SCA | [Trivy](https://trivy.dev) | on | `trivy-fs.sarif` |
-| SCA (alt) | [Grype](https://github.com/anchore/grype) | off | `grype.sarif` |
-| SCA (alt) | [OSV-Scanner](https://github.com/google/osv-scanner) | off | `osv.sarif` (needs network) |
-| IaC | [Trivy config](https://trivy.dev) | on | `trivy-config.sarif` |
-| IaC | [Checkov](https://www.checkov.io) | on | `checkov.sarif` |
-| IaC (alt) | [Hadolint](https://github.com/hadolint/hadolint) | off | `hadolint.sarif` (Dockerfiles) |
-| Secrets | [Gitleaks](https://github.com/gitleaks/gitleaks) | on | `gitleaks.sarif` |
-| Secrets (alt) | [TruffleHog](https://github.com/trufflesecurity/trufflehog) | off | `trufflehog.json` + `trufflehog.sarif`\* |
-| SBOM | [Trivy](https://trivy.dev) | on | `sbom.trivy.cdx.json` |
-| SBOM (alt) | [Syft](https://github.com/anchore/syft) | off | `sbom.syft.cdx.json` |
+Needs Docker with Compose v2, Python 3.9+ with PyYAML, and bash.
 
-Tools covering the same category are **complementary** — enable one or several;
-every enabled tool emits its own native report and all are aggregated.
+```bash
+curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
+# or pin a release:  bash install.sh --ref v.1.2.0
+```
 
-\* TruffleHog has no native SARIF, so the collector keeps its raw JSON **and**
-generates a SARIF from it, so SARIF-only ASPM tools can ingest it too. Our
-`findings.json` normalization is internal (for the summary); the per-tool native
-reports are what you upload to an ASPM.
+```bash
+appsec-compose scan                       # the current directory
+appsec-compose scan ~/src/api --fail-on critical
+appsec-compose scan . --diff origin/main  # only what your branch changed
+appsec-compose scan --image nginx:1.27    # a container image
+appsec-compose scan . --json              # one JSON object on stdout, for tools and agents
+```
 
-## Requirements
+Reports land in `./appsec-reports`. The vulnerability databases are cached in
+`~/.cache/appsec-compose`; `appsec-compose preload` prepares them for offline
+use. More: [usage](docs/usage.md).
 
-On the host running the scan:
+## What runs
 
-| | |
+| Category | On by default | Opt-in |
+|---|---|---|
+| SAST | Semgrep | — |
+| Dependencies (SCA) + SBOM | Trivy | Grype, OSV-Scanner, Syft |
+| Secrets | Gitleaks (+ Trivy) | TruffleHog |
+| IaC | Checkov, Trivy config | Hadolint |
+| CI/CD workflows | zizmor | — |
+
+Malicious packages are ranked critical whatever their score; a dependency
+license policy is available as an option. Details, and how findings are ranked
+and merged across engines: [engines](docs/engines.md).
+
+## What you get
+
+| File | For |
 |---|---|
-| **Docker** + **Docker Compose v2** | every engine runs as a one-shot container |
-| **Python 3.9+** with **PyYAML** | `run.sh` renders `scan-config.yml` into `.env` via `scripts/render-env.py`; `pin.sh` and `preload.sh` use it too |
-| **Bash** | `run.sh`, `pin.sh`, `preload.sh` |
+| `summary.html`, `summary.md` | reading the result |
+| `review-brief.md` | the next reviewer — a person or an AI agent: scope, **blind spots**, findings with code (secrets masked), how to record a verdict |
+| `findings.json` | tools and agents: a versioned contract ([schema](schemas/findings.schema.json)), stable fingerprints |
+| `native/*.sarif`, `sbom.*.json` | ASPM upload (DefectDojo, Dependency-Track, GitHub code scanning, …) |
 
-```bash
-python3 -m pip install pyyaml     # or: apt install python3-yaml / brew install pyyaml
-```
+Every report records the tool version, engine images and database dates.
+[Reports](docs/reports.md).
 
-Nothing else is installed on the host — the scanners and the collector are all
-containers, and no `docker.sock` is mounted into them.
+## Exit codes
 
-## Usage
+| Code | Meaning | What to do |
+|---|---|---|
+| `0` | the gate passed | — |
+| `1` | findings at or above `fail_on` | fix or triage them |
+| `2` | usage or configuration error | fix the command or the config |
+| `3` | the scan did not complete | fix the environment; there is no verdict |
 
-```bash
-./run.sh /path/to/your/repo
-# default fails (exit 1) on high+ findings; override per run:
-./run.sh /path/to/your/repo --fail-on critical
+## Configure a project
 
-# scan a container image instead of a repo (Trivy / Grype / Syft):
-./run.sh --image nginx:1.27
-# a private image (or set REGISTRY_USER / REGISTRY_PASS in the env):
-./run.sh --image ghcr.io/me/app:1.0 --registry-user me --registry-pass "$TOKEN"
-# build from a Dockerfile and scan the result:
-./run.sh --build ./path/to/context [--dockerfile Dockerfile.prod]
-
-# fail if an enabled scanner produced no readable report:
-./run.sh /path/to/your/repo --strict
-# refuse to run unless every scanner is pinned by digest:
-./run.sh /path/to/your/repo --require-pinned
-```
-
-Out of the box one engine per category runs (Semgrep, Trivy, Gitleaks, Checkov)
-and the gate fails on `high`+ — that is the recommended setup, not a minimum.
-The alternative engines and everything below are opt-in for when you want more.
-
-## Configuration — one file
-
-Everything lives in [`scan-config.yml`](scan-config.yml): which checks run, the
-pinned tool **versions** (bump here to upgrade), the policy gate and the offline
-switch. `run.sh` renders it into `.env` (which Compose loads) and runs only the
-enabled scanners.
+Defaults live in [`scan-config.yml`](scan-config.yml). A project adds
+`.appsec-compose.yml` at its root, picked up automatically, and states only
+what differs — it is laid over the defaults:
 
 ```yaml
-scanners:
-  semgrep:  { enabled: true, version: "1.174.0" }    # SAST
-  trivy:    { enabled: true, version: "0.74.0" }     # SCA + IaC + SBOM
-  gitleaks: { enabled: true, version: "v8.30.1" }    # secrets
-  checkov:  { enabled: true, version: "3.3.13" }     # IaC
-
-sbom: true                 # SBOM via Trivy
-sbom_formats: [cyclonedx]  # any of: cyclonedx, spdx
-fail_on: high              # critical|high|medium|low|none (none = report-only)
-unknown_severity: medium
-strict: false              # a scanner with no readable report fails the run
-offline: false             # use ./preload.sh cache, no network during scan
-```
-
-Disable a check by setting `enabled: false` — that scanner won't run and the
-collector won't expect its report. Upgrade a tool by changing its `version`.
-Set `secrets_history: true` to have Gitleaks scan the full **git history**
-(needs a `.git` in the repo), not just the working tree. In CI that is usually
-more than you need — `secrets_history_range: "origin/main..HEAD"` limits it to
-the branch's own commits, which is orders of magnitude faster and still catches
-a secret that was committed and then removed within the branch.
-
-## Custom & auto Semgrep rules
-
-By default Semgrep runs the curated `p/default` pack. Point it at your own rules
-or let it pick rules for the repo's stack via `scanners.semgrep.rules`:
-
-```yaml
-scanners:
-  semgrep:
-    enabled: true
-    version: "1.174.0"
-    rules:
-      - default                      # the curated p/default pack
-      - auto                         # detect the stack -> matching registry packs
-      - "p/python"                   # any Semgrep registry ref
-      - "/semgrep-rules/custom.yml"  # a file from ./semgrep-rules
-```
-
-- **`auto`** scans the repo for languages/manifests (`.py`, `.go`, `.tf`,
-  `Dockerfile`, …) and adds the matching `p/<lang>` packs (online only; offline
-  falls back to the cached default pack).
-- Any `*.yml`/`*.yaml` you drop into **`./semgrep-rules/`** is mounted at
-  `/semgrep-rules` and auto-included — no config needed.
-
-## Scan scope (`exclude:`)
-
-Every engine skips the same set of directories, so vendored dependencies and
-build output don't bury the real findings (or dominate the runtime). Omit the
-key for the recommended defaults — `.git`, `node_modules`, `vendor`, `dist`,
-`build`, `target`, `.venv`, `venv`, `__pycache__`, `.gradle`, `.tox`,
-`.mypy_cache` — or set it to replace them:
-
-```yaml
-exclude:
-  - node_modules
-  - vendor
-  - "docs/**"      # path globs work too
-```
-
-An explicit empty list (`exclude: []`) scans everything. Entries are translated
-into each engine's own mechanism (`--exclude`, `--skip-dirs`, `--skip-path`, a
-generated Gitleaks allowlist, a TruffleHog regex file, …), so one list covers
-all nine.
-
-## Policy per category
-
-`fail_on` may be a single level or a map, so each practice gets the gate it
-deserves — a leaked credential is not the same event as a medium IaC lint:
-
-```yaml
-fail_on:
-  secrets: low        # any credential fails the build
-  sca: high
-  sast: critical
-  iac: none           # report-only
-  default: high       # categories not listed above
-```
-
-Each finding is compared against the threshold for its own category.
-`./run.sh --fail-on <level>` overrides the whole map with a single level.
-
-## Failing loudly (`strict`)
-
-Scanners always exit `0`, so a crashed engine would otherwise look like a clean
-result. With `strict: true` (or `--strict`) the run fails with exit `2` — rather
-than counting as "0 findings" — when either:
-
-- a scanner that was expected to report produced nothing readable, or
-- the [SCA coverage check](#sca-coverage-check) found dependency manifests that
-  no engine resolved.
-
-Off by default, since a flaky engine then breaks the build rather than degrading
-the scan.
-
-## Exploitability (CVE-PaaS)
-
-A CVSS score says how bad a vulnerability would be. It does not say whether
-anyone is exploiting it — which is why a CVSS-only gate fires on dozens of
-theoretical "high" findings and teams learn to ignore the report.
-
-Point the collector at a [CVE-PaaS](https://github.com/denimoll/CVE-PaaS)
-instance and every SCA finding carrying a CVE gains the other half of the
-picture: CISA KEV listing, EPSS score, public PoC, Nuclei template.
-
-> Use **CVE-PaaS 1.4.0 or newer**. Before that a KEV listing never reached the
-> verdict, so a vulnerability actively exploited in the wild but without a
-> public PoC came back under-prioritised. Older releases still work — the
-> collector reads whichever signals they provide — just less accurately.
-
-```yaml
-enrich:
-  cve_paas:
-    enabled: true
-    url: "http://host.docker.internal:8000"
-    api_key_env: CVE_PAAS_API_KEY   # env var name; the key is never in this file
-    mode: annotate                  # or: reprioritize
-    fail_on_exploitable: false
-```
-
-- **`annotate`** (default) leaves severity exactly as the scanner reported it
-  and adds `priority`, `epss`, `kev`, `poc` to each finding, the console line,
-  both summaries and `findings.json`. Nothing about your existing gate changes.
-- **`reprioritize`** lets the CVE-PaaS priority replace `severity`, keeping the
-  scanner's own in `scanner_severity`. Counts, baseline fingerprints and the
-  gate all follow the new value, so expect existing projects to shift.
-
-`fail_on_exploitable: true` adds a gate that is independent of severity: fail on
-anything with a KEV listing, a public PoC or a Nuclei template, whatever its
-CVSS. Combined with a relaxed severity gate this is the useful shape:
-
-```yaml
-fail_on:
-  sca: none          # stop failing on theoretical CVSS
-enrich:
-  cve_paas:
-    fail_on_exploitable: true    # fail on what is actually being exploited
-```
-
-Lookups are batched 50 at a time and CVE-PaaS caches them, so repeat runs are
-cheap. If the service is unreachable the scan continues on the scanners' own
-severities and says so; under `strict: true` that becomes a failure instead.
-The check is skipped in `offline` mode.
-
-> Only SCA findings that carry a CVE id are affected — SAST, secrets and IaC
-> keep the scanners' severities, and a finding known only by a GHSA with no CVE
-> alias cannot be looked up.
-
-## SCA coverage check
-
-The most dangerous result a dependency scanner can produce is *nothing*: an
-engine that parsed no manifests looks exactly like a project with no vulnerable
-dependencies, and the policy gate cannot tell them apart.
-
-The collector checks for that directly — it compares the manifests the repo
-declares against what the engines actually resolved into the SBOM, and says so
-when the answer is zero:
-
-```
-  ! SCA coverage: requirements.txt specifies version ranges, not exact versions
-    — Trivy and Syft resolve a package only from an exact version, so nothing
-    was scanned.
-    -> Pin the versions (`pkg==1.2.3`), commit a lock file, or enable the `osv`
-       scanner, which resolves ranges.
-```
-
-The advice names the cause and only an engine that actually solves it — OSV
-resolves version ranges, Grype shares Syft's exact-version requirement, so it is
-never offered as the answer to that particular gap. An engine you already have
-enabled is never suggested. The warning is recorded in `findings.json` under
-`coverage`, printed to the console and shown in both summaries. It does **not**
-fail the build on its own; with `strict: true` it does.
-
-## Offline / air-gapped
-
-Run once **with** network to snapshot DBs and rulesets into `./cache/`:
-
-```bash
-./preload.sh           # Semgrep ruleset + Trivy vulnerability DB
-```
-
-Then set `offline: true` in `scan-config.yml`. Scans now run with no network
-access (Semgrep uses the cached ruleset; Trivy uses the cached DB with
-`--skip-db-update --offline-scan`). Gitleaks and Checkov bundle their rules in
-the image, so they need no preload.
-
-> JVM note: Trivy's Java DB downloads on demand. To scan JVM projects offline,
-> run one JVM scan online first to populate `cache/trivy`.
-
-## Output (`./reports/`)
-
-```
-reports/
-├── native/                 # raw per-tool reports (SARIF) — feed these to ASPM
-│   ├── semgrep.sarif
-│   ├── trivy-fs.sarif
-│   ├── trivy-config.sarif
-│   ├── gitleaks.sarif
-│   ├── checkov.sarif
-│   ├── grype.sarif         # + grype.json (carries CVE/GHSA aliases for dedup)
-│   └── trufflehog.json     # + generated trufflehog.sarif
-├── findings.json           # consolidated, de-duplicated findings + counts
-├── sbom.trivy.cdx.json     # CycloneDX SBOM (Trivy; .spdx.json if enabled)
-├── sbom.syft.cdx.json      # Syft SBOM (CycloneDX + SPDX, if enabled)
-├── summary.md              # human summary
-└── summary.html            # human summary (styled)
-```
-
-`summary.html` shows severity cards/bars, per-tool breakdown and a findings
-table with **category filters**, expandable **details** (description + advisory
-link per finding), and — in baseline mode — a **NEW** flag on findings added
-since the accepted snapshot. It is fully self-contained (no external assets).
-
-## Provenance
-
-Every report records what produced it — the appsec-compose version, each
-engine's resolved image ref (the immutable digest when pinned), the
-vulnerability-database dates, and whether the scan ran offline. A clean result
-from a three-week-old database is not the same as a clean result, and an
-artifact heading into an ASPM should say which tool version produced it.
-
-It lands in `findings.json` under `provenance` and at the foot of both
-summaries. To see the resolved engines without running a scan:
-
-```bash
-./run.sh --version
-```
-
-## Policy / exit codes
-
-The **collector** decides pass/fail: exit `1` if any finding is at or above
-`fail_on`, else `0`. Scanners themselves always exit `0`, so a noisy finding
-never breaks the scan phase — only the policy does. `run.sh` propagates the
-collector's exit code, which makes this safe to drop into a CI gate.
-
-## CI/CD
-
-Ready-to-use templates are included:
-
-- **GitHub Actions** — [`.github/workflows/appsec-scan.yml`](.github/workflows/appsec-scan.yml)
-  runs the scan, uploads every SARIF to **code scanning**, keeps `reports/` as an
-  artifact, caches the vuln DBs, and fails the job on a policy breach.
-- **GitLab CI** — [`.gitlab-ci.yml`](.gitlab-ci.yml) runs the scan, exposes the
-  CycloneDX SBOM to GitLab Dependency Scanning, and caches DBs. (Needs a runner
-  with the host Docker socket — see the file header.)
-- **Publish the collector image** — [`.github/workflows/publish-collector.yml`](.github/workflows/publish-collector.yml)
-  pushes the collector to GHCR on release, so CI can skip the local build.
-
-## De-duplication
-
-When several tools cover the same category they report the same issues. With
-`dedup: true` (default) the collector merges duplicates in `findings.json` and
-the summary (the raw native reports are left untouched for ASPM import):
-
-- **secrets** — same `(file, line)` is one secret, regardless of tool.
-- **SCA** — same `package@version` + file, clustered by overlapping vuln IDs.
-  Trivy's `CVE-2018-1000656` and Grype's `GHSA-562c-5r94-xh97` merge because
-  Grype's `relatedVulnerabilities` lists that CVE — so CVE/GHSA aliases collapse.
-- **IaC** — engines use different ids for the same policy (a Dockerfile with no
-  `USER` is Trivy's `DS-0002`, Checkov's `CKV_DOCKER_3` and Hadolint's `DL3002`),
-  so findings whose rule maps to a known equivalence class merge per file.
-  Unmapped rules keep their own `(rule, file, line)` identity.
-- **SAST** — same rule at the same `(file, line)`.
-
-A merged finding keeps the highest severity, records **every tool** that
-reported it, and lists the equivalent IDs as aliases. `findings.json` reports
-`raw_findings`, `unique_findings` and `duplicates_removed`. Per-tool counts
-still reflect each tool's true raw yield.
-
-## Suppressions
-
-Drop known/accepted findings from the gate and counts via an `ignore:` list in
-`scan-config.yml`. An entry matches when every field present matches; `rule` is
-a glob over the finding's ID **and its aliases** (so a single CVE entry also
-catches the equivalent GHSA):
-
-```yaml
+fail_on: { secrets: low, default: high }   # gate per category
+exclude: [vendor, fixtures]
 ignore:
-  - rule: CVE-2018-1000656
-    reason: "no fix available, mitigated at the proxy"
-  - file: "tests/**"
-    reason: "test fixtures"
-  - rule: "generic.*"
-    category: secrets
-    reason: "false positives in sample data"
+  - fingerprint: 3f9a…                     # one finding, from findings.json
+    reason: "input is a constant from the CLI table"
+    expires: 2027-03-01                    # accepted risks get re-argued
 ```
 
-Suppressed findings are excluded from `fail_on` but recorded in `findings.json`
-under `suppressed` (with the reason) for the audit trail.
+`.appsec-baseline.json` next to it gates on new findings only
+(`--update-baseline` to accept the current state). Everything else — engines,
+custom Semgrep rules, strict mode, exploitability data from CVE-PaaS:
+[configuration](docs/configuration.md).
 
-Add `expires:` to make an acceptance temporary — an accepted risk should be
-re-argued, not inherited by whoever maintains the repo in two years:
-
-```yaml
-ignore:
-  - rule: CVE-2018-1000656
-    reason: "no fix available, mitigated at the proxy"
-    expires: 2026-12-01
-```
-
-Past that date the entry stops suppressing anything, its findings count towards
-the gate again, and the run reports which entries lapsed (console, both
-summaries, and `expired_suppressions` in `findings.json`).
-
-## Scanning several projects from one clone
-
-State can live outside the tool directory, so one checkout can serve many
-projects:
+## With an AI agent
 
 ```bash
-./run.sh /src/api   --name api   --config profiles/api.yml \
-                    --reports /var/appsec/api   --baseline /var/appsec/api/baseline.json
-./run.sh /src/front --name front --config profiles/front.yml \
-                    --reports /var/appsec/front --baseline /var/appsec/front/baseline.json
+appsec-compose mcp --setup
+claude mcp add --scope user appsec-compose -- appsec-compose mcp
 ```
 
-`--name` namespaces the containers (`COMPOSE_PROJECT_NAME`), and `cache/` stays
-shared on purpose — the vulnerability databases are the same for every project.
+The agent gets `scan`, `findings`, `finding`, `brief` and `suppress`; a
+suppression is written to the project config with a reason and an expiry, for
+a human to review with the code. [AI agents](docs/ai-agents.md) ·
+[MCP server](appsec_mcp/README.md).
 
-> Run projects **sequentially**. `.env` and the generated `excludes/` still live
-> in the tool directory, so two runs started at the same time from one clone
-> would overwrite each other's rendered config.
+## In CI
 
-## Baseline (gate on new findings)
+`uses: denimoll/appsec-compose@v.1.2.0` in GitHub Actions, or an `include:` of
+the GitLab template: [CI/CD](docs/ci.md).
 
-Accept the current findings and fail only on **new** ones thereafter:
+## Documentation
 
-```bash
-# 1. set `baseline: true` in scan-config.yml, then snapshot the accepted state:
-./run.sh /path/to/repo --update-baseline      # writes appsec-baseline.json
-# 2. commit appsec-baseline.json; subsequent runs gate on new findings only:
-./run.sh /path/to/repo
-```
-
-Each finding gets a stable fingerprint `(category, id, file, package, line)`.
-Runs report `new` / `known` / `fixed` counts (in the console, summary and
-`findings.json`), and `fail_on` applies to **new** findings only. Re-run
-`--update-baseline` to re-accept the current state.
-
-## Scanning a container image
-
-`./run.sh --image <ref>` scans a container image instead of a repo. Only the
-image-capable tools run — **Trivy** and **Grype** (OS + language package
-vulnerabilities) and **Syft** (SBOM); source-only scanners (Semgrep, Checkov,
-Gitleaks, Hadolint) are skipped. Dedup, suppressions, baseline, SBOM formats and
-the policy gate all work the same way.
-
-- **Private registries** — pass `--registry-user/--registry-pass` (or set
-  `REGISTRY_USER`/`REGISTRY_PASS`). The scanners pull the image themselves using
-  a generated docker auth config; no Docker socket is mounted.
-- **Build & scan** — `./run.sh --build <context> [--dockerfile <path>]` builds
-  the image with the host Docker, exports it to a tar (`docker save`) and scans
-  that archive — so locally-built images are scanned without a registry or a
-  Docker socket in the scanner containers.
-
-## Reproducible / pinned images
-
-By default scanners run from their pinned **tags** (versions in
-`scan-config.yml`). For tamper-evident, fully reproducible runs, pin them to
-immutable digests:
-
-```bash
-./pin.sh        # resolves each repo:tag -> repo@sha256:... into image-digests.lock
-```
-
-Commit `image-digests.lock`; `render-env.py` then runs every scanner by digest.
-Re-run `./pin.sh` after bumping a version (a bumped version with no matching
-lock entry safely falls back to its tag). Delete the lock to go back to tags.
-
-To pin a **single** tool by hand, put a digest in its `version` field instead of
-a tag — `version: "sha256:abc..."` resolves to `repo@sha256:abc...`.
-
-A lock that no longer covers every enabled scanner (someone bumped a `version`
-and forgot to re-pin) prints a warning. Set `require_pinned: true` — or pass
-`--require-pinned` — to make that an error instead, so a supply-chain-sensitive
-pipeline can never silently fall back to a mutable tag.
-
-## How it works
-
-1. `run.sh` renders `scan-config.yml` → `.env` and bind-mounts the target repo
-   **read-only** at `/code`.
-2. The enabled scanner services run once (in parallel), each writing a native
-   SARIF report into the shared `reports/` volume and exiting `0`.
-3. `collector` normalizes every SARIF into one model, writes `findings.json` +
-   summaries, and exits with the policy code.
-
-No `docker.sock`, no docker-in-docker.
-
-## Layout
-
-```
-docker-compose.yml      # scanners + collector (versions/flags from .env)
-run.sh                  # entrypoint: render config, run scanners + collector
-preload.sh              # offline cache populator
-scan-config.yml         # the single file you edit
-scripts/render-env.py   # scan-config.yml -> .env
-orchestrator/           # Python collector (config, normalize, policy, summary)
-tests/                  # collector unit tests (pytest)
-```
-
-## Tests
-
-The collector decides what counts as a finding, what merges, what is suppressed
-and whether the build fails — so it is unit-tested:
-
-```bash
-python3 -m pip install -r tests/requirements.txt
-python3 -m pytest tests/ -q
-```
-
-Unit tests cannot see the compose wiring, though, and every engine is invoked
-through a shell command line that upstream can change underneath us. Gitleaks,
-for instance, kept `detect` as a deprecated alias that exits `0` and writes a
-valid but **empty** report — so the scan would have gone on reporting zero
-secrets, and even `strict` would have been satisfied. The smoke test runs the
-whole pipeline over a deliberately vulnerable fixture and asserts that each
-engine found the thing planted for it:
-
-```bash
-./scripts/smoke-test.sh      # needs Docker; ~2 min
-```
-
-Both run on every push in [`appsec-scan.yml`](.github/workflows/appsec-scan.yml),
-and the scan job depends on them.
-
-## Configuration errors
-
-Unknown keys are rejected before a single container starts, with a suggestion:
-
-```
-ERROR: invalid scan-config.yml:
-  scan-config.yml: unknown key 'fail_on_severity' — did you mean 'fail_on'?
-  scan-config.yml: unknown key 'strickt' — did you mean 'strict'?
-```
-
-A mistyped key used to be ignored in silence, which meant the gate quietly ran
-at its default while the config said otherwise. Every problem in the file is
-reported at once.
+- [Usage](docs/usage.md) — install, flags, diff mode, images, offline, pinned images, several projects
+- [Configuration](docs/configuration.md) — the config file, gate, suppressions, baseline
+- [Engines](docs/engines.md) — what each engine checks, severity, de-duplication
+- [Reports](docs/reports.md) — every output file and the `findings.json` contract
+- [AI agents](docs/ai-agents.md) · [CI/CD](docs/ci.md) · [Development](docs/development.md)
+- [Benchmark](benchmark/RESULTS.md) — measured precision and recall, and where it is weak
+- [Roadmap](ROADMAP.md)

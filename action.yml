@@ -1,0 +1,226 @@
+name: appsec-compose
+description: >-
+  One-command OSS AppSec scan (SAST, SCA, secrets, IaC, SBOM) with a policy
+  gate, per-tool SARIF upload to code scanning and a reports artifact.
+author: denimoll
+branding:
+  icon: shield
+  color: blue
+
+# Usage (needs Docker on the runner, so a Linux GitHub-hosted runner or a
+# self-hosted one with Docker; not a job that runs inside `container:`, because
+# the scanners bind-mount the checkout through the host daemon):
+#
+#   permissions:
+#     contents: read
+#     security-events: write        # only for upload-sarif
+#   steps:
+#     - uses: actions/checkout@v5
+#     - uses: denimoll/appsec-compose@v.1.2.0
+#       with:
+#         config: .github/scan-config.yml
+#
+# The tool runs from its own checkout (github.action_path); the caller's
+# repository is only the scan target. Relative `path`, `config` and `baseline`
+# are resolved against the caller's workspace.
+inputs:
+  path:
+    description: Directory to scan.
+    default: ${{ github.workspace }}
+  config:
+    description: >-
+      Path to your scan-config.yml (relative to the workspace). Empty uses the
+      tool's shipped defaults.
+    default: ""
+  baseline:
+    description: >-
+      Path to a baseline file (relative to the workspace); created empty if it
+      does not exist. Only used when the config sets `baseline: true`.
+    default: ""
+  fail-on:
+    description: >-
+      Override the config's `fail_on` with one level for every category
+      (critical|high|medium|low|none). Empty keeps the config's policy.
+    default: ""
+  strict:
+    description: Fail (exit 3) when an enabled scanner produced no readable report.
+    default: "false"
+  upload-sarif:
+    description: >-
+      Upload each native SARIF to GitHub code scanning, one category per tool.
+      Needs `security-events: write`. Locations are relative to `path`, so
+      scan the repository root for alerts to land on the right files.
+    default: "true"
+  artifact-name:
+    description: Name of the uploaded reports artifact (empty disables the upload).
+    default: appsec-reports
+  reports-dir:
+    description: Where to write reports. Default is a directory under runner.temp.
+    default: ""
+
+outputs:
+  exit-code:
+    description: "0 = pass, 1 = policy breach, 2 = usage/config error, 3 = scan did not complete."
+    value: ${{ steps.scan.outputs.exit-code }}
+  findings:
+    description: Path to findings.json.
+    value: ${{ steps.prep.outputs.reports-dir }}/findings.json
+  reports-dir:
+    description: Directory holding findings.json, summaries, SBOMs and native/.
+    value: ${{ steps.prep.outputs.reports-dir }}
+
+runs:
+  using: composite
+  steps:
+    # Paths are computed in a shell step, not with ${{ github.action_path }} in
+    # `with:`, which nested actions have been known to resolve to their own path.
+    - name: Prepare
+      id: prep
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        INPUT_REPORTS_DIR: ${{ inputs.reports-dir }}
+      run: |
+        reports="${INPUT_REPORTS_DIR:-$RUNNER_TEMP/appsec-compose/reports}"
+        [[ "$reports" = /* ]] || reports="$PWD/$reports"
+        {
+          echo "tool-dir=$GITHUB_ACTION_PATH"
+          echo "reports-dir=$reports"
+          # Weekly key: restore the newest DBs, save a fresh copy once a week.
+          echo "cache-week=$(date -u +%G-%V)"
+        } >> "$GITHUB_OUTPUT"
+        # run.sh renders scan-config.yml with PyYAML on the host.
+        if ! python3 -c "import yaml" 2>/dev/null; then
+          python3 -m pip install --user --quiet pyyaml \
+            || python3 -m pip install --user --quiet --break-system-packages pyyaml
+        fi
+
+    - name: Cache scanner DBs
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.prep.outputs.tool-dir }}/cache
+        key: appsec-compose-db-${{ runner.os }}-${{ steps.prep.outputs.cache-week }}
+        restore-keys: appsec-compose-db-${{ runner.os }}-
+
+    # Never fails: the verdict is recorded and enforced by the last step, so
+    # the SARIF and artifact uploads always happen first.
+    - name: Run appsec-compose
+      id: scan
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_STRICT: ${{ inputs.strict }}
+        REPORTS: ${{ steps.prep.outputs.reports-dir }}
+      run: |
+        args=("$INPUT_PATH" --reports "$REPORTS")
+        [[ -n "$INPUT_CONFIG" ]] && args+=(--config "$INPUT_CONFIG")
+        [[ -n "$INPUT_BASELINE" ]] && args+=(--baseline "$INPUT_BASELINE")
+        [[ -n "$INPUT_FAIL_ON" ]] && args+=(--fail-on "$INPUT_FAIL_ON")
+        [[ "$INPUT_STRICT" == "true" ]] && args+=(--strict)
+        set +e
+        "$GITHUB_ACTION_PATH/run.sh" "${args[@]}"
+        code=$?
+        set -e
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+
+    # hashFiles() only sees the workspace, so list the reports here instead.
+    - name: Find SARIF reports
+      id: sarif
+      if: always() && inputs.upload-sarif == 'true'
+      shell: bash
+      env:
+        REPORTS: ${{ steps.prep.outputs.reports-dir }}
+      run: |
+        for tool in semgrep trivy-fs trivy-config gitleaks checkov grype trufflehog hadolint osv zizmor; do
+          if [[ -s "$REPORTS/native/$tool.sarif" ]]; then
+            echo "$tool=true" >> "$GITHUB_OUTPUT"
+          fi
+        done
+
+    # One upload per tool: code scanning needs a distinct category per SARIF run.
+    - name: Upload Semgrep SARIF
+      if: always() && steps.sarif.outputs.semgrep == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/semgrep.sarif", category: semgrep }
+    - name: Upload Trivy (fs) SARIF
+      if: always() && steps.sarif.outputs.trivy-fs == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trivy-fs.sarif", category: trivy-fs }
+    - name: Upload Trivy (config) SARIF
+      if: always() && steps.sarif.outputs.trivy-config == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trivy-config.sarif", category: trivy-config }
+    - name: Upload Gitleaks SARIF
+      if: always() && steps.sarif.outputs.gitleaks == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/gitleaks.sarif", category: gitleaks }
+    - name: Upload Checkov SARIF
+      if: always() && steps.sarif.outputs.checkov == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/checkov.sarif", category: checkov }
+    - name: Upload Grype SARIF
+      if: always() && steps.sarif.outputs.grype == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/grype.sarif", category: grype }
+    - name: Upload TruffleHog SARIF
+      if: always() && steps.sarif.outputs.trufflehog == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trufflehog.sarif", category: trufflehog }
+    - name: Upload Hadolint SARIF
+      if: always() && steps.sarif.outputs.hadolint == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/hadolint.sarif", category: hadolint }
+    - name: Upload OSV SARIF
+      if: always() && steps.sarif.outputs.osv == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/osv.sarif", category: osv }
+    - name: Upload zizmor SARIF
+      if: always() && steps.sarif.outputs.zizmor == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/zizmor.sarif", category: zizmor }
+
+    - name: Upload reports artifact
+      if: always() && inputs.artifact-name != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.prep.outputs.reports-dir }}
+        if-no-files-found: warn
+
+    # Last, after every upload: write the verdict to the job summary and make
+    # it the step's (and so the job's) result.
+    - name: Policy verdict
+      if: always()
+      shell: bash
+      env:
+        REPORTS: ${{ steps.prep.outputs.reports-dir }}
+        EXIT_CODE: ${{ steps.scan.outputs.exit-code }}
+      run: |
+        python3 - "$REPORTS/findings.json" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+        import json, sys
+        try:
+            d = json.load(open(sys.argv[1]))
+        except (OSError, ValueError):
+            print("## appsec-compose — no findings.json (the scan did not complete)\n")
+            sys.exit(0)
+        p, sc = d["policy"], d["severity_counts"]
+        verdict = "❌ FAIL" if p["exit_code"] else "✅ PASS"
+        print(f"## appsec-compose — {verdict} (fail_on=`{p['fail_on']}`)\n")
+        print(f"{p['breaching']} finding(s) at/above threshold of "
+              f"{sum(sc.values())} total.\n")
+        print("| " + " | ".join(sc) + " |")
+        print("|" + "---|" * len(sc))
+        print("| " + " | ".join(str(sc[k]) for k in sc) + " |")
+        PY
+        if [[ -z "$EXIT_CODE" ]]; then
+          echo "::error::appsec-compose did not run (see the steps above)"
+          exit 1
+        fi
+        if [[ "$EXIT_CODE" != "0" ]]; then
+          echo "::error::appsec-compose policy gate failed (exit $EXIT_CODE) — see the job summary and the reports artifact"
+        fi
+        exit "$EXIT_CODE"

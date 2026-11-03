@@ -9,27 +9,47 @@ from __future__ import annotations
 import json
 import os
 import sys
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 import baseline as bl
+import brief
 import coverage as cov
+import diffscope
 import enrich as enr
+import licenses as lic
 from config import load_config
 from converters import trufflehog_json_to_sarif
 from dedup import merge
 from normalize import load_findings, finding_to_dict, expected_reports
-from policy import evaluate
+from policy import evaluate, resolve_unknown
 from summary import render
-from suppress import apply as apply_ignore
+from suppress import Suppressed, apply as apply_ignore
 
 REPORTS_DIR = "/reports"
 NATIVE_DIR = f"{REPORTS_DIR}/native"
 CODE_DIR = "/code"
 BASELINE_PATH = "/app/appsec-baseline.json"
+DIFF_SCOPE_PATH = "/diff/scope.json"
+
+# Version of the findings.json contract (schemas/findings.schema.json). Bump
+# the major for anything a consumer could break on: a removed or renamed field,
+# a changed meaning; the minor for additions.
+SCHEMA_VERSION = "1.1"
+
+# Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
+# way of not reaching a verdict maps elsewhere, so a caller never mistakes a
+# broken scan for findings, or a clean exit for a clean codebase.
+EXIT_PASS = 0      # the policy gate passed
+EXIT_POLICY = 1    # the policy gate failed
+EXIT_USAGE = 2     # invalid configuration: fix scan-config.yml
+EXIT_SCAN = 3      # the scan is incomplete or unreadable: no trustworthy verdict
 
 
-def _provenance(cfg, image_mode: bool) -> dict:
+def _provenance(cfg, image_mode: bool, scope=None) -> dict:
     """What produced this report — the engines, their DBs, and the target."""
     def _json_env(name: str) -> dict:
         try:
@@ -47,11 +67,17 @@ def _provenance(cfg, image_mode: bool) -> dict:
         "offline": cfg.offline,
         "engines": _json_env("ASS_ENGINE_IMAGES"),
         "databases": _json_env("ASS_DB_DATES"),
+        # What was scanned: the whole target, or only what a change touched.
+        "scope": scope.provenance() if scope else dict(diffscope.FULL_SCOPE),
     }
 
 
 def main() -> int:
-    cfg = load_config()
+    try:
+        cfg = load_config()
+    except (ValueError, yaml.YAMLError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return EXIT_USAGE
 
     # Generate SARIF for tools that have no native SARIF (keeps the raw report).
     trufflehog_json_to_sarif(Path(NATIVE_DIR, "trufflehog.json"),
@@ -63,10 +89,33 @@ def main() -> int:
     enabled = set(env_enabled) if env_enabled else cfg.enabled_scanners
 
     image_mode = bool(os.environ.get("ASS_IMAGE") or os.environ.get("ASS_IMAGE_TAR"))
+    # Diff mode (run.sh --diff): which files the change touched, and which
+    # engines had nothing in them to scan.
+    scope = diffscope.load(os.environ.get("ASS_DIFF") == "1", DIFF_SCOPE_PATH)
+    if scope and os.environ.get("ASS_UPDATE_BASELINE") == "1":
+        print("ERROR: --update-baseline needs a full scan, not a diff", file=sys.stderr)
+        return EXIT_USAGE
     expected = expected_reports(enabled)
     if image_mode:
         expected.discard("trivy-config.sarif")   # no IaC config scan in image mode
+    if scope:
+        expected = scope.expected(expected)
     result = load_findings(NATIVE_DIR, expected=expected)
+
+    # Dependency license policy: Trivy's license pass, judged against
+    # `licenses:`. Its findings are plain SCA findings from here on.
+    license_stats = None
+    if cfg.licenses.active and "trivy" in enabled:
+        report = Path(NATIVE_DIR, lic.REPORT)
+        if report.exists() and report.stat().st_size > 0:
+            try:
+                found, license_stats = lic.evaluate(report, cfg.licenses)
+                result.findings.extend(found)
+                result.reports_found.append(lic.REPORT)
+            except ValueError as exc:
+                result.reports_errored.append(str(exc))
+        else:
+            result.reports_missing.append(lic.REPORT)
 
     # In image mode, a vuln scanner that ran but produced no report means the
     # image could not be pulled/loaded — fail loudly instead of "0 findings".
@@ -74,7 +123,7 @@ def main() -> int:
         target = os.environ.get("ASS_IMAGE") or "the built image"
         print(f"ERROR: failed to pull or scan {target}. "
               f"Check the image reference and registry credentials.", file=sys.stderr)
-        return 2
+        return EXIT_SCAN
 
     # strict: a scanner that was expected to report but didn't (crashed, OOM,
     # wrote unparseable output) must not pass as "0 findings".
@@ -85,22 +134,51 @@ def main() -> int:
         if result.reports_errored:
             print(f"ERROR: strict mode — unreadable report(s): "
                   f"{'; '.join(result.reports_errored)}", file=sys.stderr)
-        return 2
+        return EXIT_SCAN
 
     # Blind-spot check: an SCA engine that resolved nothing looks exactly like a
     # project with no vulnerable dependencies, and the gate cannot tell them apart.
     excludes = set(os.environ.get("ASS_EXCLUDES", "").split())
     sca_found = sum(1 for f in result.findings if f.category == "sca")
-    coverage = cov.analyse(CODE_DIR, REPORTS_DIR, enabled, excludes,
-                           image_mode=image_mode, sca_findings=sca_found)
+    if scope and scope.skipped("sca"):
+        # No manifest changed, so no SCA engine ran: there is nothing to verify,
+        # and an absent SBOM is the plan, not a blind spot.
+        coverage = cov.Coverage([], [], None, [])
+    else:
+        coverage = cov.analyse(CODE_DIR, REPORTS_DIR, enabled, excludes,
+                               image_mode=image_mode, sca_findings=sca_found)
     if cfg.strict and coverage.warnings:
         for warning in coverage.warnings:
             print(f"ERROR: strict mode — {warning.message} {warning.advice}",
                   file=sys.stderr)
-        return 2
+        return EXIT_SCAN
 
-    merged, stats = merge(result.findings, enabled=cfg.dedup)
-    kept, suppressed, expired = apply_ignore(merged, cfg.ignore)
+    # Diff mode reports and gates on the changed files only. After the coverage
+    # check, which judges the SCA engines on everything they resolved.
+    if scope:
+        result.findings = scope.filter(result.findings)
+
+    # Tools that could not determine a severity are ranked by the user's
+    # `unknown_severity`, before anything merges or compares them.
+    unknown_count = resolve_unknown(result.findings, cfg.unknown_severity)
+
+    # A result the engine reports as suppressed in the code (`# nosemgrep`, a
+    # Checkov skip comment) is an audited decision, not a finding: it goes to
+    # the suppressed list, like an ignore entry. Another engine reporting the
+    # same issue unsuppressed still counts.
+    in_source = [f for f in result.findings if getattr(f, "source_suppression", None)]
+    reported = [f for f in result.findings if not getattr(f, "source_suppression", None)]
+
+    merged, stats = merge(reported, enabled=cfg.dedup)
+    # Fingerprints exist before suppression, so an ignore entry can name one.
+    bl.assign(merged, CODE_DIR)
+    bl.assign(in_source, CODE_DIR)     # apart: never shifts a reported finding's id
+    try:
+        kept, suppressed, expired = apply_ignore(merged, cfg.ignore)
+    except ValueError as exc:            # e.g. a malformed `expires`
+        print(f"ERROR: invalid ignore entry: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    suppressed += [Suppressed(f, f.source_suppression) for f in in_source]
 
     # Exploitability enrichment runs after the merge, so each CVE is looked up
     # once and the alias set is at its widest.
@@ -116,27 +194,33 @@ def main() -> int:
         if enrichment.error and cfg.strict:
             print(f"ERROR: strict mode — CVE-PaaS enrichment failed "
                   f"({enrichment.error})", file=sys.stderr)
-            return 2
+            return EXIT_SCAN
 
     # --update-baseline: snapshot current findings as the accepted state, no gate.
     if os.environ.get("ASS_UPDATE_BASELINE") == "1":
         n = bl.save(BASELINE_PATH, kept)
         print(f"Baseline updated: {n} fingerprint(s) -> appsec-baseline.json")
-        return 0
+        return EXIT_PASS
 
     # Baseline mode: gate only on findings new since the accepted baseline.
     delta = None
     if cfg.baseline:
         delta = bl.classify(kept, bl.load(BASELINE_PATH))
+        if scope:
+            # A baseline entry outside the changed files was not looked for,
+            # so "not seen" no longer means "fixed".
+            delta.fixed = None
     gate_findings = delta.new if delta is not None else None
     policy = evaluate(kept, cfg, raw_findings=result.findings, gate_findings=gate_findings)
-    new_fps = {bl.fingerprint(f) for f in delta.new} if delta else set()
-    for f in kept:                       # transient flag for the HTML report
-        f.is_new = bool(delta) and bl.fingerprint(f) in new_fps
+    new_fps = {f.fingerprint for f in delta.new} if delta else set()
+    for f in kept:                       # transient flags for the summaries
+        f.is_new = bool(delta) and f.fingerprint in new_fps
+        f.on_changed_line = scope.on_changed_line(f) if scope else None
 
     # Machine-readable consolidated output (for ASPM/ASOC ingestion).
     consolidated = {
-        "provenance": _provenance(cfg, image_mode),
+        "schema_version": SCHEMA_VERSION,
+        "provenance": _provenance(cfg, image_mode, scope),
         "policy": {
             "fail_on": policy.threshold,
             "fail_on_by_category": policy.thresholds,
@@ -169,6 +253,7 @@ def main() -> int:
             "new": len(delta.new) if delta else None,
             "known": len(delta.known) if delta else None,
             "fixed": delta.fixed if delta else None,
+            "legacy_format": delta.legacy if delta else None,
         },
         "coverage": {
             "manifests": coverage.manifests,
@@ -177,6 +262,11 @@ def main() -> int:
             "warnings": [{"kind": w.kind, "message": w.message, "advice": w.advice}
                          for w in coverage.warnings],
         },
+        "licenses": ({"packages": license_stats.packages,
+                      "unlicensed": license_stats.unlicensed,
+                      "unlicensed_ecosystems": license_stats.unlicensed_ecosystems,
+                      "denied": license_stats.denied, "warned": license_stats.warned}
+                     if license_stats else None),
         "severity_counts": policy.severity_counts,
         "category_counts": policy.category_counts,
         "tool_counts": policy.tool_counts,
@@ -184,7 +274,8 @@ def main() -> int:
         "reports_missing": result.reports_missing,
         "reports_errored": result.reports_errored,
         "findings": [{**finding_to_dict(f),
-                      **({"new": bl.fingerprint(f) in new_fps} if delta else {})}
+                      **({"new": f.fingerprint in new_fps} if delta else {}),
+                      **({"on_changed_line": f.on_changed_line} if scope else {})}
                      for f in kept],
         "suppressed": [{**finding_to_dict(s.finding), "reason": s.reason}
                        for s in suppressed],
@@ -194,7 +285,11 @@ def main() -> int:
     provenance = consolidated["provenance"]
     render(result, policy, kept, stats, REPORTS_DIR,
            suppressed_count=len(suppressed), delta=delta, coverage=coverage,
-           enrichment=enrichment, expired=expired, provenance=provenance)
+           enrichment=enrichment, expired=expired, provenance=provenance,
+           scope=scope)
+    brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
+                 CODE_DIR, excludes, image_mode, new_fps if delta else None,
+                 scope=scope, license_stats=license_stats)
 
     # Console summary.
     total = sum(policy.severity_counts.values())
@@ -208,6 +303,33 @@ def main() -> int:
           f"{len(result.reports_found)} report(s){dup_note}")
     for sev in ["critical", "high", "medium", "low", "info"]:
         print(f"  {sev:>8}: {policy.severity_counts[sev]}")
+    if scope:
+        print(f"  scope: {scope.label()} — unchanged code was not scanned")
+        if scope.dropped:
+            print(f"  ({scope.dropped} raw finding(s) outside the changed files dropped)")
+        on_lines = sum(1 for f in kept if f.on_changed_line)
+        print(f"  on changed lines: {on_lines} of {len(kept)}")
+        for name, reason in sorted(scope.skipped_engines.items()):
+            print(f"  - {name} not run: {reason}")
+        for report, reason in sorted(scope.skipped_reports.items()):
+            if not any(report.startswith(name) for name in scope.skipped_engines):
+                print(f"  - {report} not produced: {reason}")
+        if scope.commits and not scope.history_scanned and scope.history_note:
+            print(f"  ! branch commits not scanned for secrets: {scope.history_note}")
+    if unknown_count:
+        print(f"  ({unknown_count} finding(s) of undetermined severity ranked as "
+              f"{cfg.unknown_severity})")
+    malicious = [f for f in kept if f.malicious]
+    if malicious:
+        packages = sorted({f.package or f.rule_id for f in malicious})
+        print(f"  ! {len(packages)} MALICIOUS package(s) ({len(malicious)} advisories), "
+              f"ranked critical: {', '.join(packages)}")
+    if license_stats:
+        print(f"  licenses: {license_stats.denied} denied, {license_stats.warned} warned "
+              f"of {license_stats.packages} package(s)"
+              + (f"; {license_stats.unlicensed} carry no license data "
+                 f"({', '.join(license_stats.unlicensed_ecosystems)})"
+                 if license_stats.unlicensed else ""))
     if suppressed:
         print(f"  (suppressed by ignore rules: {len(suppressed)})")
     for entry in expired:
@@ -228,8 +350,12 @@ def main() -> int:
         print(f"  ! SCA coverage: {warning.message}")
         print(f"    -> {warning.advice}")
     if delta is not None:
-        print(f"  baseline: {len(delta.new)} new, {len(delta.known)} known, "
-              f"{delta.fixed} fixed")
+        fixed = (f"{delta.fixed} fixed" if delta.fixed is not None
+                 else "fixed not determinable in diff mode")
+        print(f"  baseline: {len(delta.new)} new, {len(delta.known)} known, {fixed}")
+        if delta.legacy:
+            print("  ! baseline uses v1 fingerprints, which break when lines shift; "
+                  "re-snapshot it with --update-baseline")
     if policy.exploitable_breaching:
         print(f"  ({policy.exploitable_breaching} breaching on exploitability "
               f"alone, below the severity threshold)")
@@ -240,10 +366,21 @@ def main() -> int:
     sboms = sorted(p.name for p in Path(REPORTS_DIR).glob("sbom.*.json"))
     sbom_note = (" | " + " | ".join(sboms)) if sboms else ""
     print(f"Reports: {REPORTS_DIR}/summary.md | summary.html | findings.json"
+          f" | review-brief.md"
           f"{sbom_note} | native/")
     print("=" * 60)
-    return policy.exit_code
+    return EXIT_POLICY if policy.exit_code else EXIT_PASS
+
+
+def run() -> int:
+    """Entry point. An uncaught exception would exit 1 — a policy failure."""
+    try:
+        return main()
+    except Exception:
+        traceback.print_exc()
+        print("ERROR: the collector crashed; no verdict was reached", file=sys.stderr)
+        return EXIT_SCAN
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run())

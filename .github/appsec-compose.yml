@@ -1,0 +1,19 @@
+# This repository's own scan (the `scan` job in workflows/appsec-scan.yml):
+# the shipped defaults, minus the deliberately vulnerable test corpus. The
+# fixture exists to be found — the smoke test asserts every engine finds it —
+# and uploading its planted CVEs, malware and secrets to code scanning would
+# bury anything real. `exclude:` replaces the default list, so it is repeated.
+exclude:
+  - .git
+  - node_modules
+  - vendor
+  - dist
+  - build
+  - target
+  - .venv
+  - venv
+  - __pycache__
+  - .gradle
+  - .tox
+  - .mypy_cache
+  - tests/fixtures

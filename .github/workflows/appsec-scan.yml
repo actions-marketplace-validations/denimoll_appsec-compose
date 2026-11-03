@@ -1,9 +1,10 @@
 name: appsec-compose scan
 
-# Runs the full appsec-compose scan on push/PR, uploads each tool's SARIF to
-# GitHub code scanning (one category per tool), and keeps all reports as a build
-# artifact. The policy verdict is written to the job summary; flip the final
-# step to enforce a hard gate (see the comment there).
+# Tests the collector, smoke-tests the pipeline, then scans this repository with
+# the reusable action in ./action.yml — exactly what `uses:
+# denimoll/appsec-compose@v.X.Y.Z` runs in another repo: per-tool SARIF upload to
+# code scanning, a reports artifact, cached vuln DBs and the policy verdict in
+# the job summary.
 on:
   push:
     branches: [main]
@@ -12,7 +13,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write   # required to upload SARIF to code scanning
 
 jobs:
   # Collector unit tests — the scan is only as trustworthy as the code that
@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with: { persist-credentials: false }   # no token left in .git for later steps
       - uses: actions/setup-python@v7
         with: { python-version: "3.14" }
       - run: pip install -r tests/requirements.txt
@@ -32,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with: { persist-credentials: false }   # no token left in .git for later steps
       - name: Cache scanner DBs
         uses: actions/cache@v6
         with:
@@ -40,85 +42,22 @@ jobs:
           restore-keys: appsec-smoke-${{ runner.os }}-
       - run: ./scripts/smoke-test.sh
 
+  # Dogfoods the action on this repository, gate included: a finding at or
+  # above `high` fails the build. .github/appsec-compose.yml keeps the
+  # deliberately vulnerable fixture (tests/fixtures/vulnerable-repo) out of the
+  # scan and out of code scanning.
   scan:
     needs: [test, smoke]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # only this job uploads SARIF to code scanning
     steps:
       - uses: actions/checkout@v5
-
-      # Cache scanner vulnerability DBs / rulesets between runs.
-      - name: Cache scanner DBs
-        uses: actions/cache@v6
-        with:
-          path: cache
-          key: appsec-db-${{ runner.os }}-${{ hashFiles('scan-config.yml') }}
-          restore-keys: appsec-db-${{ runner.os }}-
+        with: { persist-credentials: false }   # no token left in .git for later steps
 
       - name: Run appsec-compose
-        id: scan
-        continue-on-error: true
-        run: ./run.sh "$GITHUB_WORKSPACE"
-
-      # One upload per tool: code scanning needs a distinct category per SARIF
-      # run. hashFiles() guards make disabled tools' steps no-ops.
-      - name: Upload Semgrep SARIF
-        if: always() && hashFiles('reports/native/semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/semgrep.sarif, category: semgrep }
-      - name: Upload Trivy (fs) SARIF
-        if: always() && hashFiles('reports/native/trivy-fs.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/trivy-fs.sarif, category: trivy-fs }
-      - name: Upload Trivy (config) SARIF
-        if: always() && hashFiles('reports/native/trivy-config.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/trivy-config.sarif, category: trivy-config }
-      - name: Upload Gitleaks SARIF
-        if: always() && hashFiles('reports/native/gitleaks.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/gitleaks.sarif, category: gitleaks }
-      - name: Upload Checkov SARIF
-        if: always() && hashFiles('reports/native/checkov.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/checkov.sarif, category: checkov }
-      - name: Upload Grype SARIF
-        if: always() && hashFiles('reports/native/grype.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/grype.sarif, category: grype }
-      - name: Upload TruffleHog SARIF
-        if: always() && hashFiles('reports/native/trufflehog.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/trufflehog.sarif, category: trufflehog }
-      - name: Upload Hadolint SARIF
-        if: always() && hashFiles('reports/native/hadolint.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/hadolint.sarif, category: hadolint }
-      - name: Upload OSV SARIF
-        if: always() && hashFiles('reports/native/osv.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with: { sarif_file: reports/native/osv.sarif, category: osv }
-
-      - name: Upload reports artifact
-        if: always()
-        uses: actions/upload-artifact@v7
+        id: appsec
+        uses: ./
         with:
-          name: appsec-reports
-          path: reports/
-
-      - name: Policy verdict
-        if: always()
-        run: |
-          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json
-          d = json.load(open("reports/findings.json"))
-          p, sc = d["policy"], d["severity_counts"]
-          verdict = "❌ FAIL" if p["exit_code"] else "✅ PASS"
-          print(f"## appsec-compose — {verdict} (fail_on=`{p['fail_on']}`)\n")
-          print(f"{p['breaching']} finding(s) at/above threshold of "
-                f"{sum(sc.values())} total.\n")
-          print("| " + " | ".join(sc) + " |")
-          print("|" + "---|" * len(sc))
-          print("| " + " | ".join(str(sc[k]) for k in sc) + " |")
-          PY
-          # To enforce a hard gate (fail the job on a policy breach), uncomment:
-          # python3 -c "import json,sys; sys.exit(json.load(open('reports/findings.json'))['policy']['exit_code'])"
+          config: .github/appsec-compose.yml

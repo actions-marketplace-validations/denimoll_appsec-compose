@@ -12,8 +12,10 @@ untouched for ASPM import). Dedup key depends on category:
             fall back to the same rule at the same (file, line).
 - sast    : same rule at the same (file, line).
 
-A merged finding keeps the highest severity and records every tool that
-reported it (provenance) plus the union of equivalent IDs (aliases).
+A merged finding records every tool that reported it (provenance) plus the
+union of equivalent IDs (aliases). Its severity is the highest among the tools
+that actually assigned one — a score-derived severity never outranks a verdict,
+for the same reason it does not inside a single report (see _tool_severity).
 """
 from __future__ import annotations
 
@@ -57,7 +59,11 @@ class DedupStats:
 def _norm_file(path: str) -> str:
     # Align paths across tools: some report relative ("app.py"), others report
     # the container mount ("/code/app.py"). /code is our fixed mount root.
-    p = (path or "").lstrip("./").lstrip("/")
+    # Strip "./" and "/" as prefixes only: lstrip("./") would also eat the dot
+    # of ".github/" and point at a file that does not exist.
+    p = path or ""
+    while p.startswith(("./", "/")):
+        p = p[2:] if p.startswith("./") else p[1:]
     if p.startswith("code/"):
         p = p[len("code/"):]
     return p
@@ -68,12 +74,19 @@ def _id_tokens(f: Finding) -> set[str]:
 
 
 def _merge_group(group: list[Finding]) -> Finding:
-    rep = max(group, key=lambda f: _SEVERITY_RANK[f.severity])
+    # Engines that stated a severity themselves decide it. OSV-Scanner reports
+    # no verdict, so its CVSS-derived level would otherwise override Trivy and
+    # Grype whenever an advisory's raw score disagrees with its own rating —
+    # re-inflating exactly what reading the verdict was meant to fix.
+    verdicts = [f for f in group if f.severity_stated]
+    ranked = verdicts or group
+
+    rep = max(ranked, key=lambda f: _SEVERITY_RANK[f.severity])
     tools = sorted({t for f in group for t in f.tools})
     ids = sorted({t for f in group for t in _id_tokens(f)})
 
     severity = "info"
-    for f in group:
+    for f in ranked:
         severity = _max_severity(severity, f.severity)
 
     # Prefer a CVE id as the canonical rule_id for readability/ASPM matching.
@@ -82,11 +95,29 @@ def _merge_group(group: list[Finding]) -> Finding:
 
     description = next((f.description for f in group if f.description), "")
     url = next((f.url for f in group if f.url), "")
+    fixed_version = next((f.fixed_version for f in group if f.fixed_version), "")
+    cwe = sorted({c for f in group for c in f.cwe}, key=lambda c: int(c[4:]))
+    # Columns locate a secret's span on the line; TruffleHog reports none, so
+    # borrow them from an engine that flagged the same line.
+    span = next((f for f in [rep, *group]
+                 if f.column is not None and f.line == rep.line), rep)
+
+    # One engine recognising the advisory as malware is enough: OSV knows the
+    # MAL- alias that Trivy, reporting the same CVE, does not.
+    malicious = any(f.malicious for f in group)
+    if malicious:
+        severity = "critical"
+    marked = next((f for f in group if f.malicious), rep)
 
     return Finding(
         tool=rep.tool, category=rep.category, rule_id=rule_id, severity=severity,
-        message=rep.message, file=rep.file, line=rep.line, package=rep.package,
+        malicious=malicious, scanner_severity=marked.scanner_severity,
+        message=marked.message if malicious else rep.message,
+        file=rep.file, line=rep.line, package=rep.package,
         aliases=aliases, tools=tools, description=description, url=url,
+        severity_stated=bool(verdicts), end_line=span.end_line,
+        column=span.column, end_column=span.end_column, cwe=cwe,
+        fixed_version=fixed_version,
     )
 
 

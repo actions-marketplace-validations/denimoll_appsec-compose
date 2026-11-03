@@ -22,6 +22,12 @@ _Generated: {{ generated }} UTC_
 
 **Policy:** fail_on = `{{ policy.label }}` -> **{{ verdict }}**
 ({{ policy.breaching }} finding(s) at/above threshold)
+{% if scope %}
+
+**Scope: {{ scope.label() }}.** Only the changed files were scanned and gated; unchanged code was not scanned, and effects of the change on it are not covered.{% if scope.dropped %} {{ scope.dropped }} raw finding(s) outside the changed files were dropped.{% endif %} {{ changed_line_count }} finding(s) sit on a changed line (Δ).
+{% for name, reason in scope.skipped_engines | dictsort %}- {{ name }} not run: {{ reason }}
+{% endfor %}
+{% endif %}
 {% if stats.removed %}
 _Deduplicated: {{ total }} unique of {{ stats.raw }} raw findings ({{ stats.removed }} merged)._
 {% endif %}
@@ -29,7 +35,7 @@ _Deduplicated: {{ total }} unique of {{ stats.raw }} raw findings ({{ stats.remo
 _Suppressed by ignore rules: {{ suppressed_count }} (excluded from the gate)._
 {% endif %}
 {% if delta %}
-_Baseline: **{{ delta.new | length }} new**, {{ delta.known | length }} known, {{ delta.fixed }} fixed (gate applies to new only)._
+_Baseline: **{{ delta.new | length }} new**, {{ delta.known | length }} known{% if delta.fixed is not none %}, {{ delta.fixed }} fixed{% endif %} (gate applies to new only)._
 {% endif %}
 {% if enrichment and enrichment.requested %}
 _Exploitability: {{ enrichment.resolved }}/{{ enrichment.requested }} CVE(s) resolved via CVE-PaaS, **{{ enrichment.exploitable }} exploitable** (KEV / public PoC / Nuclei template){% if enrichment.reprioritized %}, {{ enrichment.reprioritized }} reprioritized{% endif %}._
@@ -72,12 +78,12 @@ _Exploitability: {{ enrichment.resolved }}/{{ enrichment.requested }} CVE(s) res
 
 {% if top_findings %}| Severity | Exploit | Tools | Category | Rule | Location |
 |---|---|---|---|---|---|
-{% for f in top_findings %}| {{ f.severity }}{% if f.is_new %} 🆕{% endif %} | {% if f.kev %}KEV{% elif f.poc %}PoC{% elif f.nuclei %}nuclei{% elif f.epss is not none %}EPSS {{ "%.2f" | format(f.epss) }}{% else %}—{% endif %} | {{ f.tools | join(", ") }} | {{ f.category }} | `{{ f.rule_id }}`{% if f.url %} [↗]({{ f.url }}){% endif %} | {{ f.file }}{% if f.line %}:{{ f.line }}{% endif %} |
+{% for f in top_findings %}| {{ f.severity }}{% if f.is_new %} 🆕{% endif %}{% if f.on_changed_line %} Δ{% endif %} | {% if f.malicious %}**MALICIOUS**{% elif f.kev %}KEV{% elif f.poc %}PoC{% elif f.nuclei %}nuclei{% elif f.epss is not none %}EPSS {{ "%.2f" | format(f.epss) }}{% else %}—{% endif %} | {{ f.tools | join(", ") }} | {{ f.category }} | `{{ f.rule_id }}`{% if f.url %} [↗]({{ f.url }}){% endif %} | {{ f.file }}{% if f.line %}:{{ f.line }}{% endif %} |
 {% endfor %}{% else %}_No findings._
 {% endif %}
 ## Provenance
 
-_appsec-compose {{ provenance.appsec_compose }} · {{ provenance.target }} target{% if provenance.offline %} · offline{% endif %}_
+_appsec-compose {{ provenance.appsec_compose }} · {{ provenance.target }} target{% if provenance.offline %} · offline{% endif %}{% if scope %} · {{ scope.label() }}{% endif %}_
 
 {% for tool, ref in provenance.engines.items() %}- **{{ tool }}**: `{{ ref }}`
 {% endfor %}
@@ -171,6 +177,8 @@ _HTML_TEMPLATE = """<!doctype html>
  .filters button{font:inherit;font-size:12.5px;padding:5px 12px;border:1px solid var(--line);
    background:var(--card);color:var(--ink);border-radius:999px;cursor:pointer;text-transform:capitalize}
  .filters button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+ .badge-chg{display:inline-block;background:transparent;color:var(--accent);border:1px solid var(--accent);
+   font-size:10px;font-weight:700;padding:1px 5px;border-radius:5px;margin-left:6px;vertical-align:middle}
  .badge-new{display:inline-block;background:var(--accent);color:#fff;font-size:10px;font-weight:700;
    padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:middle;letter-spacing:.3px}
  tr.new td:first-child{box-shadow:inset 3px 0 var(--accent)}
@@ -184,7 +192,7 @@ _HTML_TEMPLATE = """<!doctype html>
 </style></head><body>
 <header><div class="wrap">
   <div class="brand"><span class="dot"></span>appsec-compose</div>
-  <div class="sub">appsec-compose {{ provenance.appsec_compose }} &middot; generated {{ generated }} UTC &middot; policy fail_on = {{ policy.label }}{% if stats.removed %} &middot; {{ total }} unique of {{ stats.raw }} ({{ stats.removed }} merged){% endif %}{% if suppressed_count %} &middot; {{ suppressed_count }} suppressed{% endif %}{% if delta %} &middot; {{ delta.new | length }} new / {{ delta.known | length }} known / {{ delta.fixed }} fixed{% endif %}{% if enrichment and enrichment.exploitable %} &middot; {{ enrichment.exploitable }} exploitable{% endif %}</div>
+  <div class="sub">appsec-compose {{ provenance.appsec_compose }} &middot; generated {{ generated }} UTC &middot; policy fail_on = {{ policy.label }}{% if stats.removed %} &middot; {{ total }} unique of {{ stats.raw }} ({{ stats.removed }} merged){% endif %}{% if suppressed_count %} &middot; {{ suppressed_count }} suppressed{% endif %}{% if delta %} &middot; {{ delta.new | length }} new / {{ delta.known | length }} known{% if delta.fixed is not none %} / {{ delta.fixed }} fixed{% endif %}{% endif %}{% if scope %} &middot; {{ scope.label() }}{% endif %}{% if enrichment and enrichment.exploitable %} &middot; {{ enrichment.exploitable }} exploitable{% endif %}</div>
   <div class="pill {{ 'fail' if policy.exit_code else 'pass' }}">
     <span class="big">{{ '✗' if policy.exit_code else '✓' }} {{ verdict }}</span>
     &middot; {{ policy.breaching }} at/above threshold
@@ -193,6 +201,13 @@ _HTML_TEMPLATE = """<!doctype html>
 
 <div class="wrap">
 
+{% if scope %}
+<div class="alert">
+  <div class="alert-t">Diff scan &mdash; {{ scope.files | length }} changed file(s) vs <code>{{ scope.base }}</code></div>
+  <div>Only the files changed since merge-base <code>{{ scope.merge_base[:12] }}</code> were scanned and gated. Unchanged code was not scanned, and effects of the change on it are not covered.{% if scope.dropped %} {{ scope.dropped }} raw finding(s) outside the changed files were dropped.{% endif %} {{ changed_line_count }} finding(s) sit on a changed line (<span class="badge-chg">&Delta; line</span>).</div>
+  {% if scope.skipped_engines %}<div class="alert-a">Not run: {% for name, reason in scope.skipped_engines | dictsort %}{{ name }} ({{ reason }}){% if not loop.last %}; {% endif %}{% endfor %}</div>{% endif %}
+</div>
+{% endif %}
 {% if coverage and coverage.warnings %}
 {% for w in coverage.warnings %}
 <div class="alert">
@@ -268,13 +283,14 @@ _HTML_TEMPLATE = """<!doctype html>
   <tbody>
   {% for f in top_findings %}
     <tr data-cat="{{ f.category }}"{% if f.is_new %} class="new"{% endif %}>
-      <td><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span>{% if f.is_new %}<span class="badge-new">NEW</span>{% endif %}</td>
+      <td><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span>{% if f.is_new %}<span class="badge-new">NEW</span>{% endif %}{% if f.on_changed_line %}<span class="badge-chg" title="on a line the change added or modified">&Delta; line</span>{% endif %}</td>
       <td>
+        {% if f.malicious %}<span class="expl kev" title="the advisory says this package is malware, not a vulnerable release">MALICIOUS</span>{% endif %}
         {% if f.kev %}<span class="expl kev" title="CISA Known Exploited Vulnerabilities">KEV</span>{% endif %}
         {% if f.poc %}<span class="expl poc" title="public proof of concept">PoC</span>{% endif %}
         {% if f.nuclei %}<span class="expl poc" title="Nuclei template exists">nuclei</span>{% endif %}
         {% if f.epss is not none %}<span class="expl epss" title="probability of exploitation in the wild">EPSS {{ "%.2f" | format(f.epss) }}</span>{% endif %}
-        {% if not f.kev and not f.poc and not f.nuclei and f.epss is none %}<span class="loc">&mdash;</span>{% endif %}
+        {% if not f.malicious and not f.kev and not f.poc and not f.nuclei and f.epss is none %}<span class="loc">&mdash;</span>{% endif %}
       </td>
       <td class="tool">{{ f.tools | join(", ") }}</td>
       <td>{{ f.category }}</td>
@@ -321,7 +337,7 @@ def _sort_findings(findings: list[Finding]) -> list[Finding]:
 def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
              stats: DedupStats, suppressed_count: int, delta,
              coverage=None, enrichment=None, expired=None,
-             provenance=None) -> dict:
+             provenance=None, scope=None) -> dict:
     total = sum(policy.severity_counts.values())
     top = _sort_findings(findings)[:_TOP_N]
     # Filter chips are derived from the rows actually shown, so a filter can
@@ -338,6 +354,9 @@ def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
         "enrichment": enrichment,
         "expired": expired or [],
         "provenance": provenance or {},
+        "scope": scope,
+        "changed_line_count": sum(1 for f in findings
+                                  if getattr(f, "on_changed_line", None)),
         "verdict": "FAIL" if policy.exit_code else "PASS",
         "sev_order": _DISPLAY_ORDER,
         "total": total,
@@ -356,10 +375,10 @@ def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
 def render(result: ScanResult, policy: PolicyResult, findings: list[Finding],
            stats: DedupStats, out_dir: str = "/reports",
            suppressed_count: int = 0, delta=None, coverage=None,
-           enrichment=None, expired=None, provenance=None) -> None:
+           enrichment=None, expired=None, provenance=None, scope=None) -> None:
     env = Environment(autoescape=False, trim_blocks=True, lstrip_blocks=True)
     ctx = _context(result, policy, findings, stats, suppressed_count, delta,
-                   coverage, enrichment, expired, provenance)
+                   coverage, enrichment, expired, provenance, scope)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.md").write_text(env.from_string(_MD_TEMPLATE).render(**ctx))

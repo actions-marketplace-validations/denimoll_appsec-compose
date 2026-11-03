@@ -21,7 +21,7 @@ FIXTURE="$SCRIPT_DIR/tests/fixtures/vulnerable-repo"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# All nine engines, report-only: the point is coverage, not the verdict.
+# All ten engines, report-only: the point is coverage, not the verdict.
 # Only the scanners are switched on — enrichment stays off, so the smoke test
 # never depends on a CVE-PaaS instance being reachable.
 python3 - "$WORK/config.yml" <<'PYCFG'
@@ -31,12 +31,15 @@ cfg = yaml.safe_load(pathlib.Path("scan-config.yml").read_text())
 for block in cfg["scanners"].values():
     block["enabled"] = True
 cfg["enrich"]["cve_paas"]["enabled"] = False
+# The fixture's lockfile declares MIT for flatmap-stream; denying it proves
+# Trivy's license pass is wired, not that MIT is a problem.
+cfg["licenses"] = {"deny": ["MIT"]}
 pathlib.Path(sys.argv[1]).write_text(yaml.safe_dump(cfg, sort_keys=False))
 PYCFG
 
 echo "==> Running the full pipeline over the fixture"
 ./run.sh "$FIXTURE" --config "$WORK/config.yml" --reports "$WORK/reports" \
-  --baseline "$WORK/baseline.json" --name smoke --fail-on none --strict
+  --baseline "$WORK/baseline.json" --name "${SMOKE_NAME:-smoke}" --fail-on none --strict
 
 echo "==> Asserting every engine reported"
 python3 - "$WORK/reports/findings.json" <<'PY'
@@ -55,8 +58,27 @@ check(not data["reports_errored"], f"unreadable reports: {data['reports_errored'
 # Each engine must find something in a fixture built to trip it. A silent zero
 # here means its command line broke, which is exactly what we are guarding.
 tools = data["tool_counts"]
-for engine in ("semgrep", "trivy", "gitleaks", "checkov", "hadolint", "osv"):
+for engine in ("semgrep", "trivy", "gitleaks", "checkov", "hadolint", "osv", "zizmor"):
     check(tools.get(engine, 0) > 0, f"{engine} reported nothing")
+
+# zizmor must read the planted workflow, not merely write an empty SARIF.
+rules = {f["rule_id"] for f in data["findings"] if f["tool"] == "zizmor"}
+check("zizmor/template-injection" in rules,
+      f"zizmor missed the PR-title injection in pr-greeter.yml (saw {sorted(rules)})")
+
+# flatmap-stream@0.1.1 is malware, not a vulnerable release: it must be
+# recognised as such from the lockfile alone and ranked critical.
+mal = [f for f in data["findings"] if f.get("malicious")]
+check(any((f.get("package") or "").startswith("flatmap-stream@") and f["severity"] == "critical"
+          for f in mal), f"flatmap-stream not reported as a critical malicious package ({mal})")
+
+# The license pass ran and the policy turned the denied license into SCA.
+check(any(f["rule_id"] == "LICENSE:MIT" and f["category"] == "sca"
+          for f in data["findings"]), "license policy produced no LICENSE:MIT finding")
+
+# Trivy's secret scanner reports under secrets and merges with Gitleaks.
+check(not any(f["category"] == "sca" and not f.get("package") and "trivy" in f["tools"]
+              for f in data["findings"]), "a Trivy result without a package landed in sca")
 
 categories = data["category_counts"]
 for category in ("sast", "sca", "secrets", "iac"):
@@ -88,7 +110,7 @@ PY
 echo "==> Asserting the policy gate still fails on a bad repo"
 set +e
 ./run.sh "$FIXTURE" --config "$WORK/config.yml" --reports "$WORK/reports" \
-  --baseline "$WORK/baseline.json" --name smoke --fail-on high >/dev/null 2>&1
+  --baseline "$WORK/baseline.json" --name "${SMOKE_NAME:-smoke}" --fail-on high >/dev/null 2>&1
 code=$?
 set -e
 [[ "$code" == "1" ]] || { echo "expected exit 1 from the gate, got $code" >&2; exit 1; }

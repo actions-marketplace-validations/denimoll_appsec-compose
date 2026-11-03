@@ -12,9 +12,15 @@ Image pinning: if image-digests.lock maps a tool's `repo:tag` to a
 `repo@sha256:...` digest (written by ./pin.sh), the resolved <TOOL>_IMAGE uses
 the digest; otherwise it uses the plain tag. <TOOL>_TAGREF always holds the tag
 form (consumed by pin.sh).
+
+Output: `.env` and `excludes/` go to the tool directory by default (what a raw
+`docker compose`, pin.sh and preload.sh read). `--out-dir DIR` writes them to
+DIR instead — run.sh renders into a private per-run directory so concurrent
+runs never overwrite each other.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
@@ -24,7 +30,9 @@ from pathlib import Path
 try:
     import yaml
 except ImportError:
-    sys.exit("PyYAML is required on the host: pip3 install pyyaml")
+    # Exit 2 (setup problem), not sys.exit(msg)'s 1, which reads as a verdict.
+    print("ERROR: PyYAML is required on the host: pip3 install pyyaml", file=sys.stderr)
+    sys.exit(2)
 
 
 def _load_schema():
@@ -53,6 +61,7 @@ TOOLS = {
     "syft": ("anchore/syft", "v1.51.0", "SYFT"),
     "hadolint": ("hadolint/hadolint", "v2.15.1-alpine", "HADOLINT"),
     "osv": ("ghcr.io/google/osv-scanner", "v2.5.1", "OSV"),
+    "zizmor": ("ghcr.io/zizmorcore/zizmor", "1.31.1", "ZIZMOR"),
 }
 
 # Registry pack fetched offline by preload.sh; used as a local file when offline.
@@ -82,9 +91,29 @@ DEFAULT_EXCLUDES = [
     ".venv", "venv", "__pycache__", ".gradle", ".tox", ".mypy_cache",
 ]
 
-# Generated per-engine exclude configs (gitleaks TOML, trufflehog regex list)
-# live here and are mounted into the containers at /excludes.
+# Generated per-engine configs (gitleaks TOML, trufflehog regex list, zizmor's
+# fallback policy) live here and are mounted into the containers at /excludes.
 EXCLUDES_DIR = "excludes"
+
+# zizmor's policy when the scanned repo brings no zizmor.yml of its own.
+# Since zizmor 1.20 `unpinned-uses` demands a commit SHA for *every* action and
+# rates each tag reference high, so practically every repository that uses
+# GitHub's own actions by tag (`actions/checkout@v5`) fails a `high` gate on
+# day one: 19 such findings on this repository, 13 of 28 on DVWA. Tags of
+# GitHub-owned actions share a trust root with the runner itself; third-party
+# tags are the tj-actions/changed-files risk and stay hash-pin. This is the
+# policy zizmor shipped before 1.20 and documents as the opt-out. A repo's own
+# `zizmor.yml` / `.github/zizmor.yml` replaces it entirely.
+ZIZMOR_DEFAULT_POLICY = """\
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        actions/*: ref-pin
+        github/*: ref-pin
+        dependabot/*: ref-pin
+        "*": hash-pin
+"""
 
 
 def _path_regex(pattern: str) -> str:
@@ -101,6 +130,7 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
     config file instead — see _write_exclude_files.
     """
     semgrep, trivy, checkov, anchore, osv, hadolint = [], [], [], [], [], []
+    zizmor: list[str] = []
     # Trivy separates directory and file exclusions; a glob may name either, so
     # a glob entry goes to both lists.
     for raw in patterns:
@@ -124,6 +154,7 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
         if not is_glob:
             osv.append(f"--experimental-exclude={pat}")
         hadolint.extend(["-not", "-path", f"*/{pat}/*"])
+        zizmor.extend(["-not", "-path", f"*/{pat}/*"])
     return {
         "SEMGREP_EXCLUDES": " ".join(semgrep),
         "TRIVY_SKIP_DIRS": " ".join(trivy),
@@ -134,13 +165,15 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
         "SYFT_EXCLUDE": ",".join(anchore),
         "OSV_EXCLUDES": " ".join(osv),
         "HADOLINT_PRUNE": " ".join(hadolint),
+        # zizmor honours .gitignore but takes no exclusion flag, so compose
+        # collects its inputs with find and prunes them with these.
+        "ZIZMOR_PRUNE": " ".join(zizmor),
     }
 
 
-def _write_exclude_files(patterns: list[str]) -> None:
+def _write_exclude_files(patterns: list[str], out: Path) -> None:
     """Generate the exclude configs for engines that take no exclusion flag."""
-    out = ROOT / EXCLUDES_DIR
-    out.mkdir(exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
     regexes = [_path_regex(str(p).strip().strip("/")) for p in patterns
                if str(p).strip()]
     header = "# Generated from scan-config.yml by scripts/render-env.py — do not edit.\n"
@@ -155,6 +188,9 @@ def _write_exclude_files(patterns: list[str]) -> None:
 
     # TruffleHog: newline-separated regexes of paths to skip.
     (out / "trufflehog.txt").write_text("\n".join(regexes) + ("\n" if regexes else ""))
+
+    # zizmor: not an exclusion list, but per-run engine config all the same.
+    (out / "zizmor.yml").write_text(header + ZIZMOR_DEFAULT_POLICY)
 
 
 
@@ -236,25 +272,44 @@ def _version() -> str:
         return "unknown"
 
 
-def _db_dates() -> dict[str, str]:
-    """When each vulnerability database was last refreshed.
+_GRYPE_V6_BUILT = re.compile(r"_(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)_")
+
+
+def _db_dates(engines: set[str] | None = None) -> dict[str, str]:
+    """When each vulnerability database that `engines` used was built.
 
     A scan is only as current as its DB, so the report should say how old it
     was — a clean result from a three-week-old database is not a clean result.
+    run.sh asks again after the scanners ran (--db-dates): an engine that
+    refreshed its DB during the scan must report the new date, and an engine
+    that did not run must report none.
     """
     dates: dict[str, str] = {}
-    trivy = ROOT / "cache" / "trivy" / "db" / "metadata.json"
-    try:
-        dates["trivy"] = json.loads(trivy.read_text())["UpdatedAt"]
-    except (OSError, KeyError, ValueError):
-        pass
-    for meta in sorted((ROOT / "cache" / "grype").glob("*/metadata.json")):
+    # ASS_CACHE_DIR: run.sh's cache location (the CLI keeps it in ~/.cache).
+    cache = Path(os.environ.get("ASS_CACHE_DIR") or ROOT / "cache")
+    if engines is None or "trivy" in engines:
         try:
-            built = json.loads(meta.read_text()).get("built")
-            if built:
-                dates["grype"] = built
-        except (OSError, ValueError):
+            meta = cache / "trivy" / "db" / "metadata.json"
+            dates["trivy"] = json.loads(meta.read_text())["UpdatedAt"]
+        except (OSError, KeyError, ValueError):
             pass
+    if engines is None or "grype" in engines:
+        for meta in sorted((cache / "grype").glob("*/metadata.json")):
+            try:
+                built = json.loads(meta.read_text()).get("built")
+                if built:
+                    dates["grype"] = built
+            except (OSError, ValueError):
+                pass
+        # DB schema v6 (grype >= 0.88) has no metadata.json; the build time is
+        # only in the archive name that import.json records.
+        for imp in sorted((cache / "grype").glob("*/import.json")):
+            try:
+                m = _GRYPE_V6_BUILT.search(json.loads(imp.read_text()).get("source", ""))
+            except (OSError, ValueError):
+                continue
+            if m:
+                dates["grype"] = m.group(1)
     return dates
 
 
@@ -277,8 +332,29 @@ def _is_pinned(env: dict[str, str], prefix: str, pins: dict[str, str]) -> bool:
     return "@sha256:" in env.get(f"{prefix}_IMAGE", "")
 
 
-def main() -> int:
-    cfg = yaml.safe_load(CFG.read_text()) or {}
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Render scan-config.yml into .env")
+    parser.add_argument("--out-dir", type=Path, default=ROOT,
+                        help="where to write .env and excludes/ (default: the tool directory)")
+    parser.add_argument("--db-dates", nargs="*", metavar="ENGINE",
+                        help="print the DB build dates of these engines as JSON and exit")
+    args = parser.parse_args(argv)
+    if args.db_dates is not None:
+        print(json.dumps(_db_dates(set(args.db_dates)), separators=(",", ":")))
+        return 0
+    out_dir = args.out_dir.resolve()
+
+    try:
+        cfg = yaml.safe_load(CFG.read_text()) or {}
+    except OSError as exc:
+        print(f"ERROR: cannot read {CFG}: {exc.strerror}", file=sys.stderr)
+        return 2
+    except yaml.YAMLError as exc:
+        print(f"ERROR: {CFG.name} is not valid YAML: {exc}", file=sys.stderr)
+        return 2
+    if not isinstance(cfg, dict):
+        print(f"ERROR: {CFG.name} must be a mapping of settings", file=sys.stderr)
+        return 2
     # Fail on the host, before a single container starts, and name every problem.
     try:
         _load_schema().check(cfg, known_scanners=set(TOOLS))
@@ -313,13 +389,23 @@ def main() -> int:
     # list replaces them entirely.
     raw_excludes = cfg.get("exclude", None)
     excludes = DEFAULT_EXCLUDES if raw_excludes is None else list(raw_excludes or [])
-    _write_exclude_files(excludes)
+    # Added by run.sh on top of either (one path per line): its own reports
+    # directory when that lies inside the target.
+    excludes = excludes + [e for e in os.environ.get("ASS_EXTRA_EXCLUDES", "").splitlines()
+                           if e.strip() and e not in excludes]
+    _write_exclude_files(excludes, out_dir / EXCLUDES_DIR)
 
     # Gitleaks scans the working tree by default; `secrets_history` walks the
     # full history and `secrets_history_range` narrows it to a commit range
     # (e.g. "origin/main..HEAD" — the PR's own commits instead of everything).
     history_range = str(cfg.get("secrets_history_range", "") or "").strip()
     history = bool(cfg.get("secrets_history", False)) or bool(history_range)
+
+    licenses = cfg.get("licenses") or {}
+    license_policy = bool(licenses.get("deny") or licenses.get("warn"))
+    if license_policy and "trivy" not in enabled:
+        print("warning: licenses: is set but trivy is disabled, so no license "
+              "is checked", file=sys.stderr)
 
     env: dict[str, str] = {}
     for tool, (repo, default_ver, prefix) in TOOLS.items():
@@ -334,11 +420,25 @@ def main() -> int:
         "SEMGREP_CONFIGS": _semgrep_configs(scanners, offline),
         "TRIVY_DB_FLAGS": TRIVY_OFFLINE_FLAGS if offline else "",
         "GRYPE_DB_AUTO_UPDATE": "false" if offline else "true",
+        # zizmor's online audits (impostor commits, known-vulnerable actions,
+        # ref confusion, ...) need a GitHub token, which only ever comes from
+        # the host's ZIZMOR_GITHUB_TOKEN, never from scan-config.yml. Without
+        # one zizmor stays offline on its own; `offline: true` forces it even
+        # when a token is present.
+        "ZIZMOR_FLAGS": "--offline" if offline else "",
+        "ASS_ZIZMOR_ONLINE": "1" if (not offline and
+                                     os.environ.get("ZIZMOR_GITHUB_TOKEN", "").strip()) else "",
         # Gitleaks subcommand: `git` walks the history, `dir` the working tree.
         "GITLEAKS_CMD": "git" if history else "dir",
+        # Verification sends each candidate credential to its issuer's API:
+        # an outbound disclosure the user must opt into, never a default.
+        "TRUFFLEHOG_VERIFY": "" if (scanners.get("trufflehog") or {}).get("verify")
+                             else "--no-verification",
         "GITLEAKS_LOG_OPTS": f"--log-opts={history_range}" if (history and history_range) else "",
         "ASS_SBOM_CDX": "1" if sbom_on and "cyclonedx" in formats else "0",
         "ASS_SBOM_SPDX": "1" if sbom_on and "spdx" in formats else "0",
+        # Opt-in license policy: Trivy adds a license-only pass (no DB lookup).
+        "ASS_LICENSES": "1" if license_policy else "0",
         "ASS_IMAGE": image,
         "ASS_IMAGE_TAR": tar,
         "ASS_GRYPE_TARGET": grype_target,
@@ -386,7 +486,8 @@ def main() -> int:
               file=sys.stderr)
         return 2
 
-    (ROOT / ".env").write_text(
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / ".env").write_text(
         "# Generated from scan-config.yml by scripts/render-env.py — do not edit.\n"
         + "".join(f"{k}={q(v)}\n" for k, v in env.items())
     )

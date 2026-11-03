@@ -26,11 +26,24 @@ class PolicyResult:
             self.label = self.threshold
 
 
-def _bump_unknown(findings: list[Finding], unknown_severity: str) -> None:
-    """Resolve any stray 'unknown' severities (defensive; normalizer avoids them)."""
+def resolve_unknown(findings: list[Finding], unknown_severity: str) -> int:
+    """Turn severities the tools could not determine into a real level.
+
+    A tool that says "UNKNOWN" is not saying "info"; `unknown_severity` exists
+    precisely so the user decides how to rank those. This runs before anything
+    ranks or merges findings, so nothing downstream meets a level it cannot
+    compare.
+    """
+    resolved = 0
     for f in findings:
         if f.severity not in _RANK:
             f.severity = unknown_severity
+            resolved += 1
+    return resolved
+
+
+# Kept as the defensive last line inside evaluate().
+_bump_unknown = resolve_unknown
 
 
 def breaches_severity(finding: Finding, cfg: Config) -> bool:

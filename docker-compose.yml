@@ -9,6 +9,11 @@
 #
 # Image versions and the *_RULES / *_FLAGS below come from .env (see
 # scripts/render-env.py); the defaults here keep raw `docker compose` working.
+# run.sh renders a private .env per run and passes it with --env-file; it also
+# points ASS_EXCLUDES_DIR / ASS_ARCHIVE_DIR at that run's directory. Their
+# defaults (./excludes, ./.img-archive) are where a plain `render-env.py` writes.
+# ASS_CACHE_DIR (default ./cache) holds the vulnerability DBs; the
+# `appsec-compose` CLI moves it to the user's cache dir.
 
 name: appsec-compose
 
@@ -27,14 +32,36 @@ x-scan-volumes: &scan-volumes
 x-image-volumes: &image-volumes
   - *code-mount
   - ${ASS_REPORTS_DIR:-./reports}:/reports
-  - ./.img-archive:/archive:ro
+  - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
   - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
-# Generated per-engine exclude configs (gitleaks TOML, trufflehog regex list).
-x-exclude-volumes: &exclude-volumes
-  - *code-mount
+# Diff mode (./run.sh --diff <ref>): the engines that read files see a copy of
+# only what the change touched, mounted at /code in place of the repo, so their
+# command lines and report paths stay those of a full scan. ASS_DIFF_TREE holds
+# the changed files; ASS_DIFF_IAC_TREE the changed IaC files plus the Terraform
+# files beside them. Outside diff mode both fall back to the repo itself.
+x-diff-code-mount: &diff-code-mount
+  type: bind
+  source: ${ASS_DIFF_TREE:-${SCAN_TARGET:?set SCAN_TARGET to the absolute path of the repo to scan}}
+  target: /code
+  read_only: true
+
+x-iac-code-mount: &iac-code-mount
+  type: bind
+  source: ${ASS_DIFF_IAC_TREE:-${SCAN_TARGET:?set SCAN_TARGET to the absolute path of the repo to scan}}
+  target: /code
+  read_only: true
+
+x-iac-volumes: &iac-volumes
+  - *iac-code-mount
   - ${ASS_REPORTS_DIR:-./reports}:/reports
-  - ./excludes:/excludes:ro
+
+# Generated per-engine configs (gitleaks TOML, trufflehog regex list, zizmor
+# fallback policy).
+x-exclude-volumes: &exclude-volumes
+  - *diff-code-mount
+  - ${ASS_REPORTS_DIR:-./reports}:/reports
+  - ${ASS_EXCLUDES_DIR:-./excludes}:/excludes:ro
 
 # Every scanner runs one shot through a shell and must exit 0: findings are the
 # collector's business, so a noisy engine never breaks the scan phase.
@@ -58,14 +85,17 @@ services:
       SEMGREP_CONFIGS: ${SEMGREP_CONFIGS:---config p/default}
       SEMGREP_EXCLUDES: ${SEMGREP_EXCLUDES:-}
     volumes:
-      - *code-mount
+      - *diff-code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
-      - ./cache/semgrep:/cache/semgrep
+      - ${ASS_CACHE_DIR:-./cache}/semgrep:/cache/semgrep
       - ./semgrep-rules:/semgrep-rules:ro
 
   # ---- SCA + IaC + SBOM (Trivy covers all three) ------------------------
   # Scans the repo filesystem, or a container image when ASS_IMAGE is set
   # (./run.sh --image <ref>). SBOM formats are controlled by ASS_SBOM_CDX/SPDX.
+  # Diff mode: SCA (and its SBOM) runs only when a manifest changed
+  # (ASS_DIFF_SCA), over the whole repo; the config scan reads only the changed
+  # IaC files, mounted at /iac (ASS_DIFF_IAC).
   trivy:
     image: ${TRIVY_IMAGE:-aquasec/trivy:0.74.0}
     <<: *sh
@@ -75,10 +105,14 @@ services:
         if [ -n "$$ASS_IMAGE_TAR" ]; then SRC=image; SRCARG="--input $$ASS_IMAGE_TAR"; SKIP=;
         elif [ -n "$$ASS_IMAGE" ]; then SRC=image; SRCARG="$$ASS_IMAGE"; SKIP=;
         else SRC=fs; SRCARG=/code; SKIP=$$TRIVY_SKIP_DIRS; fi
+        CFG=/code; [ "$$ASS_DIFF" = 1 ] && CFG=/iac
+        if [ "$$ASS_DIFF_SCA" != 0 ]; then
         trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --scanners vuln,secret --format sarif --output /reports/native/trivy-fs.sarif $$SRCARG
-        [ "$$SRC" = fs ] && trivy config --quiet $$SKIP --format sarif --output /reports/native/trivy-config.sarif /code || true
         [ "$$ASS_SBOM_CDX" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --format cyclonedx --output /reports/sbom.trivy.cdx.json $$SRCARG || true
         [ "$$ASS_SBOM_SPDX" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --format spdx-json --output /reports/sbom.trivy.spdx.json $$SRCARG || true
+        fi
+        [ "$$SRC" = fs ] && [ "$$ASS_DIFF_IAC" != 0 ] && trivy config --quiet $$SKIP --format sarif --output /reports/native/trivy-config.sarif $$CFG || true
+        [ "$$ASS_LICENSES" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --scanners license --list-all-pkgs --format json --output /reports/native/trivy-license.json $$SRCARG || true
     environment:
       TRIVY_DB_FLAGS: ${TRIVY_DB_FLAGS:-}
       TRIVY_SKIP_DIRS: ${TRIVY_SKIP_DIRS:-}
@@ -86,12 +120,17 @@ services:
       ASS_IMAGE_TAR: ${ASS_IMAGE_TAR:-}
       ASS_SBOM_CDX: ${ASS_SBOM_CDX:-1}
       ASS_SBOM_SPDX: ${ASS_SBOM_SPDX:-0}
+      ASS_DIFF: ${ASS_DIFF:-}
+      ASS_DIFF_SCA: ${ASS_DIFF_SCA:-}
+      ASS_DIFF_IAC: ${ASS_DIFF_IAC:-}
+      ASS_LICENSES: ${ASS_LICENSES:-0}
       DOCKER_CONFIG: /dockercfg
     volumes:
       - *code-mount
+      - ${ASS_DIFF_IAC_TREE:-./.img-empty}:/iac:ro
       - ${ASS_REPORTS_DIR:-./reports}:/reports
-      - ./cache/trivy:/root/.cache/trivy
-      - ./.img-archive:/archive:ro
+      - ${ASS_CACHE_DIR:-./cache}/trivy:/root/.cache/trivy
+      - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
       - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
   # ---- Secrets ----------------------------------------------------------
@@ -102,15 +141,29 @@ services:
     # git history (needs a .git in the repo). --exit-code 0 keeps it green.
     # Do not go back to `detect`: it survives as a deprecated alias that exits 0
     # and writes an empty report, i.e. it silently finds nothing.
+    # --redact: this SARIF is uploaded to code scanning and kept as a CI
+    # artifact, and must not carry the secret it reports.
+    # Diff mode: /code holds only the changed files (working-tree pass), and a
+    # second pass walks the branch's commits in the real repo at /repo
+    # (ASS_DIFF_LOG_OPTS = merge-base..HEAD) into gitleaks-history.sarif, so a
+    # secret committed and then removed on the branch is still reported.
     command:
       - >-
         set -f;
         gitleaks $$GITLEAKS_CMD /code --config=/excludes/gitleaks.toml $$GITLEAKS_LOG_OPTS
-        --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0
+        --redact --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0;
+        [ -z "$$ASS_DIFF_LOG_OPTS" ] ||
+        gitleaks git /repo --config=/excludes/gitleaks.toml $$ASS_DIFF_LOG_OPTS
+        --redact --report-format=sarif --report-path=/reports/native/gitleaks-history.sarif --exit-code=0
     environment:
       GITLEAKS_CMD: ${GITLEAKS_CMD:-dir}
       GITLEAKS_LOG_OPTS: ${GITLEAKS_LOG_OPTS:-}
-    volumes: *exclude-volumes
+      ASS_DIFF_LOG_OPTS: ${ASS_DIFF_LOG_OPTS:-}
+    volumes:
+      - *diff-code-mount
+      - ${ASS_REPORTS_DIR:-./reports}:/reports
+      - ${ASS_EXCLUDES_DIR:-./excludes}:/excludes:ro
+      - ${SCAN_TARGET:?set SCAN_TARGET to the absolute path of the repo to scan}:/repo:ro
 
   # ---- IaC (deeper policy coverage than Trivy config) -------------------
   checkov:
@@ -118,16 +171,20 @@ services:
     <<: *sh
     # checkov prints an ASCII banner to stdout, so we can't redirect stdout to
     # the report. Write to a dir (clean `results_sarif.sarif`) and rename it.
+    # --skip-framework secrets: Gitleaks and Trivy own secrets. Checkov's own
+    # pass reads every file — 27 of a 44 s scan on juice-shop — and its hits
+    # landed as IaC findings, under the wrong gate and never merged; the ones
+    # only it found there were high-entropy words in translation files.
     command:
       - >-
         set -f;
-        checkov -d /code --soft-fail --compact $$CHECKOV_SKIP_PATHS -o sarif
+        checkov -d /code --soft-fail --compact --skip-framework secrets $$CHECKOV_SKIP_PATHS -o sarif
         --output-file-path /reports/native/_checkov >/dev/null 2>&1 || true ;
         mv /reports/native/_checkov/results_sarif.sarif /reports/native/checkov.sarif 2>/dev/null || true ;
         rm -rf /reports/native/_checkov
     environment:
       CHECKOV_SKIP_PATHS: ${CHECKOV_SKIP_PATHS:-}
-    volumes: *scan-volumes
+    volumes: *iac-volumes
 
   # ---- SCA (alternative) -----------------------------------------------
   grype:
@@ -151,8 +208,8 @@ services:
     volumes:
       - *code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
-      - ./cache/grype:/cache/grype
-      - ./.img-archive:/archive:ro
+      - ${ASS_CACHE_DIR:-./cache}/grype:/cache/grype
+      - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
       - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
   # ---- Secrets (alternative) -------------------------------------------
@@ -161,10 +218,15 @@ services:
     <<: *sh
     # TruffleHog has no SARIF output; it emits JSON lines. We keep the raw JSON
     # as the native report and the collector generates trufflehog.sarif from it.
+    # TRUFFLEHOG_VERIFY is --no-verification unless `verify: true`: verifying
+    # sends each candidate secret to its issuer.
     command:
       - >-
-        trufflehog filesystem /code --json --no-update -x /excludes/trufflehog.txt
+        trufflehog filesystem /code --json --no-update $$TRUFFLEHOG_VERIFY
+        -x /excludes/trufflehog.txt
         > /reports/native/trufflehog.json 2>/dev/null || true
+    environment:
+      TRUFFLEHOG_VERIFY: ${TRUFFLEHOG_VERIFY:---no-verification}
     volumes: *exclude-volumes
 
   # ---- SBOM (alternative generator) ------------------------------------
@@ -198,7 +260,7 @@ services:
         else printf '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Hadolint"}},"results":[]}]}' > /reports/native/hadolint.sarif; fi
     environment:
       HADOLINT_PRUNE: ${HADOLINT_PRUNE:-}
-    volumes: *scan-volumes
+    volumes: *iac-volumes
 
   # ---- SCA (alternative, OSV database) ---------------------------------
   osv:
@@ -221,10 +283,50 @@ services:
       OSV_EXCLUDES: ${OSV_EXCLUDES:-}
     volumes: *scan-volumes
 
+  # ---- CI/CD (GitHub Actions workflows, composite actions, Dependabot) ----
+  # zizmor has no exclusion flag, so its inputs are collected here with the
+  # same `exclude:` list as every other engine (ZIZMOR_PRUNE) and passed as
+  # files; NUL-separated, so a workflow name with a space survives. A repo with
+  # nothing to audit gets an empty SARIF rather than zizmor's "no inputs" exit 3.
+  # Policy: the repo's own zizmor.yml when it has one (zizmor finds it next to
+  # the inputs), else the fallback render-env generates (/excludes/zizmor.yml).
+  # --format sarif already keeps findings out of the exit code.
+  zizmor:
+    image: ${ZIZMOR_IMAGE:-ghcr.io/zizmorcore/zizmor:1.31.1}
+    <<: *sh
+    command:
+      - >-
+        set -f;
+        find /code -type f \( -path '*/.github/workflows/*.yml' -o -path '*/.github/workflows/*.yaml'
+        -o -name action.yml -o -name action.yaml
+        -o -path '*/.github/dependabot.yml' -o -path '*/.github/dependabot.yaml' \)
+        $$ZIZMOR_PRUNE -print0 2>/dev/null > /tmp/inputs;
+        cfg="--config /excludes/zizmor.yml";
+        for c in /code/zizmor.yml /code/zizmor.yaml /code/.github/zizmor.yml /code/.github/zizmor.yaml;
+        do [ -f "$$c" ] && cfg=""; done;
+        [ -n "$$ASS_ZIZMOR_TOKEN" ] && export ZIZMOR_GITHUB_TOKEN="$$ASS_ZIZMOR_TOKEN";
+        if [ -s /tmp/inputs ]; then
+        xargs -0 zizmor --quiet $$ZIZMOR_FLAGS $$cfg --format sarif < /tmp/inputs > /reports/native/zizmor.sarif || true;
+        else printf '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"zizmor"}},"results":[]}]}'
+        > /reports/native/zizmor.sarif; fi
+    environment:
+      ZIZMOR_FLAGS: ${ZIZMOR_FLAGS:-}
+      ZIZMOR_PRUNE: ${ZIZMOR_PRUNE:-}
+      # Opt-in online audits: export ZIZMOR_GITHUB_TOKEN on the host. Renamed
+      # on the way in because zizmor rejects the variable when it is set but
+      # empty, which is what an unset host variable becomes here.
+      ASS_ZIZMOR_TOKEN: ${ZIZMOR_GITHUB_TOKEN:-}
+    volumes: *exclude-volumes
+
   # ---- Collector / orchestrator ----------------------------------------
   # run.sh invokes this with `--no-deps` after the enabled scanners finish.
   # depends_on is kept so a raw `docker compose run collector` still works.
   collector:
+    # run.sh resolves ASS_COLLECTOR_IMAGE before the scan (scripts/collector-
+    # image.sh): the published GHCR image when it matches this checkout's
+    # orchestrator/, else a local build — so it never relies on compose to
+    # build or pull. `build:` is what a raw `docker compose run collector` uses.
+    image: ${ASS_COLLECTOR_IMAGE:-appsec-compose-collector:local}
     build: ./orchestrator
     # Non-root; run.sh supplies the host uid/gid so the bind-mounted reports/
     # and baseline file stay writable.
@@ -248,6 +350,9 @@ services:
       ASS_VERSION: ${ASS_VERSION:-}
       ASS_ENGINE_IMAGES: ${ASS_ENGINE_IMAGES:-}
       ASS_DB_DATES: ${ASS_DB_DATES:-}
+      # Diff mode: /diff/scope.json says what changed and what was skipped.
+      ASS_DIFF: ${ASS_DIFF:-}
+      ASS_ZIZMOR_ONLINE: ${ASS_ZIZMOR_ONLINE:-}
     # Lets `url: http://host.docker.internal:8000` reach a CVE-PaaS running on
     # the host from Linux too (a no-op on Docker Desktop, which already has it).
     extra_hosts:
@@ -259,3 +364,4 @@ services:
       - ${ASS_REPORTS_DIR:-./reports}:/reports
       - ${ASS_CONFIG_FILE:-./scan-config.yml}:/app/scan-config.yml:ro
       - ${ASS_BASELINE_FILE:-./appsec-baseline.json}:/app/appsec-baseline.json
+      - ${ASS_DIFF_DIR:-./.img-empty}:/diff:ro

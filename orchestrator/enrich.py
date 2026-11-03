@@ -164,7 +164,9 @@ def apply(findings: list[Finding], base_url: str, api_key: str = "",
             finding.url = next(iter(verdict.links.values()), "")
         if verdict.exploitable:
             result.exploitable += 1
-        if reprioritize:
+        # A malicious package is not a vulnerability waiting for an exploit:
+        # it is the exploit. No EPSS or KEV verdict may talk it down.
+        if reprioritize and not finding.malicious:
             mapped = _PRIORITY_TO_SEVERITY.get(verdict.priority.lower())
             if mapped and mapped != finding.severity:
                 finding.scanner_severity = finding.severity

@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# appsec-compose — command-line entry point, callable from any directory.
+#
+#   appsec-compose scan [<path>] [run.sh flags...]   # <path> defaults to .
+#   appsec-compose preload                           # offline cache + collector image
+#   appsec-compose mcp [--setup]                     # MCP server (stdio) for AI agents
+#   appsec-compose version
+#   appsec-compose help
+#
+# A thin layer over run.sh (installed by install.sh, or linked from a checkout).
+# It adds per-project conventions so that a scan needs no flags; any explicit
+# flag wins over them:
+#
+#   --config    <target>/.appsec-compose.yml     when present (else the tool's
+#                                                scan-config.yml)
+#   --baseline  <target>/.appsec-baseline.json   when present, or to create it
+#                                                with --update-baseline
+#   --reports   ./appsec-reports                 relative to the current
+#                                                directory; run.sh excludes it
+#                                                from the scan when it lies
+#                                                inside the target
+#   --name      the target directory's name      containers namespaced per
+#                                                project, so scans of different
+#                                                projects can run at once
+#
+# Writable state stays out of the install directory: the vulnerability DBs live
+# in ${XDG_CACHE_HOME:-~/.cache}/appsec-compose (ASS_CACHE_DIR). Only run.sh's
+# per-run .run/ directory is created in the install directory, because Docker
+# must be able to bind-mount it (an install under $HOME is shared with Docker
+# Desktop and Colima by default), and it is removed when the run exits.
+#
+# Exit codes are run.sh's: 0 pass, 1 policy fail, 2 usage/config error, 3 the
+# scan did not complete. With --json, stdout is exactly one JSON object.
+set -euo pipefail
+
+# Resolve the install directory through any chain of symlinks
+# (~/.local/bin/appsec-compose -> <install>/bin/appsec-compose).
+src="${BASH_SOURCE[0]}"
+while [[ -L "$src" ]]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  [[ "$src" = /* ]] || src="$dir/$src"
+done
+ROOT="$(cd -P "$(dirname "$src")/.." && pwd)"
+
+export ASS_CACHE_DIR="${ASS_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/appsec-compose}"
+
+usage() {
+  cat <<EOF
+Usage: appsec-compose <command> [args]
+
+  scan [<path>] [flags]   scan a directory (default: .) and gate on the policy
+  preload                 snapshot DBs/rules and the collector for offline use
+  mcp [--setup]           MCP server (stdio) for AI agents; --setup installs it
+  version                 tool and engine versions, install and cache paths
+  help                    this text
+
+Project conventions (explicit flags win):
+  <path>/.appsec-compose.yml     config         (--config)
+  <path>/.appsec-baseline.json   baseline       (--baseline)
+  ./appsec-reports               reports dir    (--reports)
+
+Scan flags are run.sh's: --fail-on L, --strict, --require-pinned,
+--update-baseline, --config F, --baseline F, --reports D, --name N, --json,
+--image REF, --build CTX [--dockerfile F]. For an image, omit <path>.
+
+--json: stdout is one JSON object (exit_code, verdict, reports_dir,
+findings_json, review_brief, severity_counts, breaching, baseline); all other
+output goes to stderr.
+
+Exit codes: 0 pass, 1 policy fail, 2 usage/config error, 3 scan did not complete.
+Install dir: $ROOT
+Cache dir:   $ASS_CACHE_DIR
+EOF
+}
+
+has() {   # has <flag> [args...] — is <flag> among the args?
+  local flag="$1"; shift
+  local a
+  for a in "$@"; do [[ "$a" == "$flag" ]] && return 0; done
+  return 1
+}
+
+# A usage error the launcher catches itself still answers --json callers.
+fail() {
+  echo "Error: $1" >&2
+  if [[ "$JSON" == 1 ]]; then
+    printf '{"exit_code": 2, "verdict": "usage_error", "reports_dir": null, "findings_json": null, "review_brief": null, "severity_counts": null, "breaching": null, "baseline": null}\n'
+  else
+    echo "Run 'appsec-compose help' for usage." >&2
+  fi
+  exit 2
+}
+
+JSON=0
+if has --json "$@"; then JSON=1; fi
+
+[[ -x "$ROOT/run.sh" ]] || fail "run.sh not found next to the launcher (expected in $ROOT)"
+
+cmd="${1:-help}"
+[[ $# -gt 0 ]] && shift
+case "$cmd" in
+  scan)
+    target=""
+    if [[ $# -gt 0 && "$1" != -* ]]; then target="$1"; shift; fi
+    args=("$@")
+    # No path: an image / build scan, or the current directory.
+    if [[ -z "$target" ]] && ! has --image "$@" && ! has --build "$@"; then target="."; fi
+
+    if [[ -n "$target" ]]; then
+      [[ -d "$target" ]] || fail "target '$target' is not a directory"
+      abs="$(cd "$target" && pwd)"
+      if ! has --config "$@" && [[ -f "$abs/.appsec-compose.yml" ]]; then
+        args+=(--config "$abs/.appsec-compose.yml")
+      fi
+      if ! has --baseline "$@" && { [[ -f "$abs/.appsec-baseline.json" ]] || has --update-baseline "$@"; }; then
+        args+=(--baseline "$abs/.appsec-baseline.json")
+      fi
+      if ! has --name "$@"; then
+        args+=(--name "$(basename "$abs")")
+      fi
+    fi
+    if ! has --reports "$@"; then
+      reports="$PWD/appsec-reports"
+      if [[ ! -d "$reports" ]]; then
+        mkdir -p "$reports"
+        # Reports quote the flagged code; keep them out of the project's git.
+        printf '# Created by appsec-compose; reports are regenerated on every scan.\n*\n' \
+          > "$reports/.gitignore"
+      fi
+      args+=(--reports "$reports")
+    fi
+    exec "$ROOT/run.sh" ${target:+"$target"} ${args[@]+"${args[@]}"}
+    ;;
+  preload)
+    exec "$ROOT/preload.sh" "$@"
+    ;;
+  mcp)
+    # The MCP SDK is the server's only dependency beyond the host's python3.
+    # It lives in a venv of its own, rebuilt when the pinned requirements
+    # change, so installing appsec-compose never touches the user's Python.
+    # stdout is the MCP stdio channel: every message here goes to stderr.
+    venv="${XDG_DATA_HOME:-$HOME/.local/share}/appsec-compose/mcp-venv"
+    req="$ROOT/appsec_mcp/requirements.txt"
+    want="$(cksum < "$req")"
+    if has --setup "$@"; then
+      [[ -x "$venv/bin/python" ]] || python3 -m venv "$venv" >&2
+      "$venv/bin/pip" install --quiet --disable-pip-version-check -r "$req" >&2
+      printf '%s\n' "$want" > "$venv/.requirements"
+      echo "MCP server ready. Register it, e.g.: claude mcp add --scope user appsec-compose -- appsec-compose mcp" >&2
+      exit 0
+    fi
+    if [[ ! -x "$venv/bin/python" ]]; then
+      echo "appsec-compose: the MCP server is not set up; run: appsec-compose mcp --setup" >&2
+      exit 2
+    fi
+    if [[ "$(cat "$venv/.requirements" 2>/dev/null)" != "$want" ]]; then
+      echo "appsec-compose: MCP requirements changed with this version; run: appsec-compose mcp --setup" >&2
+      exit 2
+    fi
+    exec "$venv/bin/python" "$ROOT/appsec_mcp"
+    ;;
+  version|--version|-v)
+    "$ROOT/run.sh" --version
+    echo "  install: $ROOT"
+    echo "  cache  : $ASS_CACHE_DIR"
+    ;;
+  help|--help|-h)
+    usage
+    ;;
+  *)
+    fail "unknown command '$cmd'"
+    ;;
+esac

@@ -1,8 +1,12 @@
 name: publish collector image
 
-# Builds the Python collector and pushes it to GHCR on release (and on demand),
-# so CI/users can skip the local build by pointing the compose `collector`
-# service at ghcr.io/<owner>/<repo>-collector instead of `build: ./orchestrator`.
+# Builds the Python collector and pushes it to GHCR on release (and on demand).
+# run.sh consumes it through scripts/collector-image.sh as
+#   ghcr.io/<owner>/<repo>-collector:v.<VERSION>
+# and only when the image's `appsec-compose.collector-hash` label equals the
+# hash of the checkout's own orchestrator/ — otherwise it builds locally. So the
+# tag is derived from VERSION (a release tag must match it) and the label is
+# computed by the same script run.sh uses.
 on:
   release:
     types: [published]
@@ -17,24 +21,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with: { persist-credentials: false }   # no token left in .git for later steps
 
-      - uses: docker/login-action@v4
+      - name: Compute image tags and label
+        id: meta
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"          # lowercase for GHCR
+          image="ghcr.io/${repo}-collector"
+          version="v.$(tr -d '[:space:]' < VERSION)"
+          tags="${image}:latest,${image}:${GITHUB_REF_NAME}"
+          # The version tag is what run.sh pulls: only a release tag that
+          # agrees with VERSION may publish it (a branch dispatch never does).
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            if [[ "$GITHUB_REF_NAME" != "$version" ]]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match VERSION ($version)"; exit 1
+            fi
+            tags="${image}:latest,${image}:${version}"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          echo "hash=$(scripts/collector-image.sh --hash)" >> "$GITHUB_OUTPUT"
+
+      # Third-party actions pinned by commit: this job holds a token that can
+      # push the image every local run pulls. Tags can be moved; commits cannot.
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6   # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute image tags
-        id: meta
-        run: |
-          repo="${GITHUB_REPOSITORY,,}"          # lowercase for GHCR
-          echo "image=ghcr.io/${repo}-collector" >> "$GITHUB_OUTPUT"
-          echo "ref=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+      # arm64 too: most local runs are on Apple Silicon, where an amd64-only
+      # image would run under emulation.
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130     # v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f   # v3
 
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc   # v7.4.0
         with:
           context: ./orchestrator
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ steps.meta.outputs.image }}:latest
-            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.ref }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: appsec-compose.collector-hash=${{ steps.meta.outputs.hash }}

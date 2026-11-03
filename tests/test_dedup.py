@@ -89,3 +89,95 @@ def test_a_lone_finding_does_not_alias_its_own_id():
                    "m", "a.py", 1)
     merged, _ = merge([lone])
     assert merged[0].aliases == []
+
+
+# --- a verdict outranks a score, across tools as well as within one ----------
+
+def stated(tool, rule, severity, package="aiohttp@3.13.3", aliases=()):
+    f = sca(tool, rule, package, severity=severity, aliases=aliases)
+    f.severity_stated = True
+    return f
+
+
+def derived(tool, rule, severity, package="aiohttp@3.13.3", aliases=()):
+    return sca(tool, rule, package, severity=severity, aliases=aliases)
+
+
+def test_a_score_derived_severity_never_outranks_a_verdict():
+    """CVE-2026-34520: Trivy and Grype both rate it LOW; OSV only has the 9.1
+    CVSS the advisory carries, and used to win the merge."""
+    merged, stats = merge([
+        stated("trivy", "CVE-2026-34520", "low"),
+        stated("grype", "GHSA-63hf-3vf5-4wqf", "low", aliases=["CVE-2026-34520"]),
+        derived("osv", "CVE-2026-34520", "critical"),
+    ])
+    assert stats.unique == 1
+    assert merged[0].severity == "low"
+    assert merged[0].tools == ["grype", "osv", "trivy"]
+
+
+def test_the_highest_verdict_still_wins_among_tools_that_have_one():
+    merged, _ = merge([stated("trivy", "CVE-1", "low"),
+                       stated("grype", "CVE-1", "high")])
+    assert merged[0].severity == "high"
+
+
+def test_scores_still_rank_a_group_where_nobody_stated_a_verdict():
+    """OSV alone must keep its only gradation."""
+    merged, _ = merge([derived("osv", "CVE-1", "critical"),
+                       derived("osv", "CVE-1", "medium")])
+    assert merged[0].severity == "critical"
+
+
+def test_the_merged_finding_reports_whether_a_verdict_backed_it():
+    verdict, _ = merge([stated("trivy", "CVE-1", "low"),
+                        derived("osv", "CVE-1", "critical")])
+    assert verdict[0].severity_stated is True
+    score, _ = merge([derived("osv", "CVE-2", "critical")])
+    assert score[0].severity_stated is False
+
+
+def test_the_representative_comes_from_the_tools_that_decided():
+    merged, _ = merge([
+        stated("trivy", "CVE-1", "low"),
+        derived("osv", "CVE-1", "critical"),
+    ])
+    # message/location follow the verdict, not the loudest score
+    assert merged[0].severity == "low"
+
+
+def test_merge_keeps_fix_cwe_and_borrows_the_secret_span():
+    gitleaks = Finding("gitleaks", "secrets", "aws", "high", "m", "a.py", 3,
+                       column=5, end_column=25)
+    truffle = Finding("trufflehog", "secrets", "th.aws", "critical", "m", "a.py", 3)
+    merged, _ = merge([gitleaks, truffle])
+    assert (merged[0].tool, merged[0].column, merged[0].end_column) == ("trufflehog", 5, 25)
+
+    a = sca("trivy", "CVE-1", "flask@1.0")
+    a.fixed_version, a.cwe = "1.1", ["CWE-79"]
+    b = sca("grype", "CVE-1", "flask@1.0")
+    b.cwe = ["CWE-20"]
+    merged, _ = merge([b, a])
+    assert merged[0].fixed_version == "1.1" and merged[0].cwe == ["CWE-20", "CWE-79"]
+
+
+def test_norm_file_keeps_the_dot_of_a_hidden_directory():
+    assert _norm_file("/code/.github/workflows/ci.yml") == ".github/workflows/ci.yml"
+    assert _norm_file("./.env") == ".env"
+
+
+def test_grype_maven_packages_merge_with_trivy_by_group_and_artifact(tmp_path):
+    import json
+    from normalize import load_findings
+    (tmp_path / "grype.json").write_text(json.dumps({"matches": [{
+        "vulnerability": {"id": "GHSA-57j2-w4cx-62h2", "severity": "High"},
+        "relatedVulnerabilities": [{"id": "CVE-2020-36518"}],
+        "artifact": {"name": "jackson-databind", "version": "2.9.8",
+                     "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.9.8",
+                     "locations": [{"path": "/pom.xml"}]}}]}))
+    grype, = load_findings(str(tmp_path), expected={"grype.json"}).findings
+    assert grype.package == "com.fasterxml.jackson.core:jackson-databind@2.9.8"
+    trivy = sca("trivy", "CVE-2020-36518", "com.fasterxml.jackson.core:jackson-databind@2.9.8",
+                file="pom.xml")
+    merged, _ = merge([grype, trivy])
+    assert len(merged) == 1 and merged[0].tools == ["grype", "trivy"]

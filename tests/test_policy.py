@@ -149,3 +149,17 @@ def test_the_exploitability_gate_is_off_unless_enrichment_is_enabled():
 def test_exploitability_alone_never_fails_when_not_configured():
     r = evaluate([exploitable("low")], Config(fail_on="critical"))
     assert r.breaching == 0 and "exploitable" not in r.label
+
+
+# --- undetermined severity -------------------------------------------------
+
+def test_resolve_unknown_applies_the_configured_level():
+    from policy import resolve_unknown
+    findings = [f("sca", "unknown"), f("sca", "high"), f("sca", "unknown")]
+    assert resolve_unknown(findings, "medium") == 2
+    assert [x.severity for x in findings] == ["medium", "high", "medium"]
+
+
+def test_resolve_unknown_reports_nothing_to_do():
+    from policy import resolve_unknown
+    assert resolve_unknown([f("sca", "high")], "medium") == 0
