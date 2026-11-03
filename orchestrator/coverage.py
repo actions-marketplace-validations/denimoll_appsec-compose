@@ -154,14 +154,16 @@ def analyse(code_dir: str, reports_dir: str, enabled: set[str],
     """
     sca_engines = {"trivy", "grype", "osv"} & enabled
     code = Path(code_dir)
-    if image_mode or not sca_engines or not code.is_dir() or sca_findings:
+    if image_mode or not sca_engines or not code.is_dir():
         return Coverage([], [], None, [])
 
+    # The manifests are listed whatever happens next — a report that found
+    # vulnerable dependencies must still say where it looked.
     manifests, ecosystems, has_lock = _walk_manifests(code, excludes)
     components = _sbom_components(Path(reports_dir))
     warnings: list[CoverageWarning] = []
 
-    if manifests and components == 0:
+    if manifests and components == 0 and not sca_findings:
         # Only recommend an engine the user hasn't already turned on.
         spare = [name for name in ("osv", "grype") if name not in enabled]
         suggestion = (f"enable the `{spare[0]}` scanner" if spare
@@ -188,7 +190,7 @@ def analyse(code_dir: str, reports_dir: str, enabled: set[str],
                          f"components — no dependency was actually scanned."),
                 advice=(f"Commit a lock file for this ecosystem, or {suggestion}."),
             ))
-    elif manifests and components is None and not has_lock:
+    elif manifests and components is None and not has_lock and not sca_findings:
         warnings.append(CoverageWarning(
             kind="sca-unverifiable",
             message=("SBOM generation is off, so SCA coverage cannot be verified "

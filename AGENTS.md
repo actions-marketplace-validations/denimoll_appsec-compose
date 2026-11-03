@@ -48,7 +48,9 @@ without `bin/`. Add `--diff origin/main` to check only what a branch changed
 1. **`review-brief.md`** (`review_brief` in the JSON). Written for you: scope,
    **blind spots**, gating findings first with the flagged code, dependencies
    grouped per component with the version to upgrade to. Secret values are
-   already masked.
+   already masked. On a large project it is long: read Scope and Blind spots,
+   then the findings in order — gating ones come first — and stop when you
+   have what the report needs.
 2. **`findings.json`** (`findings_json`) only for detail the brief leaves out —
    it follows [schemas/findings.schema.json](schemas/findings.schema.json):
    `components` for dependencies, `findings` for everything, `fingerprint` as
@@ -77,8 +79,10 @@ Rules:
 
 - Report only what the reports contain. Do not add CVEs, severities or
   versions from memory.
-- Never print a secret value — not from the code, not from a report. Name the
-  file, line and kind of credential, and tell the user to rotate it.
+- Never print a secret value — not from the code, not from a report, not in
+  your own tool output. To look at a secret finding, use its masked line in
+  the brief; do not `cat`/`grep` the file at that line. Name the file, line
+  and kind of credential, and tell the user to rotate it.
 - A clean pass is not "the code is secure": say what passed and what the blind
   spots are.
 - Keep it short; offer the full list (`summary.html`, `findings.json`) rather

@@ -166,3 +166,17 @@ def test_generic_advice_never_recommends_an_engine_already_enabled(tmp_path):
     assert "`grype`" in with_osv and "`osv`" not in with_osv
     with_all = analyse(str(code), reports, {"trivy", "osv", "grype"}, set())
     assert "enable the" not in with_all.warnings[0].advice
+
+
+def test_manifests_are_listed_even_when_sca_found_something(tmp_path):
+    (tmp_path / "api").mkdir()
+    (tmp_path / "api" / "composer.json").write_text("{}")
+    (tmp_path / "api" / "composer.lock").write_text("{}")
+    cov = analyse(str(tmp_path), str(tmp_path), {"trivy"}, set(), sca_findings=1)
+    assert cov.manifests == ["api/composer.json"] and cov.ecosystems == ["php"]
+    assert cov.warnings == []              # findings prove the manifests were read
+
+
+def test_findings_silence_the_unverifiable_warning_too(tmp_path):
+    (tmp_path / "requirements.txt").write_text("flask==1.0\n")
+    assert analyse(str(tmp_path), str(tmp_path), {"trivy"}, set(), sca_findings=2).warnings == []
