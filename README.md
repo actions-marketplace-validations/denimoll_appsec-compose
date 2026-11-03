@@ -96,7 +96,7 @@ appsec-compose mcp --setup
 claude mcp add --scope user appsec-compose -- appsec-compose mcp
 ```
 
-The agent gets `scan`, `findings`, `finding`, `brief` and `suppress`; a
+The agent gets `scan`, `findings`, `components`, `finding`, `brief` and `suppress`; a
 suppression is written to the project config with a reason and an expiry, for
 a human to review with the code. [AI agents](docs/ai-agents.md) ·
 [MCP server](appsec_mcp/README.md).

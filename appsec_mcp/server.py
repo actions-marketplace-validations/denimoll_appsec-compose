@@ -35,10 +35,11 @@ appsec-compose runs open-source security scanners (Semgrep SAST, Trivy SCA/IaC,
 Gitleaks secrets, Checkov IaC) over a local repository in Docker and hands the
 results over for review.
 
-Workflow: scan(path) -> read `blind_spots` and the gate -> findings(path,
-gating_only=true) -> finding(path, fp) for each, decide if it is real -> fix the
-code, or suppress(path, fp, reason) a false positive / accepted risk -> scan
-again (with diff_base to check just your change). A scan takes minutes; the
+Workflow: scan(path) -> read `blind_spots` and the gate -> components(path) for
+dependencies (one upgrade per package) and findings(path, gating_only=true) for
+the rest -> finding(path, fp) for each, decide if it is real -> fix the code,
+or suppress(path, fp, reason) a false positive / accepted risk -> scan again
+(with diff_base to check just your change). A scan takes minutes; the
 other tools read the last scan and are instant. Never paste secret values: the
 tools mask them, keep it that way."""
 
@@ -156,6 +157,29 @@ def findings(
             report, severity_min=severity_min, category=category, file=file,
             new_only=new_only, gating_only=gating_only,
             include_suppressed=include_suppressed, limit=limit, offset=offset))
+    except core.UserError as exc:
+        raise ToolError(str(exc)) from None
+
+
+@mcp.tool(annotations=ToolAnnotations(title="List vulnerable components", read_only_hint=True),
+          structured_output=False)
+def components(
+    path: PathArg,
+    gating_only: Annotated[bool, Field(
+        description="Only components with at least one finding that fails the gate.")] = False,
+    limit: Annotated[int, Field(ge=1, le=200, description="Page size.")] = 50,
+    offset: Annotated[int, Field(ge=0, description="Start of the page; use next_offset.")] = 0,
+) -> str:
+    """Dependencies of the last scan grouped by package: severity, how many
+    vulnerabilities, the version to upgrade to (the lowest that fixes them
+    all, when it can be derived), and the findings inside with their
+    fingerprints. Use it for SCA instead of paging through one finding per
+    CVE: one upgrade usually resolves a whole component. Malicious packages
+    come first; they are removed, not upgraded."""
+    report = _report(path)
+    try:
+        return _json(views.list_components(report, gating_only=gating_only,
+                                           limit=limit, offset=offset))
     except core.UserError as exc:
         raise ToolError(str(exc)) from None
 

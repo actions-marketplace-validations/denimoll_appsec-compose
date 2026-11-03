@@ -260,6 +260,47 @@ def list_findings(report: Report, *, severity_min: str | None = None,
     return out
 
 
+def list_components(report: Report, *, gating_only: bool = False,
+                    limit: int = 50, offset: int = 0) -> dict:
+    """Dependencies grouped by package: what to upgrade, and what it fixes."""
+    comps = report.doc.get("components")
+    if comps is None:
+        raise core.UserError("this scan predates the component view (findings.json "
+                             "schema < 1.2); scan again")
+    by_fp = {f.get("fingerprint"): f for f in report.findings}
+    limit = max(1, min(int(limit), 200))
+    offset = max(0, int(offset))
+    items = []
+    for c in comps:
+        inner = [by_fp[fp] for fp in c.get("findings", []) if fp in by_fp]
+        gating = any(report.gates(f) for f in inner)
+        if gating_only and not gating:
+            continue
+        item = {"package": c["package"], "severity": c["severity"],
+                "vulnerabilities": c["vulnerabilities"], "counts": c["counts"],
+                "upgrade_to": c.get("upgrade_to") or (
+                    "no fix known" if not c.get("fixed_in") else "no single version"),
+                "declared_in": c["files"],
+                "findings": [{"fingerprint": f["fingerprint"][:12], "severity": f.get("severity"),
+                              "rule": f.get("rule_id"),
+                              "fixed_in": f.get("fixed_version") or "no fix known"}
+                             for f in inner]}
+        if c.get("unfixed"):
+            item["unfixed"] = c["unfixed"]
+        if gating:
+            item["gating"] = True
+        if c.get("malicious"):
+            item["malicious"] = True
+        elif c.get("exploitable"):
+            item["exploitable"] = True
+        items.append(item)
+    page = items[offset:offset + limit]
+    nxt = offset + len(page)
+    return {"target": str(report.target), "scanned_at": report.last.get("scanned_at"),
+            "total": len(items), "returned": len(page),
+            "next_offset": nxt if nxt < len(items) else None, "components": page}
+
+
 def detail(report: Report, fingerprint: str, context_lines: int = 5) -> dict:
     f, status = report.resolve(fingerprint)
     context_lines = max(0, min(int(context_lines), 30))

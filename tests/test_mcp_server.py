@@ -571,7 +571,7 @@ def test_tools_and_prompt_are_registered():
     from appsec_mcp.server import mcp
 
     tools = {t.name: t for t in asyncio.run(mcp.list_tools())}
-    assert set(tools) == {"scan", "findings", "finding", "brief", "suppress"}
+    assert set(tools) == {"scan", "findings", "components", "finding", "brief", "suppress"}
     for t in tools.values():
         assert t.description and len(t.description) > 80
         assert "ctx" not in t.input_schema["properties"]
@@ -610,3 +610,21 @@ def test_tools_over_an_in_process_client(tool, repo):
     assert SECRET not in detail and "secret_note" in detail
     assert sup.is_error and "reason" in sup.content[0].text
     assert "scan(" in prompt.messages[0].content.text
+
+
+def test_components_group_dependencies_and_say_what_to_upgrade_to(scanned):
+    report = views.load_report(scanned)
+    with pytest.raises(core.UserError, match="predates the component view"):
+        views.list_components(report)
+    flask = [f for f in report.findings if f.get("package") == "flask@1.0"]
+    report.doc["components"] = [{
+        "package": "flask@1.0", "name": "flask", "version": "1.0", "files": ["requirements.txt"],
+        "severity": "high", "counts": {"high": len(flask)}, "vulnerabilities": len(flask),
+        "upgrade_to": "2.2.5", "fixed_in": ["2.2.5"], "unfixed": 0,
+        "malicious": False, "exploitable": False,
+        "findings": [f["fingerprint"] for f in flask]}]
+    out = views.list_components(report)
+    comp, = out["components"]
+    assert comp["package"] == "flask@1.0" and comp["upgrade_to"] == "2.2.5"
+    assert [f["fingerprint"] for f in comp["findings"]] == [f["fingerprint"][:12] for f in flask]
+    assert out["total"] == 1 and out["next_offset"] is None
