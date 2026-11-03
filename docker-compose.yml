@@ -114,6 +114,10 @@ services:
         [ "$$SRC" = fs ] && [ "$$ASS_DIFF_IAC" != 0 ] && trivy config --quiet $$SKIP --format sarif --output /reports/native/trivy-config.sarif $$CFG || true
         [ "$$ASS_LICENSES" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --scanners license --list-all-pkgs --format json --output /reports/native/trivy-license.json $$SRCARG || true
     environment:
+      # Nothing leaves the machine but the DB download: Trivy otherwise sends
+      # anonymous usage data to Aqua and checks for announcements on every run.
+      TRIVY_DISABLE_TELEMETRY: "true"
+      TRIVY_SKIP_VERSION_CHECK: "true"
       TRIVY_DB_FLAGS: ${TRIVY_DB_FLAGS:-}
       TRIVY_SKIP_DIRS: ${TRIVY_SKIP_DIRS:-}
       ASS_IMAGE: ${ASS_IMAGE:-}
@@ -216,6 +220,7 @@ services:
       - "-q"
     environment:
       GRYPE_DB_CACHE_DIR: /cache/grype
+      GRYPE_CHECK_FOR_APP_UPDATE: "false"    # no call home on every run
       GRYPE_EXCLUDE: ${GRYPE_EXCLUDE:-}
       GRYPE_DB_AUTO_UPDATE: ${GRYPE_DB_AUTO_UPDATE:-true}
       DOCKER_CONFIG: /dockercfg
@@ -257,6 +262,7 @@ services:
       - "-q"
     environment:
       DOCKER_CONFIG: /dockercfg
+      SYFT_CHECK_FOR_APP_UPDATE: "false"     # no call home on every run
       SYFT_EXCLUDE: ${SYFT_EXCLUDE:-}
     volumes: *image-volumes
 

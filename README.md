@@ -117,4 +117,5 @@ the GitLab template: [CI/CD](docs/ci.md).
 - [Reports](docs/reports.md) — every output file and the `findings.json` contract
 - [AI agents](docs/ai-agents.md) · [CI/CD](docs/ci.md) · [Development](docs/development.md)
 - [Benchmark](benchmark/RESULTS.md) — measured precision and recall, and where it is weak
+- [Privacy and network use](PRIVACY.md) — nothing is collected; every connection a scan makes
 - [Roadmap](ROADMAP.md)
