@@ -387,6 +387,10 @@ def main(argv: list[str] | None = None) -> int:
         "GRYPE_DB_AUTO_UPDATE": "false" if offline else "true",
         # Gitleaks subcommand: `git` walks the history, `dir` the working tree.
         "GITLEAKS_CMD": "git" if history else "dir",
+        # Verification sends each candidate credential to its issuer's API:
+        # an outbound disclosure the user must opt into, never a default.
+        "TRUFFLEHOG_VERIFY": "" if (scanners.get("trufflehog") or {}).get("verify")
+                             else "--no-verification",
         "GITLEAKS_LOG_OPTS": f"--log-opts={history_range}" if (history and history_range) else "",
         "ASS_SBOM_CDX": "1" if sbom_on and "cyclonedx" in formats else "0",
         "ASS_SBOM_SPDX": "1" if sbom_on and "spdx" in formats else "0",

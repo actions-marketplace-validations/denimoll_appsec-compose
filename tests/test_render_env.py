@@ -156,3 +156,22 @@ def test_db_dates_flag_prints_json(renv, tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("ASS_CACHE_DIR", str(_db_cache(tmp_path)))
     assert renv.main(["--db-dates", "grype"]) == 0
     assert json.loads(capsys.readouterr().out) == {"grype": "2026-11-02T00:22:47Z"}
+
+
+@pytest.mark.parametrize("verify,flag", [(None, "'--no-verification'"), (True, "''")])
+def test_trufflehog_never_verifies_unless_asked(tmp_path, verify, flag):
+    """Verification sends each candidate secret to its issuer: opt-in only."""
+    import os
+    import subprocess
+    import sys
+    import yaml
+    cfg = yaml.safe_load((ROOT / "scan-config.yml").read_text())
+    cfg["scanners"]["trufflehog"].pop("verify", None)
+    if verify is not None:
+        cfg["scanners"]["trufflehog"]["verify"] = verify
+    path = tmp_path / "c.yml"
+    path.write_text(yaml.safe_dump(cfg))
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "render-env.py"),
+                    "--out-dir", str(tmp_path / "run")], check=True, capture_output=True,
+                   env={**os.environ, "ASS_CONFIG_FILE": str(path)})
+    assert f"TRUFFLEHOG_VERIFY={flag}" in (tmp_path / "run" / ".env").read_text()

@@ -37,6 +37,11 @@ generates a SARIF from it, so SARIF-only ASPM tools can ingest it too. Our
 `findings.json` normalization is internal (for the summary); the per-tool native
 reports are what you upload to an ASPM.
 
+TruffleHog can check whether a credential is live by calling its issuer's API.
+That sends the secret found in your repository to a third party, so it is off
+unless you set `scanners.trufflehog.verify: true`; without it, findings are
+reported unverified (high), and nothing leaves the machine.
+
 ## Requirements
 
 On the host running the scan:

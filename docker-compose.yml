@@ -211,10 +211,15 @@ services:
     <<: *sh
     # TruffleHog has no SARIF output; it emits JSON lines. We keep the raw JSON
     # as the native report and the collector generates trufflehog.sarif from it.
+    # TRUFFLEHOG_VERIFY is --no-verification unless `verify: true`: verifying
+    # sends each candidate secret to its issuer.
     command:
       - >-
-        trufflehog filesystem /code --json --no-update -x /excludes/trufflehog.txt
+        trufflehog filesystem /code --json --no-update $$TRUFFLEHOG_VERIFY
+        -x /excludes/trufflehog.txt
         > /reports/native/trufflehog.json 2>/dev/null || true
+    environment:
+      TRUFFLEHOG_VERIFY: ${TRUFFLEHOG_VERIFY:---no-verification}
     volumes: *exclude-volumes
 
   # ---- SBOM (alternative generator) ------------------------------------

@@ -39,6 +39,8 @@ scanners:
   trufflehog:              # detector-based, can verify secrets
     enabled: false
     version: "3.97.0"
+    verify: false          # true => send each candidate secret to its issuer's
+                           # API to check it is live (outbound; opt in knowingly)
 
   # -- IaC — Checkov and/or Hadolint ----------------------------------
   checkov:                 # IaC policy (deeper than Trivy config)
