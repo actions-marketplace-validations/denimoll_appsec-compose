@@ -16,6 +16,7 @@ import os
 from collections import Counter
 from pathlib import Path
 
+import projectprofile
 from baseline import _Source, _mask_secret
 from components import group
 from dedup import _norm_file
@@ -32,15 +33,7 @@ _CONTEXT = 2           # lines of code either side of a SAST/IaC finding
 _MAX_FLAGGED = 8
 _MAX_LINE = 240        # minified code makes for useless context
 
-_LANGUAGES = {
-    ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript", ".mjs": "JavaScript",
-    ".ts": "TypeScript", ".tsx": "TypeScript", ".go": "Go", ".java": "Java",
-    ".kt": "Kotlin", ".scala": "Scala", ".rb": "Ruby", ".php": "PHP", ".cs": "C#",
-    ".c": "C", ".h": "C", ".cpp": "C++", ".cc": "C++", ".hpp": "C++",
-    ".rs": "Rust", ".swift": "Swift", ".m": "Objective-C", ".sh": "Shell",
-    ".tf": "Terraform", ".sql": "SQL", ".ex": "Elixir", ".exs": "Elixir",
-    ".dart": "Dart", ".lua": "Lua", ".pl": "Perl", ".vue": "Vue",
-}
+_LANGUAGES = projectprofile.LANGUAGES     # one table for every reader of the repo
 _MAX_WALK = 20_000
 
 _CATEGORY_NAMES = {"sast": "SAST", "sca": "SCA", "secrets": "Secrets", "iac": "IaC"}
@@ -316,9 +309,16 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
                      f"Only these were scanned and gated"
                      + (f": {shown_paths}{more}" if scope.files else "") + ".")
     if not image_mode:
-        langs = _languages(code_dir, excludes, scope.files if scope else None)
+        if scope:                          # diff mode: the changed files only
+            langs, frameworks = _languages(code_dir, excludes, scope.files), []
+        else:                              # one walk: languages and frameworks
+            prof = projectprofile.scan(code_dir, sorted(excludes))
+            langs, frameworks = prof.languages, prof.frameworks
         if langs:
             lines.append("- Languages (files): " + ", ".join(f"{l} ({n})" for l, n in langs))
+        if frameworks:
+            lines.append("- Frameworks (from the manifests): " + ", ".join(frameworks)
+                         + " — review framework-specific risks the generic rules miss")
         if excludes:
             lines.append("- Not scanned (excluded): " + ", ".join(f"`{e}`" for e in sorted(excludes)))
     fws = provenance.get("checkov_frameworks")

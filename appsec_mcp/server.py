@@ -161,6 +161,25 @@ def findings(
         raise ToolError(str(exc)) from None
 
 
+@mcp.tool(annotations=ToolAnnotations(title="Profile a repository", read_only_hint=True),
+          structured_output=False)
+def profile(path: PathArg) -> str:
+    """What a repository is made of — languages, frameworks from its manifests,
+    IaC and CI files, dependency manifests and whether they have lock files —
+    and the few config changes that fit it, each with its reason (e.g. enable
+    OSV-Scanner when dependencies have no lock file). Instant, no containers.
+    Use it before the first scan to plan the review, or to explain a gap;
+    record a recommendation only with the user's agreement."""
+    from dataclasses import asdict
+    from ._orchestrator import projectprofile as pp
+    target = _target(path)
+    prof = pp.scan(str(target), pp.DEFAULT_EXCLUDES)
+    recs = pp.recommend(prof)
+    return _json({"profile": {**asdict(prof), "ci": prof.ci},
+                  "recommendations": [asdict(r) for r in recs],
+                  "config": pp.overlay(recs) if recs else None})
+
+
 @mcp.tool(annotations=ToolAnnotations(title="List vulnerable components", read_only_hint=True),
           structured_output=False)
 def components(

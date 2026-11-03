@@ -140,6 +140,33 @@ the build; a development checkout — unreleased `VERSION`, or edits on top of a
 released one — always runs its own code. Set `ASS_COLLECTOR_IMAGE` to force an
 image (e.g. a registry mirror).
 
+## Project profile
+
+```bash
+appsec-compose profile ~/src/api            # instant: one walk, no containers
+appsec-compose profile ~/src/api --write    # create .appsec-compose.yml from it
+```
+
+Reports the languages, the frameworks the manifests declare (Django, Flask,
+FastAPI, Express, React, Spring, Rails, Laravel, Gin, ASP.NET Core, …), the IaC
+and CI files, and each dependency manifest with its lock file — then the few
+config changes that fit, each with its reason:
+
+- Python is a main language → `semgrep.rules: [default, auto]`, which adds
+  `p/python` — the one pack the [benchmark](../benchmark/RESULTS.md) found
+  worth adding; framework packs added nothing measurable, so none is proposed.
+- dependencies without a lock file, or `requirements.txt` with ranges →
+  enable OSV-Scanner, which resolves ranges (it sends dependency names and
+  versions to osv.dev; committing a lock file is the better fix).
+- no GitHub workflows, actions or dependabot config → zizmor off.
+- generated or vendored directories the default `exclude:` misses
+  (`.next`, `coverage`, `third_party`, …) → named for you to review.
+
+`--write` creates `.appsec-compose.yml` with only those changes and their
+reasons as comments; an existing file is never overwritten. `--json` gives the
+same as one object. The scan uses the same detection: it picks Checkov's
+frameworks, and the review brief names the languages and frameworks.
+
 ## Diff mode (scan only what a change touched)
 
 A developer or an AI agent iterating on a branch wants the verdict on *their

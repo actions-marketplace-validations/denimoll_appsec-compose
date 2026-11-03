@@ -18,6 +18,11 @@ installing Docker is the user's decision. If only PyYAML is missing:
 
 ## 2. Run the scan
 
+Optional, instant: `bin/appsec-compose profile /path/to/project` says what the
+project is (languages, frameworks, IaC, dependencies and lock files) and which
+config changes fit it, with reasons — useful to mention to the user, never
+applied without their agreement.
+
 From a checkout of this repository (cloning is enough, nothing to install):
 
 ```bash

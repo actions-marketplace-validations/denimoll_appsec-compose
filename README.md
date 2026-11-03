@@ -30,6 +30,7 @@ appsec-compose scan                       # the current directory
 appsec-compose scan ~/src/api --fail-on critical
 appsec-compose scan . --diff origin/main  # only what your branch changed
 appsec-compose scan --image nginx:1.27    # a container image
+appsec-compose profile .                  # what the repo is, and the config that fits it
 appsec-compose scan . --json              # one JSON object on stdout, for tools and agents
 ```
 

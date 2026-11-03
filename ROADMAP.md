@@ -126,6 +126,11 @@ the first step of an AI agent's security review. CI integrations come later.
         now an incomplete report: strict fails (exit 3), otherwise it is
         flagged on the console and as a blind spot in the brief.
 
+- [x] **Project profile** — `appsec-compose profile <path>` (and the MCP
+      `profile` tool): languages, frameworks, IaC/CI, dependencies with lock
+      files, and the config that fits, each with a reason; `--write` creates
+      `.appsec-compose.yml`. One detection shared with Checkov's framework
+      choice and the review brief.
 - [ ] **Workflow findings across engines** — one template injection is
       reported by zizmor, Checkov (`CKV_GHA_2`) and Semgrep separately. The
       per-file IaC equivalence used for Dockerfiles would collapse distinct
