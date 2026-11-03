@@ -1,5 +1,6 @@
 """Tests for scripts/render-env.py (loaded by path — its name isn't importable)."""
 import importlib.util
+import json
 import re
 from pathlib import Path
 
@@ -131,3 +132,27 @@ def test_smoke_test_fixture_exercises_every_category(renv):
     assert {"Dockerfile", "requirements.txt", "app.py", "config.env"} <= present
     reqs = (fixture / "requirements.txt").read_text()
     assert "==" in reqs, "dependencies must be pinned or SCA resolves nothing"
+
+
+def _db_cache(tmp_path):
+    (tmp_path / "trivy" / "db").mkdir(parents=True)
+    (tmp_path / "trivy" / "db" / "metadata.json").write_text('{"UpdatedAt": "2026-11-01T00:00:00Z"}')
+    (tmp_path / "grype" / "6").mkdir(parents=True)
+    (tmp_path / "grype" / "6" / "import.json").write_text(json.dumps({
+        "source": "https://grype.anchore.io/databases/v6/"
+                  "vulnerability-db_v6.1.10_2026-11-02T00:22:47Z_1793600812.tar.zst"}))
+    return tmp_path
+
+
+def test_db_dates_read_grype_v6_and_only_for_engines_that_ran(renv, tmp_path, monkeypatch):
+    monkeypatch.setenv("ASS_CACHE_DIR", str(_db_cache(tmp_path)))
+    assert renv._db_dates({"trivy", "grype"}) == {
+        "trivy": "2026-11-01T00:00:00Z", "grype": "2026-11-02T00:22:47Z"}
+    # A SAST-only run says nothing about the Trivy DB lying in the cache.
+    assert renv._db_dates({"semgrep"}) == {}
+
+
+def test_db_dates_flag_prints_json(renv, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("ASS_CACHE_DIR", str(_db_cache(tmp_path)))
+    assert renv.main(["--db-dates", "grype"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"grype": "2026-11-02T00:22:47Z"}

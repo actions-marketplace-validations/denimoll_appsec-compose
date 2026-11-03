@@ -343,6 +343,12 @@ if [[ -n "${RUN_ENGINES// }" ]]; then
   # shellcheck disable=SC2086
   compose up --no-deps $RUN_ENGINES
 fi
+# DB dates as of now, for the engines that ran: a scan may have refreshed a DB,
+# and a skipped engine's DB says nothing about this report. The shell env
+# outranks --env-file in compose interpolation.
+# shellcheck disable=SC2086
+ASS_DB_DATES="$(python3 scripts/render-env.py --db-dates $RUN_ENGINES)" || ASS_DB_DATES="{}"
+export ASS_DB_DATES
 
 # Collector reads the reports and returns the policy exit code. --no-deps so it
 # doesn't re-trigger the scanners via depends_on; no --build: the image was

@@ -243,27 +243,44 @@ def _version() -> str:
         return "unknown"
 
 
-def _db_dates() -> dict[str, str]:
-    """When each vulnerability database was last refreshed.
+_GRYPE_V6_BUILT = re.compile(r"_(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)_")
+
+
+def _db_dates(engines: set[str] | None = None) -> dict[str, str]:
+    """When each vulnerability database that `engines` used was built.
 
     A scan is only as current as its DB, so the report should say how old it
     was — a clean result from a three-week-old database is not a clean result.
+    run.sh asks again after the scanners ran (--db-dates): an engine that
+    refreshed its DB during the scan must report the new date, and an engine
+    that did not run must report none.
     """
     dates: dict[str, str] = {}
     # ASS_CACHE_DIR: run.sh's cache location (the CLI keeps it in ~/.cache).
     cache = Path(os.environ.get("ASS_CACHE_DIR") or ROOT / "cache")
-    trivy = cache / "trivy" / "db" / "metadata.json"
-    try:
-        dates["trivy"] = json.loads(trivy.read_text())["UpdatedAt"]
-    except (OSError, KeyError, ValueError):
-        pass
-    for meta in sorted((cache / "grype").glob("*/metadata.json")):
+    if engines is None or "trivy" in engines:
         try:
-            built = json.loads(meta.read_text()).get("built")
-            if built:
-                dates["grype"] = built
-        except (OSError, ValueError):
+            meta = cache / "trivy" / "db" / "metadata.json"
+            dates["trivy"] = json.loads(meta.read_text())["UpdatedAt"]
+        except (OSError, KeyError, ValueError):
             pass
+    if engines is None or "grype" in engines:
+        for meta in sorted((cache / "grype").glob("*/metadata.json")):
+            try:
+                built = json.loads(meta.read_text()).get("built")
+                if built:
+                    dates["grype"] = built
+            except (OSError, ValueError):
+                pass
+        # DB schema v6 (grype >= 0.88) has no metadata.json; the build time is
+        # only in the archive name that import.json records.
+        for imp in sorted((cache / "grype").glob("*/import.json")):
+            try:
+                m = _GRYPE_V6_BUILT.search(json.loads(imp.read_text()).get("source", ""))
+            except (OSError, ValueError):
+                continue
+            if m:
+                dates["grype"] = m.group(1)
     return dates
 
 
@@ -290,7 +307,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render scan-config.yml into .env")
     parser.add_argument("--out-dir", type=Path, default=ROOT,
                         help="where to write .env and excludes/ (default: the tool directory)")
-    out_dir = parser.parse_args(argv).out_dir.resolve()
+    parser.add_argument("--db-dates", nargs="*", metavar="ENGINE",
+                        help="print the DB build dates of these engines as JSON and exit")
+    args = parser.parse_args(argv)
+    if args.db_dates is not None:
+        print(json.dumps(_db_dates(set(args.db_dates)), separators=(",", ":")))
+        return 0
+    out_dir = args.out_dir.resolve()
 
     try:
         cfg = yaml.safe_load(CFG.read_text()) or {}
