@@ -1,9 +1,6 @@
-# Scan outputs — regenerated every run.
-reports/native/
-reports/summary.md
-reports/summary.html
-reports/findings.json
-reports/sbom.*.json
+# Scan outputs — regenerated every run. Everything, not a list of names: a
+# new report file must never end up committed by accident.
+reports/*
 
 # Keep the reports/ dir tracked but empty.
 !reports/.gitkeep
