@@ -7,6 +7,7 @@ from pathlib import Path
 
 from jinja2 import Environment
 
+from components import group
 from config import SEVERITY_ORDER
 from dedup import DedupStats
 from normalize import Finding, ScanResult
@@ -74,7 +75,27 @@ _Exploitability: {{ enrichment.resolved }}/{{ enrichment.requested }} CVE(s) res
 - Missing: {{ reports_missing | join(", ") or "none" }}
 - Errored: {{ reports_errored | join("; ") or "none" }}
 
-## Findings ({{ shown_count }}{% if total > shown_count %} of {{ total }}{% endif %})
+{% if components %}
+## Vulnerable components ({{ components | length }})
+
+{{ sca_count }} SCA finding(s) in {{ components | length }} package(s); each finding is still gated, suppressed and baselined on its own.
+
+| Severity | Component | Vulnerabilities | Upgrade to | Declared in |
+|---|---|---|---|---|
+{% for c in components %}| {{ c.severity }}{% if c.malicious %} **MALICIOUS**{% elif c.exploitable %} (exploitable){% endif %} | `{{ c.package }}` | {{ c.findings | length }}: {% for s, n in c.counts.items() %}{{ n }} {{ s }}{% if not loop.last %}, {% endif %}{% endfor %} | {% if c.upgrade_to %}**{{ c.upgrade_to }}**{% elif not c.fixed_in %}no fix known{% else %}no single version — see below{% endif %}{% if c.unfixed and c.fixed_in %} ({{ c.unfixed }} without a fix){% endif %} | {{ c.files | join(", ") }} |
+{% endfor %}
+
+{% for c in components %}
+<details><summary><code>{{ c.package }}</code> — {{ c.findings | length }} vulnerabilit{{ "y" if c.findings | length == 1 else "ies" }}</summary>
+
+{% for f in c.findings %}- **{{ f.severity }}**{% if f.is_new %} 🆕{% endif %} `{{ f.rule_id }}`{% if f.aliases %} ({{ f.aliases | join(", ") }}){% endif %}{% if f.fixed_version %} — fixed in {{ f.fixed_version }}{% endif %}{% if f.malicious %} — **MALICIOUS**{% elif f.kev %} — KEV{% endif %}{% if f.url %} [↗]({{ f.url }}){% endif %}
+{% endfor %}
+
+</details>
+{% endfor %}
+
+{% endif %}
+## Findings ({{ shown_count }}{% if total > shown_count + sca_count %} of {{ total - sca_count }}{% endif %}{% if components %}, besides the components above{% endif %})
 
 {% if top_findings %}| Severity | Exploit | Tools | Category | Rule | Location |
 |---|---|---|---|---|---|
@@ -186,6 +207,7 @@ _HTML_TEMPLATE = """<!doctype html>
  details.d>summary::-webkit-details-marker{display:none}
  details.d p{margin:.45rem 0 0;color:var(--muted);font-size:12.5px;max-width:52ch;white-space:normal}
  details.d a{color:var(--accent)}
+ table.inner{margin:.4rem 0 0;width:auto} table.inner td{padding:.2rem .5rem;border:0;vertical-align:top}
  code,.loc{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
  .loc{color:var(--muted)} .tool{font-weight:600}
  footer{color:var(--muted);font-size:12px;margin-top:26px}
@@ -272,7 +294,36 @@ _HTML_TEMPLATE = """<!doctype html>
   {% if not reports_found and not reports_missing and not reports_errored %}<span class="chip">none</span>{% endif %}
 </div>
 
-<h2>Findings <span style="text-transform:none;color:var(--muted);font-weight:400">({{ shown_count }}{% if total > shown_count %} of {{ total }}{% endif %})</span></h2>
+{% if components %}
+<h2>Vulnerable components <span style="text-transform:none;color:var(--muted);font-weight:400">({{ components | length }} package(s), {{ sca_count }} finding(s))</span></h2>
+<table>
+  <thead><tr><th>Severity</th><th>Component</th><th>Vulnerabilities</th><th>Upgrade to</th><th>Declared in</th></tr></thead>
+  <tbody>
+  {% for c in components %}
+    <tr{% if c.findings | selectattr("is_new") | list %} class="new"{% endif %}>
+      <td><span class="sev sev-{{ c.severity }}">{{ c.severity }}</span>{% if c.malicious %} <span class="expl kev" title="an advisory says this package is malware">MALICIOUS</span>{% elif c.exploitable %} <span class="expl kev" title="at least one vulnerability is known exploited or has a public exploit">exploitable</span>{% endif %}</td>
+      <td><code>{{ c.name }}</code><br><span class="loc">{{ c.version }}</span></td>
+      <td>
+        <details class="d"><summary>{{ c.findings | length }} &mdash; {% for s, n in c.counts.items() %}{{ n }} {{ s }}{% if not loop.last %}, {% endif %}{% endfor %}</summary>
+          <table class="inner">
+          {% for f in c.findings %}
+            <tr><td><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span>{% if f.is_new %}<span class="badge-new">NEW</span>{% endif %}</td>
+                <td>{% if f.url %}<a href="{{ f.url }}" target="_blank" rel="noopener noreferrer"><code>{{ f.rule_id }}</code></a>{% else %}<code>{{ f.rule_id }}</code>{% endif %}{% if f.aliases %}<br><span class="loc">{{ f.aliases | join(", ") }}</span>{% endif %}</td>
+                <td class="loc">{% if f.fixed_version %}fixed in {{ f.fixed_version }}{% else %}no fix known{% endif %}</td>
+                <td>{% if f.malicious %}<span class="expl kev">MALICIOUS</span>{% endif %}{% if f.kev %}<span class="expl kev">KEV</span>{% endif %}{% if f.poc %}<span class="expl poc">PoC</span>{% endif %}{% if f.epss is not none %}<span class="expl epss">EPSS {{ "%.2f" | format(f.epss) }}</span>{% endif %}</td></tr>
+          {% endfor %}
+          </table>
+        </details>
+      </td>
+      <td>{% if c.upgrade_to %}<b>{{ c.upgrade_to }}</b>{% elif not c.fixed_in %}<span class="loc">no fix known</span>{% else %}<span class="loc" title="the fixes listed per vulnerability cannot be compared into one version">no single version</span>{% endif %}{% if c.unfixed and c.fixed_in %}<br><span class="loc">{{ c.unfixed }} without a fix</span>{% endif %}</td>
+      <td class="loc">{{ c.files | join(", ") }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h2>Findings <span style="text-transform:none;color:var(--muted);font-weight:400">({{ shown_count }}{% if total > shown_count + sca_count %} of {{ total - sca_count }}{% endif %}{% if components %}, besides the components above{% endif %})</span></h2>
 {% if top_findings %}
 <div class="filters" id="filters">
   <button class="active" data-f="all">All ({{ shown_count }})</button>
@@ -339,7 +390,10 @@ def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
              coverage=None, enrichment=None, expired=None,
              provenance=None, scope=None) -> dict:
     total = sum(policy.severity_counts.values())
-    top = _sort_findings(findings)[:_TOP_N]
+    # SCA is shown per component; the findings table holds everything else.
+    components = group(findings)
+    sca_count = sum(len(c.findings) for c in components)
+    top = _sort_findings([f for f in findings if f.category != "sca"])[:_TOP_N]
     # Filter chips are derived from the rows actually shown, so a filter can
     # never come up empty (e.g. when a category falls outside the display cap).
     shown = Counter(f.category for f in top)
@@ -366,6 +420,8 @@ def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
         "reports_missing": result.reports_missing,
         "reports_errored": result.reports_errored,
         "top_findings": top,
+        "components": components,
+        "sca_count": sca_count,
         "filter_cats": filter_cats,
         "shown_count": len(top),
         "top_n": _TOP_N,

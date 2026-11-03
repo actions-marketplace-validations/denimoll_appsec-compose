@@ -181,3 +181,35 @@ def test_grype_maven_packages_merge_with_trivy_by_group_and_artifact(tmp_path):
                 file="pom.xml")
     merged, _ = merge([grype, trivy])
     assert len(merged) == 1 and merged[0].tools == ["grype", "trivy"]
+
+
+def test_upgrade_to_is_the_lowest_version_fixing_every_vulnerability():
+    from components import group, upgrade_target
+    assert upgrade_target("2.9.8", [["2.9.9.2", "2.8.11.4"]]) == "2.9.9.2"
+    assert upgrade_target("v8.1.2", [["6.4.0", "8.1.6", "8.1.0"]]) == "8.1.6"
+    # A per-branch fix list: 2.20 is not fixed for the first one, so the
+    # answer is not 2.20.1 but the first version both cover.
+    assert upgrade_target("2.9.8", [["2.18.11", "2.21.7"], ["2.20.1"]]) == "2.21.7"
+    assert upgrade_target("1.0", [["2.0.0-rc1"]]) is None    # not comparable: no guess
+    assert upgrade_target("2.9.8", [["2.8.1"]]) is None      # nothing above installed
+    a = sca("trivy", "CVE-1", "jackson-databind@2.9.8")
+    a.fixed_version = "2.9.9.2, 2.8.11.4"
+    b = sca("trivy", "CVE-2", "jackson-databind@2.9.8")
+    b.fixed_version = "2.12.6.1, 2.13.2.1"
+    comp, = group([a, b])
+    assert comp.upgrade_to == "2.12.6.1"
+    c = sca("trivy", "CVE-3", "jackson-databind@2.9.8")      # no fix known
+    assert group([a, b, c])[0].upgrade_to is None
+
+
+def test_trivy_without_a_fix_does_not_take_the_next_line(tmp_path):
+    import json
+    from normalize import load_findings
+    (tmp_path / "trivy-fs.sarif").write_text(json.dumps({"version": "2.1.0", "runs": [{
+        "tool": {"driver": {"name": "t", "rules": []}},
+        "results": [{"ruleId": "GHSA-x", "level": "error",
+                     "message": {"text": "Package: flatmap-stream\nInstalled Version: 0.1.1\n"
+                                         "Fixed Version: \nLink: [GHSA-x](https://x)"},
+                     "locations": [{"physicalLocation": {"artifactLocation": {"uri": "package-lock.json"}}}]}]}]}))
+    f, = load_findings(str(tmp_path), expected={"trivy-fs.sarif"}).findings
+    assert f.fixed_version == "" and f.package == "flatmap-stream@0.1.1"

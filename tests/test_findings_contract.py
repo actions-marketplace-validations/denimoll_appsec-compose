@@ -102,7 +102,8 @@ def test_review_brief_shows_the_flagged_code_and_the_blind_spots(run):
     sast = next(f for f in doc["findings"] if f["category"] == "sast")
     assert sast["fingerprint"] in brief
     assert ">   2 | os.system(cmd)" in brief
-    assert "flask@1.0` → fixed in 2.2.5" in brief
+    assert "#### `flask@1.0` — 1 vulnerability (1 high)" in brief
+    assert "upgrade to **2.2.5**" in brief
     assert "Cross-file data flow" in brief and "Git history" in brief
     assert "GATING" in brief
 
@@ -239,3 +240,16 @@ def test_a_rejected_suppression_is_not_in_effect(run):
     native.write_text(json.dumps(sarif))
     _, doc = run()
     assert [f for f in doc["findings"] if f["category"] == "sast"]
+
+
+def test_sca_is_grouped_by_component(run):
+    _, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    comp, = doc["components"]
+    sca = [f for f in doc["findings"] if f["category"] == "sca"]
+    assert comp["package"] == "flask@1.0" and comp["name"] == "flask" and comp["version"] == "1.0"
+    assert comp["severity"] == "high" and comp["counts"] == {"high": 1}
+    assert comp["fixed_in"] == ["2.2.5"] and comp["upgrade_to"] == "2.2.5" and comp["unfixed"] == 0
+    assert comp["findings"] == [f["fingerprint"] for f in sca]
+    html = (Path(main.REPORTS_DIR) / "summary.html").read_text()
+    assert "Vulnerable components" in html and "flask" in html

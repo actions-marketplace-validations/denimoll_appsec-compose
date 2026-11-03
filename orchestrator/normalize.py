@@ -202,9 +202,11 @@ def _cwes(rule: dict, res: dict) -> list[str]:
     return sorted(found, key=lambda c: int(c[4:]))
 
 
-_TRIVY_PKG = re.compile(r"Package:\s*(.+)")
-_TRIVY_VER = re.compile(r"Installed Version:\s*(.+)")
-_TRIVY_FIX = re.compile(r"Fixed Version:\s*(.+)")
+# [ \t]*, not \s*: Trivy prints "Fixed Version: " with nothing after it when no
+# fix exists, and \s* would run on to the next line and take "Link: [...]".
+_TRIVY_PKG = re.compile(r"Package:[ \t]*(\S.*)")
+_TRIVY_VER = re.compile(r"Installed Version:[ \t]*(\S.*)")
+_TRIVY_FIX = re.compile(r"Fixed Version:[ \t]*(\S.*)")
 # OSV message: "Package 'urllib3@1.23.0' is vulnerable to ..."
 _OSV_PKG = re.compile(r"Package '([^']+)'")
 

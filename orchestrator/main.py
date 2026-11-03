@@ -17,6 +17,7 @@ import yaml
 
 import baseline as bl
 import brief
+import components
 import coverage as cov
 import diffscope
 import enrich as enr
@@ -38,7 +39,7 @@ DIFF_SCOPE_PATH = "/diff/scope.json"
 # Version of the findings.json contract (schemas/findings.schema.json). Bump
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
-SCHEMA_VERSION = "1.1"
+SCHEMA_VERSION = "1.2"
 
 # Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
 # way of not reaching a verdict maps elsewhere, so a caller never mistakes a
@@ -273,6 +274,9 @@ def main() -> int:
         "reports_found": result.reports_found,
         "reports_missing": result.reports_missing,
         "reports_errored": result.reports_errored,
+        # SCA grouped by package: what to upgrade. Each entry lists the
+        # fingerprints of its findings, which stay the unit of gating.
+        "components": [components.to_dict(c) for c in components.group(kept)],
         "findings": [{**finding_to_dict(f),
                       **({"new": f.fingerprint in new_fps} if delta else {}),
                       **({"on_changed_line": f.on_changed_line} if scope else {})}

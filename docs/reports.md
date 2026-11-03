@@ -29,6 +29,27 @@ table with **category filters**, expandable **details** (description + advisory
 link per finding), and — in baseline mode — a **NEW** flag on findings added
 since the accepted snapshot. It is fully self-contained (no external assets).
 
+### Vulnerable components
+
+SCA results are shown per **component** — one row per package@version with
+every vulnerability found in it — in both summaries, in `review-brief.md` and
+as `components` in `findings.json`. A dependency with sixty CVEs is one thing
+to upgrade, not sixty rows to read:
+
+| Severity | Component | Vulnerabilities | Upgrade to | Declared in |
+|---|---|---|---|---|
+| critical | `com.fasterxml.jackson.core:jackson-databind@2.9.8` | 60: 12 critical, 41 high, 7 medium | **2.18.11** | pom.xml |
+
+**Upgrade to** is the lowest version, among those the engines name as fixes,
+that fixes every vulnerability listed. Engines name one fix per maintained
+branch, so a version counts as fixing a vulnerability when its own branch
+(major.minor) has a listed fix at or below it, or when it is above all of that
+vulnerability's listed fixes. Only plain numeric versions are compared; with a
+pre-release or distro version in play, or a vulnerability that has no fix, the
+column says so instead of guessing, and each vulnerability's own fixes are
+listed underneath. The findings themselves are unchanged: the gate,
+suppressions and the baseline still act on each vulnerability.
+
 ### `findings.json` contract
 
 `findings.json` is the machine-readable interface for ASPM imports, CI scripts

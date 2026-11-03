@@ -94,7 +94,7 @@ def run(tmp_path, monkeypatch):
 def test_only_the_changed_files_are_reported_and_gated(run):
     code, doc = run()
     jsonschema.validate(doc, SCHEMA)
-    assert doc["schema_version"] == "1.1"
+    assert doc["schema_version"] == main.SCHEMA_VERSION
     assert sorted((f["file"], f["line"]) for f in doc["findings"]) == [
         ("app.py", 2), ("app.py", 4), ("settings.py", 1)]
     assert code == 1 and doc["policy"]["breaching"] == 3
