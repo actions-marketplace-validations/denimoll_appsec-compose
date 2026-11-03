@@ -372,6 +372,42 @@ scanners:
 Only a lockfile or exact pin can be matched: a range in `requirements.txt` says
 nothing about which release was installed.
 
+## Dependency licenses (opt-in)
+
+```yaml
+licenses:
+  deny: [AGPL-*, GPL-3.0, SSPL-1.0]   # SPDX ids or globs, case-insensitive
+  warn: [LGPL-*]                      # reported at severity info, never gates
+  severity: high                      # severity of a denied license (default)
+```
+
+With a `deny` or `warn` list, Trivy adds a license-only pass over the same
+target (no vulnerability DB lookup; ~2 s on the test repos), written to
+`native/trivy-license.json`. Each denied dependency becomes an SCA finding with
+`rule_id` `LICENSE:<license>` and its `package`, so `fail_on`, `ignore:`
+(`rule: "LICENSE:GPL-*"`) and the baseline treat it like any vulnerability.
+The decision is this policy's alone: Trivy's own forbidden/restricted
+classification is ignored.
+
+- A plain id covers its spellings: `GPL-3.0` also denies `GPL-3.0-only` and
+  `GPL-3.0-or-later` (which Trivy normalises `GPL-3.0` and `GPL-3.0+` to); a
+  glob (`GPL-*`) covers a family. `LGPL-3.0` is not matched by `GPL-3.0`.
+- A package offered under several licenses (`MIT OR GPL-3.0-only`, or
+  composer's license list) is denied only when every alternative is; `MIT AND
+  GPL-3.0-only` is denied as soon as one part is. `WITH` exceptions stay part
+  of the term: `GPL-2.0-only` does not deny `GPL-2.0-only WITH
+  Classpath-exception-2.0`, `GPL-2.0*` does.
+- Only application dependencies are judged; in image mode, OS packages are not.
+
+**Where license data exists.** Measured with Trivy 0.74: npm lockfiles (v2+),
+`composer.lock` and installed packages (`node_modules`, `site-packages`) carry
+licenses; Maven poms only online (Trivy reads the remote pom). Python
+`requirements.txt`, poetry/uv lockfiles, `go.mod` and `Cargo.lock` record none,
+so those dependencies cannot be judged. They are counted instead of silently
+passing — `licenses.unlicensed` in `findings.json`, the console line, and a
+blind spot in the review brief — and for those ecosystems this check is no
+substitute for a license audit of the installed tree.
+
 ## SCA coverage check
 
 The most dangerous result a dependency scanner can produce is *nothing*: an

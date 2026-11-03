@@ -372,6 +372,12 @@ def main(argv: list[str] | None = None) -> int:
     history_range = str(cfg.get("secrets_history_range", "") or "").strip()
     history = bool(cfg.get("secrets_history", False)) or bool(history_range)
 
+    licenses = cfg.get("licenses") or {}
+    license_policy = bool(licenses.get("deny") or licenses.get("warn"))
+    if license_policy and "trivy" not in enabled:
+        print("warning: licenses: is set but trivy is disabled, so no license "
+              "is checked", file=sys.stderr)
+
     env: dict[str, str] = {}
     for tool, (repo, default_ver, prefix) in TOOLS.items():
         ver = version(tool, default_ver)
@@ -398,6 +404,8 @@ def main(argv: list[str] | None = None) -> int:
         "GITLEAKS_LOG_OPTS": f"--log-opts={history_range}" if (history and history_range) else "",
         "ASS_SBOM_CDX": "1" if sbom_on and "cyclonedx" in formats else "0",
         "ASS_SBOM_SPDX": "1" if sbom_on and "spdx" in formats else "0",
+        # Opt-in license policy: Trivy adds a license-only pass (no DB lookup).
+        "ASS_LICENSES": "1" if license_policy else "0",
         "ASS_IMAGE": image,
         "ASS_IMAGE_TAR": tar,
         "ASS_GRYPE_TARGET": grype_target,

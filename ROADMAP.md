@@ -69,6 +69,10 @@
   in every report. Trivy (default) knows only GitHub-reviewed malware (11/23
   hijacked npm releases); `osv` (23/23, network) or `grype` (22/23,
   offline) for real coverage — documented, not enabled by default.
+- **Dependency licenses** (opt-in) — `licenses: deny/warn/severity`; Trivy's
+  license pass, judged by our policy; denied packages are SCA findings
+  (`LICENSE:<id>`) under the usual gate, suppressions and baseline.
+  Dependencies whose manifests record no license are counted as unjudged.
 
 ## Release: 1.2.0
 
@@ -92,8 +96,6 @@ the first step of an AI agent's security review. CI integrations come later.
       `--baseline-commit`, Gitleaks commit range) for fast agent iterations.
 - [ ] **MCP server / agent skill** — `scan`, `findings`, `explain`, `suppress`
       over the same CLI and `findings.json` contract.
-- [ ] **Coverage gaps** — dependency licenses. (zizmor and malicious-package
-      handling shipped; full MAL- coverage still needs `osv` or `grype`.)
 - [ ] **Public benchmark** — precision/recall on known-vulnerable projects.
 
 ## CI integrations (later — current versions work)

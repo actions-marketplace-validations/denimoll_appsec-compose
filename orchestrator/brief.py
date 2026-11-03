@@ -161,7 +161,7 @@ def _finding(f: Finding, gating: bool, new: bool | None, source: _Source) -> lis
 
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
-           image_mode: bool, new_fps: set[str] | None) -> None:
+           image_mode: bool, new_fps: set[str] | None, license_stats=None) -> None:
     source = _Source(None if image_mode else code_dir)
 
     def is_new(f: Finding) -> bool | None:
@@ -206,7 +206,13 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
     lines += ["## Blind spots", "",
               "What this scan did not or could not check. Absence of findings here "
               "is not evidence of absence.", ""]
-    lines += [f"- {s}" for s in _blind_spots(enabled, cfg, coverage, image_mode, code_dir)]
+    spots = _blind_spots(enabled, cfg, coverage, image_mode, code_dir)
+    if license_stats and license_stats.unlicensed:
+        spots.insert(0, f"**License policy:** {license_stats.unlicensed} of "
+                     f"{license_stats.packages} dependencies carry no license data "
+                     f"({', '.join(license_stats.unlicensed_ecosystems)} manifests do not "
+                     "record one), so the policy could not judge them.")
+    lines += [f"- {s}" for s in spots]
 
     counts = Counter(f.category for f in findings)
     lines += ["", f"## Findings ({len(findings)}, {gating} gating)", ""]

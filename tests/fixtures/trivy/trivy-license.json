@@ -1,0 +1,329 @@
+{
+ "SchemaVersion": 2,
+ "ArtifactName": "/code",
+ "ArtifactType": "filesystem",
+ "Results": [
+  {
+   "Target": "node/package-lock.json",
+   "Class": "lang-pkgs",
+   "Type": "npm",
+   "Packages": [
+    {
+     "ID": "agpl@1.0.0",
+     "Name": "agpl",
+     "Version": "1.0.0",
+     "Licenses": [
+      "AGPL-3.0-only"
+     ],
+     "Locations": [
+      {
+       "StartLine": 19,
+       "EndLine": 22
+      }
+     ]
+    },
+    {
+     "ID": "and-expr@1.0.0",
+     "Name": "and-expr",
+     "Version": "1.0.0",
+     "Licenses": [
+      "(MIT AND GPL-3.0-only)"
+     ],
+     "Locations": [
+      {
+       "StartLine": 15,
+       "EndLine": 18
+      }
+     ]
+    },
+    {
+     "ID": "gplv3@1.0.0",
+     "Name": "gplv3",
+     "Version": "1.0.0",
+     "Licenses": [
+      "GPL-3.0-only"
+     ],
+     "Locations": [
+      {
+       "StartLine": 23,
+       "EndLine": 26
+      }
+     ]
+    },
+    {
+     "ID": "or-expr@1.0.0",
+     "Name": "or-expr",
+     "Version": "1.0.0",
+     "Licenses": [
+      "(MIT OR GPL-3.0-only)"
+     ],
+     "Locations": [
+      {
+       "StartLine": 11,
+       "EndLine": 14
+      }
+     ]
+    },
+    {
+     "ID": "seefile@1.0.0",
+     "Name": "seefile",
+     "Version": "1.0.0",
+     "Licenses": [
+      "SEE LICENSE IN LICENSE.md"
+     ],
+     "Locations": [
+      {
+       "StartLine": 27,
+       "EndLine": 30
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "Target": "php/composer.lock",
+   "Class": "lang-pkgs",
+   "Type": "composer",
+   "Packages": [
+    {
+     "ID": "dual/or-array@1.0.0",
+     "Name": "dual/or-array",
+     "Version": "1.0.0",
+     "Licenses": [
+      "MIT",
+      "GPL-3.0-only"
+     ],
+     "Locations": [
+      {
+       "StartLine": 3,
+       "EndLine": 11
+      }
+     ]
+    },
+    {
+     "ID": "legacy/gpl@1.0.0",
+     "Name": "legacy/gpl",
+     "Version": "1.0.0",
+     "Licenses": [
+      "GPL-3.0-or-later"
+     ],
+     "Locations": [
+      {
+       "StartLine": 20,
+       "EndLine": 27
+      }
+     ]
+    },
+    {
+     "ID": "single/gpl@1.0.0",
+     "Name": "single/gpl",
+     "Version": "1.0.0",
+     "Licenses": [
+      "GPL-3.0-or-later"
+     ],
+     "Locations": [
+      {
+       "StartLine": 12,
+       "EndLine": 19
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "Target": "php/composer.lock",
+   "Class": "license",
+   "Licenses": [
+    {
+     "Severity": "LOW",
+     "Category": "notice",
+     "PkgName": "dual/or-array",
+     "FilePath": "php/composer.lock",
+     "Name": "MIT",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    },
+    {
+     "Severity": "HIGH",
+     "Category": "restricted",
+     "PkgName": "dual/or-array",
+     "FilePath": "php/composer.lock",
+     "Name": "GPL-3.0-only",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    },
+    {
+     "Severity": "HIGH",
+     "Category": "restricted",
+     "PkgName": "legacy/gpl",
+     "FilePath": "php/composer.lock",
+     "Name": "GPL-3.0-or-later",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    },
+    {
+     "Severity": "HIGH",
+     "Category": "restricted",
+     "PkgName": "single/gpl",
+     "FilePath": "php/composer.lock",
+     "Name": "GPL-3.0-or-later",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    }
+   ]
+  },
+  {
+   "Target": "node/package-lock.json",
+   "Class": "license",
+   "Licenses": [
+    {
+     "Severity": "CRITICAL",
+     "Category": "forbidden",
+     "PkgName": "agpl",
+     "FilePath": "node/package-lock.json",
+     "Name": "AGPL-3.0-only",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    },
+    {
+     "Severity": "HIGH",
+     "Category": "restricted",
+     "PkgName": "and-expr",
+     "FilePath": "node/package-lock.json",
+     "Name": "(MIT AND GPL-3.0-only)",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    },
+    {
+     "Severity": "HIGH",
+     "Category": "restricted",
+     "PkgName": "gplv3",
+     "FilePath": "node/package-lock.json",
+     "Name": "GPL-3.0-only",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    },
+    {
+     "Severity": "LOW",
+     "Category": "notice",
+     "PkgName": "or-expr",
+     "FilePath": "node/package-lock.json",
+     "Name": "(MIT OR GPL-3.0-only)",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    },
+    {
+     "Severity": "UNKNOWN",
+     "Category": "unknown",
+     "PkgName": "seefile",
+     "FilePath": "node/package-lock.json",
+     "Name": "SEE LICENSE IN LICENSE.md",
+     "Text": "",
+     "Confidence": 1,
+     "Link": ""
+    }
+   ]
+  },
+  {
+   "Target": "go/go.mod",
+   "Class": "lang-pkgs",
+   "Type": "gomod",
+   "Packages": [
+    {
+     "ID": "example.com/x",
+     "Name": "example.com/x"
+    },
+    {
+     "ID": "github.com/gin-gonic/gin@v1.9.1",
+     "Name": "github.com/gin-gonic/gin",
+     "Version": "v1.9.1"
+    }
+   ]
+  },
+  {
+   "Target": "java/pom.xml",
+   "Class": "lang-pkgs",
+   "Type": "pom",
+   "Packages": [
+    {
+     "ID": "x:y:1::b5c7db39",
+     "Name": "x:y",
+     "Version": "1"
+    },
+    {
+     "ID": "mysql:mysql-connector-java:8.0.28::a3dcdc12",
+     "Name": "mysql:mysql-connector-java",
+     "Version": "8.0.28",
+     "Licenses": [
+      "The GNU General Public License, v2 with FOSS exception"
+     ],
+     "Locations": [
+      {
+       "StartLine": 5,
+       "EndLine": 5
+      }
+     ]
+    },
+    {
+     "ID": "org.apache.commons:commons-lang3:3.12.0::b2a7c9fb",
+     "Name": "org.apache.commons:commons-lang3",
+     "Version": "3.12.0",
+     "Licenses": [
+      "Apache-2.0"
+     ],
+     "Locations": [
+      {
+       "StartLine": 6,
+       "EndLine": 6
+      }
+     ]
+    },
+    {
+     "ID": "com.google.protobuf:protobuf-java:3.11.4::bc88c884",
+     "Name": "com.google.protobuf:protobuf-java",
+     "Version": "3.11.4",
+     "Licenses": [
+      "BSD-3-Clause"
+     ]
+    }
+   ]
+  },
+  {
+   "Target": "rust/Cargo.lock",
+   "Class": "lang-pkgs",
+   "Type": "cargo",
+   "Packages": [
+    {
+     "ID": "serde@1.0.200",
+     "Name": "serde",
+     "Version": "1.0.200",
+     "Locations": [
+      {
+       "StartLine": 7,
+       "EndLine": 10
+      }
+     ]
+    },
+    {
+     "ID": "x@0.1.0",
+     "Name": "x",
+     "Version": "0.1.0",
+     "Locations": [
+      {
+       "StartLine": 3,
+       "EndLine": 5
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

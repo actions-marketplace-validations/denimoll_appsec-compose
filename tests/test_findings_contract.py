@@ -142,6 +142,31 @@ def test_a_malicious_package_is_labelled_in_every_report(run):
     assert ">MALICIOUS</span>" in (reports / "summary.html").read_text()
 
 
+def test_a_denied_license_gates_like_any_sca_finding(run):
+    import shutil
+    shutil.copy(Path(__file__).parent / "fixtures" / "trivy" / "trivy-license.json",
+                Path(main.NATIVE_DIR) / "trivy-license.json")
+    run.config.write_text("licenses:\n  deny: [AGPL-*]\nfail_on:\n  sca: high\n"
+                          "  default: none\nignore:\n  - rule: CVE-2023-1\n    reason: r\n")
+    code, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    assert code == main.EXIT_POLICY                 # the AGPL dependency gates
+    assert [f["rule_id"] for f in doc["findings"] if f["rule_id"].startswith("LICENSE:")] \
+        == ["LICENSE:AGPL-3.0-only"]
+    assert doc["licenses"]["denied"] == 1 and doc["licenses"]["unlicensed"] >= 2
+    assert "trivy-license.json" in doc["reports_found"]
+    assert "**License policy:**" in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+
+    # ...and an ignore entry suppresses it like any other finding.
+    run.config.write_text(run.config.read_text() + "  - rule: 'LICENSE:AGPL-*'\n    reason: r\n")
+    assert run()[0] == main.EXIT_PASS
+
+
+def test_a_missing_license_report_under_strict_exits_3(run):
+    run.config.write_text("strict: true\nlicenses:\n  deny: [AGPL-*]\n")
+    assert run()[0] == main.EXIT_SCAN
+
+
 def test_no_report_carries_the_secret_value(run):
     run()
     for name in ("review-brief.md", "findings.json", "summary.md", "summary.html"):

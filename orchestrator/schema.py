@@ -19,7 +19,7 @@ TOP_LEVEL = {
     "scanners", "sbom", "sbom_formats", "secrets_history",
     "secrets_history_range", "exclude", "enrich", "fail_on",
     "unknown_severity", "dedup", "strict", "require_pinned", "baseline",
-    "ignore", "offline",
+    "ignore", "offline", "licenses",
 }
 SCANNER = {"enabled", "version", "rules"}
 ENRICH = {"cve_paas"}
@@ -27,6 +27,8 @@ CVE_PAAS = {"enabled", "url", "api_key_env", "mode", "timeout",
             "fail_on_exploitable"}
 IGNORE = {"rule", "file", "package", "category", "fingerprint", "reason", "expires"}
 FAIL_ON = set(CATEGORIES) | {"default"}
+LICENSES = {"deny", "warn", "severity"}
+SEVERITIES = {"critical", "high", "medium", "low", "info"}
 
 
 def _suggest(key: str, allowed: set[str]) -> str:
@@ -94,6 +96,22 @@ def validate(raw: dict, known_scanners: set[str] | None = None) -> list[str]:
         for i, entry in enumerate(ignore):
             if isinstance(entry, dict):
                 problems += _unknown(f"ignore[{i}]", entry, IGNORE)
+
+    licenses = raw.get("licenses")
+    if licenses is not None:
+        if not isinstance(licenses, dict):
+            problems.append("licenses: expected a mapping with deny / warn / severity")
+        else:
+            problems += _unknown("licenses", licenses, LICENSES)
+            for key in ("deny", "warn"):
+                value = licenses.get(key)
+                if value is not None and not (isinstance(value, list)
+                                              and all(isinstance(v, str) for v in value)):
+                    problems.append(f"licenses.{key}: expected a list of SPDX ids or globs")
+            severity = licenses.get("severity")
+            if severity is not None and str(severity).lower() not in SEVERITIES:
+                problems.append(f"licenses.severity: '{severity}' is not one of "
+                                f"{', '.join(sorted(SEVERITIES))}")
 
     exclude = raw.get("exclude")
     if exclude is not None and not isinstance(exclude, list):

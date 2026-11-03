@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 
 import enrich
+import licenses
 import schema
 
 # Severity ordering, lowest -> highest. `unknown` is resolved to a real level
@@ -33,6 +34,7 @@ class Config:
     ignore: list = field(default_factory=list)
     scanners: dict = field(default_factory=dict)
     enrich: dict = field(default_factory=dict)   # enrich.cve_paas block
+    licenses: licenses.Policy = field(default_factory=licenses.Policy)
 
     @property
     def fail_on_exploitable(self) -> bool:
@@ -90,6 +92,7 @@ def load_config(path: str = "/app/scan-config.yml") -> Config:
         ignore=raw.get("ignore", []) or [],
         scanners=raw.get("scanners", {}) or {},
         enrich=enrich.config_from(raw),
+        licenses=licenses.policy_from(raw),
     )
 
     # Environment override (set via compose, e.g. ./run.sh --fail-on) is a single

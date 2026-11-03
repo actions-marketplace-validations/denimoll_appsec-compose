@@ -93,6 +93,17 @@
         }
       }
     },
+    "licenses": {
+      "type": ["object", "null"],
+      "description": "Dependency license policy, when `licenses:` is configured (added in 1.1). Denied and warned packages are SCA findings with rule_id LICENSE:<license>.",
+      "properties": {
+        "packages": {"type": "integer", "minimum": 0},
+        "unlicensed": {"type": "integer", "minimum": 0, "description": "Packages whose manifest records no license, so the policy could not judge them."},
+        "unlicensed_ecosystems": {"type": "array", "items": {"type": "string"}},
+        "denied": {"type": "integer", "minimum": 0},
+        "warned": {"type": "integer", "minimum": 0}
+      }
+    },
     "severity_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
     "category_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
     "tool_counts": {"type": "object", "additionalProperties": {"type": "integer"}},

@@ -31,6 +31,9 @@ cfg = yaml.safe_load(pathlib.Path("scan-config.yml").read_text())
 for block in cfg["scanners"].values():
     block["enabled"] = True
 cfg["enrich"]["cve_paas"]["enabled"] = False
+# The fixture's lockfile declares MIT for flatmap-stream; denying it proves
+# Trivy's license pass is wired, not that MIT is a problem.
+cfg["licenses"] = {"deny": ["MIT"]}
 pathlib.Path(sys.argv[1]).write_text(yaml.safe_dump(cfg, sort_keys=False))
 PYCFG
 
@@ -68,6 +71,10 @@ check("zizmor/template-injection" in rules,
 mal = [f for f in data["findings"] if f.get("malicious")]
 check(any((f.get("package") or "").startswith("flatmap-stream@") and f["severity"] == "critical"
           for f in mal), f"flatmap-stream not reported as a critical malicious package ({mal})")
+
+# The license pass ran and the policy turned the denied license into SCA.
+check(any(f["rule_id"] == "LICENSE:MIT" and f["category"] == "sca"
+          for f in data["findings"]), "license policy produced no LICENSE:MIT finding")
 
 # Trivy's secret scanner reports under secrets and merges with Gitleaks.
 check(not any(f["category"] == "sca" and not f.get("package") and "trivy" in f["tools"]

@@ -83,6 +83,7 @@ services:
         [ "$$SRC" = fs ] && trivy config --quiet $$SKIP --format sarif --output /reports/native/trivy-config.sarif /code || true
         [ "$$ASS_SBOM_CDX" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --format cyclonedx --output /reports/sbom.trivy.cdx.json $$SRCARG || true
         [ "$$ASS_SBOM_SPDX" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --format spdx-json --output /reports/sbom.trivy.spdx.json $$SRCARG || true
+        [ "$$ASS_LICENSES" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --scanners license --list-all-pkgs --format json --output /reports/native/trivy-license.json $$SRCARG || true
     environment:
       TRIVY_DB_FLAGS: ${TRIVY_DB_FLAGS:-}
       TRIVY_SKIP_DIRS: ${TRIVY_SKIP_DIRS:-}
@@ -90,6 +91,7 @@ services:
       ASS_IMAGE_TAR: ${ASS_IMAGE_TAR:-}
       ASS_SBOM_CDX: ${ASS_SBOM_CDX:-1}
       ASS_SBOM_SPDX: ${ASS_SBOM_SPDX:-0}
+      ASS_LICENSES: ${ASS_LICENSES:-0}
       DOCKER_CONFIG: /dockercfg
     volumes:
       - *code-mount

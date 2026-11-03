@@ -86,6 +86,19 @@ secrets_history_range: ""  # limit the history scan to a commit range, e.g.
 #   - .tox
 #   - .mypy_cache
 
+# ---- Dependency licenses (opt-in) ------------------------------------
+# A dependency whose license the policy denies becomes an SCA finding with
+# rule_id LICENSE:<license>, so fail_on, ignore: and the baseline apply as for
+# any vulnerability. Entries are SPDX ids (a plain id also covers its -only /
+# -or-later spellings) or globs, case-insensitive. A package offered under
+# several licenses is denied only if every alternative is. Needs trivy.
+# Only some manifests record licenses (npm lockfiles, composer.lock, installed
+# packages; Maven poms online) — the rest are counted as unjudged.
+# licenses:
+#   deny: [AGPL-*, GPL-3.0, SSPL-1.0]
+#   warn: [LGPL-*]          # reported at severity info, never gates
+#   severity: high          # severity of a denied license
+
 # ---- Exploitability enrichment ---------------------------------------
 # CVSS says how bad a vulnerability would be; it does not say whether anyone is
 # exploiting it. CVE-PaaS (https://github.com/denimoll/CVE-PaaS) answers that —
