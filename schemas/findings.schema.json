@@ -22,7 +22,18 @@
                     "description": "Engine -> resolved image ref (a digest when pinned)."},
         "databases": {"type": "object", "additionalProperties": {"type": "string"},
                       "description": "Vulnerability database -> date it was built."},
-        "scope": {"$ref": "#/$defs/scope"}
+        "scope": {"$ref": "#/$defs/scope"},
+        "timings": {
+          "type": "object",
+          "description": "1.3: where the run's time went. Engines run in parallel, so the scan takes as long as the slowest.",
+          "properties": {
+            "engines": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+                        "description": "Engine -> seconds it ran, slowest first (from Docker's start/finish times)."},
+            "scanners_s": {"type": ["integer", "null"], "description": "Wall clock of the parallel scanner phase."},
+            "collector_s": {"type": "number", "description": "Time the collector took to merge, gate and write reports."},
+            "total_s": {"type": ["integer", "null"], "description": "From run.sh start to the reports being written."}
+          }
+        }
       }
     },
     "policy": {

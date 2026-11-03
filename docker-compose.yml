@@ -350,6 +350,9 @@ services:
       ASS_VERSION: ${ASS_VERSION:-}
       ASS_ENGINE_IMAGES: ${ASS_ENGINE_IMAGES:-}
       ASS_DB_DATES: ${ASS_DB_DATES:-}
+      ASS_ENGINE_TIMINGS: ${ASS_ENGINE_TIMINGS:-}
+      ASS_SCAN_SECONDS: ${ASS_SCAN_SECONDS:-}
+      ASS_RUN_START: ${ASS_RUN_START:-}
       # Diff mode: /diff/scope.json says what changed and what was skipped.
       ASS_DIFF: ${ASS_DIFF:-}
       ASS_ZIZMOR_ONLINE: ${ASS_ZIZMOR_ONLINE:-}
