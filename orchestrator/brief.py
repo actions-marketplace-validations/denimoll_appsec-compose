@@ -88,7 +88,11 @@ def _blind_spots(enabled: set[str], cfg, coverage, image_mode: bool) -> list[str
     return spots
 
 
-def _snippet(f: Finding, source: _Source) -> str | None:
+def _snippet(f: Finding, source: _Source,
+             secrets: dict[tuple[str, int], Finding]) -> str | None:
+    """The flagged lines with context. Any line a secret finding points at is
+    masked wherever it appears — including inside another finding's context,
+    which is where a credential next to, say, an insecure call would leak."""
     if f.category == "sca" or not f.line:
         return None
     if f.category == "secrets":
@@ -100,6 +104,9 @@ def _snippet(f: Finding, source: _Source) -> str | None:
         text = source.line(f.file, n)
         if text is None:
             break
+        secret = secrets.get((_norm_file(f.file), n))
+        if secret is not None:
+            text = _mask_secret(secret, text)
         mark = ">" if f.line <= n <= last else " "
         rows.append(f"{mark}{n:>4} | {text[:_MAX_LINE]}")
     return "\n".join(rows) or None
@@ -118,7 +125,8 @@ def _labels(f: Finding, gating: bool, new: bool | None) -> str:
     return " · ".join(tags)
 
 
-def _finding(f: Finding, gating: bool, new: bool | None, source: _Source) -> list[str]:
+def _finding(f: Finding, gating: bool, new: bool | None, source: _Source,
+             secrets: dict[tuple[str, int], Finding]) -> list[str]:
     where = f"{_norm_file(f.file)}:{f.line}" if f.line else _norm_file(f.file) or "(no file)"
     out = [f"#### `{where}` — {f.rule_id}", "",
            f"- **{_labels(f, gating, new)}** · {f.category} · "
@@ -132,7 +140,7 @@ def _finding(f: Finding, gating: bool, new: bool | None, source: _Source) -> lis
         out.append(f"- {message[:400]}")
     if f.url:
         out.append(f"- {f.url}")
-    snippet = _snippet(f, source)
+    snippet = _snippet(f, source, secrets)
     if snippet:
         out += ["", "```", snippet, "```"]
     return out + [""]
@@ -142,6 +150,8 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
            image_mode: bool, new_fps: set[str] | None) -> None:
     source = _Source(None if image_mode else code_dir)
+    secrets = {(_norm_file(f.file), f.line): f for f in findings
+               if f.category == "secrets" and f.line}
 
     def is_new(f: Finding) -> bool | None:
         return None if new_fps is None else f.fingerprint in new_fps
@@ -198,7 +208,7 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
                  "flagged region (`>`) with context.")
     lines.append("")
     for f in shown:
-        lines += _finding(f, gates(f), is_new(f), source)
+        lines += _finding(f, gates(f), is_new(f), source, secrets)
     if rest:
         left = Counter((f.category, f.severity) for f in rest)
         lines += [f"…and {len(rest)} more, not detailed here "

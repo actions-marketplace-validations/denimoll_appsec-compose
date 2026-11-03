@@ -142,3 +142,16 @@ def test_a_collector_crash_exits_3(run, monkeypatch):
     monkeypatch.setattr(main, "merge", boom)
     monkeypatch.setenv("ASS_UPDATE_BASELINE", "")
     assert main.run() == main.EXIT_SCAN
+
+
+def test_a_secret_in_another_findings_context_is_masked(run):
+    # A SAST finding one line above the secret: its context window covers it.
+    native = Path(main.NATIVE_DIR) / "semgrep.sarif"
+    sarif = json.loads(native.read_text())
+    sarif["runs"][0]["results"].append(
+        {"ruleId": "py.debug", "level": "warning", "message": {"text": "debug"},
+         "locations": _loc("/code/settings.py", 1)})
+    native.write_text(json.dumps(sarif))
+    run()
+    brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    assert "DEBUG = False" in brief and SECRET not in brief
