@@ -235,3 +235,11 @@ def test_an_explicit_image_is_used_as_is(pick):
 
 def test_a_failed_build_fails(pick):
     assert pick(build=1)[0] == 1
+
+
+def test_mcp_without_setup_says_how_and_keeps_stdout_clean(tmp_path):
+    # stdout is the MCP stdio channel: a stray line there breaks the client.
+    env = {**os.environ, "XDG_DATA_HOME": str(tmp_path / "data")}
+    proc = subprocess.run([str(LAUNCHER), "mcp"], env=env, capture_output=True, text=True)
+    assert proc.returncode == 2
+    assert proc.stdout == "" and "appsec-compose mcp --setup" in proc.stderr

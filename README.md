@@ -63,7 +63,7 @@ then scan any directory — by hand or as the first step of an AI agent's review
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
 # or, reading it first / pinning a version:
 curl -fsSLO https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh
-bash install.sh --ref v.1.3.0          # or APPSEC_COMPOSE_VERSION=v.1.3.0 bash install.sh
+bash install.sh --ref v.1.2.0          # or APPSEC_COMPOSE_VERSION=v.1.2.0 bash install.sh
 ```
 
 [`install.sh`](install.sh) checks the [requirements](#requirements) and names
@@ -505,11 +505,13 @@ one `finding` with its code (secrets masked), and records a verdict with
 `.appsec-compose.yml`. Install and register it:
 
 ```bash
-python3 -m venv ~/.venvs/appsec-mcp
-~/.venvs/appsec-mcp/bin/pip install -r appsec_mcp/requirements.txt
-claude mcp add --scope user appsec-compose -- \
-  ~/.venvs/appsec-mcp/bin/python "$PWD/appsec_mcp"
+appsec-compose mcp --setup        # once: a private venv with the pinned MCP SDK
+claude mcp add --scope user appsec-compose -- appsec-compose mcp
 ```
+
+Any other MCP client takes the same command (`"command": "appsec-compose",
+"args": ["mcp"]`). Details and the recommended agent workflow:
+[appsec_mcp/README.md](appsec_mcp/README.md).
 
 ## Provenance
 

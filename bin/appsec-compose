@@ -3,6 +3,7 @@
 #
 #   appsec-compose scan [<path>] [run.sh flags...]   # <path> defaults to .
 #   appsec-compose preload                           # offline cache + collector image
+#   appsec-compose mcp [--setup]                     # MCP server (stdio) for AI agents
 #   appsec-compose version
 #   appsec-compose help
 #
@@ -50,6 +51,7 @@ Usage: appsec-compose <command> [args]
 
   scan [<path>] [flags]   scan a directory (default: .) and gate on the policy
   preload                 snapshot DBs/rules and the collector for offline use
+  mcp [--setup]           MCP server (stdio) for AI agents; --setup installs it
   version                 tool and engine versions, install and cache paths
   help                    this text
 
@@ -132,6 +134,31 @@ case "$cmd" in
     ;;
   preload)
     exec "$ROOT/preload.sh" "$@"
+    ;;
+  mcp)
+    # The MCP SDK is the server's only dependency beyond the host's python3.
+    # It lives in a venv of its own, rebuilt when the pinned requirements
+    # change, so installing appsec-compose never touches the user's Python.
+    # stdout is the MCP stdio channel: every message here goes to stderr.
+    venv="${XDG_DATA_HOME:-$HOME/.local/share}/appsec-compose/mcp-venv"
+    req="$ROOT/appsec_mcp/requirements.txt"
+    want="$(cksum < "$req")"
+    if has --setup "$@"; then
+      [[ -x "$venv/bin/python" ]] || python3 -m venv "$venv" >&2
+      "$venv/bin/pip" install --quiet --disable-pip-version-check -r "$req" >&2
+      printf '%s\n' "$want" > "$venv/.requirements"
+      echo "MCP server ready. Register it, e.g.: claude mcp add --scope user appsec-compose -- appsec-compose mcp" >&2
+      exit 0
+    fi
+    if [[ ! -x "$venv/bin/python" ]]; then
+      echo "appsec-compose: the MCP server is not set up; run: appsec-compose mcp --setup" >&2
+      exit 2
+    fi
+    if [[ "$(cat "$venv/.requirements" 2>/dev/null)" != "$want" ]]; then
+      echo "appsec-compose: MCP requirements changed with this version; run: appsec-compose mcp --setup" >&2
+      exit 2
+    fi
+    exec "$venv/bin/python" "$ROOT/appsec_mcp"
     ;;
   version|--version|-v)
     "$ROOT/run.sh" --version

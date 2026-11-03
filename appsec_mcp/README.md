@@ -11,12 +11,15 @@ run in Docker. Transport: stdio.
 
 ## Install
 
-From the tool checkout (Python 3.10+, Docker as for any scan):
+Needs Python 3.10+ and Docker, as for any scan. With the [CLI installed](../README.md#install-and-run-locally-no-clone):
 
 ```bash
-python3 -m venv ~/.venvs/appsec-mcp
-~/.venvs/appsec-mcp/bin/pip install -r appsec_mcp/requirements.txt
+appsec-compose mcp --setup
 ```
+
+That creates a private venv (`${XDG_DATA_HOME:-~/.local/share}/appsec-compose/mcp-venv`)
+with the pinned [requirements](requirements.txt); re-run it after an upgrade
+when the server asks you to. Nothing is installed into your own Python.
 
 ## Register it
 
@@ -24,8 +27,7 @@ python3 -m venv ~/.venvs/appsec-mcp
 current one (default, `local`):
 
 ```bash
-claude mcp add --scope user appsec-compose -- \
-  ~/.venvs/appsec-mcp/bin/python /path/to/appsec-compose/appsec_mcp
+claude mcp add --scope user appsec-compose -- appsec-compose mcp
 ```
 
 **Any MCP client** (Cursor `~/.cursor/mcp.json`, Claude Desktop, …):
@@ -33,16 +35,13 @@ claude mcp add --scope user appsec-compose -- \
 ```json
 {
   "mcpServers": {
-    "appsec-compose": {
-      "command": "/home/me/.venvs/appsec-mcp/bin/python",
-      "args": ["/path/to/appsec-compose/appsec_mcp"]
-    }
+    "appsec-compose": { "command": "appsec-compose", "args": ["mcp"] }
   }
 }
 ```
 
-Running the package directory works from any working directory. From inside the
-checkout, `python3 -m appsec_mcp` is the same server.
+From a checkout without the CLI, install `requirements.txt` into a venv and
+run `<venv>/bin/python /path/to/appsec-compose/appsec_mcp` instead.
 
 ## Tools
 
