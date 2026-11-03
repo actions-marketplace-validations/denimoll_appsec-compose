@@ -93,7 +93,9 @@ The opt-in TruffleHog profile runs TruffleHog as shipped — with verification
 on, so it sends each candidate to the provider's API to test it. Here those are
 random values that were never valid; on a real repository that is a network
 call carrying your credential to its issuer, which is worth knowing before
-enabling it.
+enabling it. **Changed** in 744144b: TruffleHog now runs with
+`--no-verification` unless `scanners.trufflehog.verify: true`; the TruffleHog
+numbers here were measured with verification on.
 
 **Limits.** Synthetic means the formats are the ones we thought of: the corpus
 says how a scanner handles *these* shapes, not how common each shape is in the
@@ -312,9 +314,10 @@ fails on SAST.** Semgrep's SARIF puts the level on the rule
 (`defaultConfiguration.level`), not on each result; the collector reads only
 the result's level and falls back to "warning" → medium. In the SAST run, 572
 findings come from `error`-level rules (path traversal, command injection) and
-all of them are `medium`, so `fail_on: high` lets every one through. (Bug,
-reported upstream of this benchmark; the benchmark scores by CWE, not severity,
-so the numbers above are unaffected.)
+all of them are `medium`, so `fail_on: high` lets every one through.
+**Fixed** in 5b5f235 (a result without a level takes its rule's default, per
+SARIF); the "by severity" lines above were measured before the fix. The
+benchmark scores by CWE, not severity, so its numbers are unaffected.
 
 **Trivy's secret findings are filed under `sca`.** Trivy runs
 `--scanners vuln,secret` by default, but everything in `trivy-fs.sarif` is
@@ -356,6 +359,8 @@ above), and never records Grype's: the date is read from
 keeps `6/import.json`, whose source URL carries the build time). The dates are
 also read *before* the scan, so a run that downloads a newer DB reports the
 previous one. The benchmark reads the cache again after each run and shows both.
+**Fixed** in d0848cb: dates are read after the scan, for the engines that ran,
+including Grype v6.
 
 **Not measured at all:** IaC (see above), container images, git history,
 SAST languages other than Java, business logic and authorization — which is
