@@ -266,7 +266,7 @@ def _components(comps, gates, is_new) -> list[str]:
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
            image_mode: bool, new_fps: set[str] | None, scope=None,
-           license_stats=None) -> None:
+           license_stats=None, incomplete=None) -> None:
     source = _Source(None if image_mode else code_dir)
     secrets = {(_norm_file(f.file), f.line): f for f in findings
                if f.category == "secrets" and f.line}
@@ -333,6 +333,10 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
               "What this scan did not or could not check. Absence of findings here "
               "is not evidence of absence.", ""]
     spots = _blind_spots(enabled, cfg, coverage, image_mode, scope, code_dir)
+    for what in incomplete or []:
+        # First: an engine that failed mid-run makes its zero meaningless.
+        spots.insert(0, f"**Incomplete report:** {what}. Its findings are "
+                        "partial; treat an absence of findings there as unknown.")
     if license_stats and license_stats.unlicensed:
         spots.insert(0, f"**License policy:** {license_stats.unlicensed} of "
                      f"{license_stats.packages} dependencies carry no license data "

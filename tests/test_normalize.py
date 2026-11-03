@@ -391,3 +391,36 @@ def test_one_engine_knowing_it_is_malware_is_enough_after_merge():
     merged, _ = merge([plain, marked])
     assert len(merged) == 1 and merged[0].malicious and merged[0].severity == "critical"
     assert merged[0].message.startswith("MALICIOUS PACKAGE")
+
+
+# --- an engine that failed but still wrote valid SARIF ----------------------
+
+def _sarif_run(notifications, successful=True):
+    return {"version": "2.1.0", "runs": [{
+        "tool": {"driver": {"name": "semgrep", "rules": []}}, "results": [],
+        "invocations": [{"executionSuccessful": successful,
+                         "toolExecutionNotifications": notifications}]}]}
+
+
+def test_a_killed_engine_makes_its_report_incomplete(tmp_path):
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif_run([
+        {"level": "error", "message": {"text": "Error: engine was killed (out of memory)"}}])))
+    result = load_findings(str(tmp_path), expected={"semgrep.sarif"})
+    assert result.reports_found == ["semgrep.sarif"]
+    assert result.reports_errored == [
+        "semgrep.sarif: incomplete — Error: engine was killed (out of memory)"]
+
+
+def test_warnings_from_a_working_engine_are_not_failures(tmp_path):
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif_run([
+        {"level": "warning", "descriptor": {"id": "Syntax error"},
+         "message": {"text": "Syntax error at line /code/run.sh:68"}},
+        {"level": "warning", "descriptor": {"id": "Timeout"},
+         "message": {"text": "Timeout when running a rule"}}])))
+    assert load_findings(str(tmp_path), expected={"semgrep.sarif"}).reports_errored == []
+
+
+def test_an_unsuccessful_run_without_details_is_still_incomplete(tmp_path):
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif_run([], successful=False)))
+    assert "unsuccessful run" in load_findings(
+        str(tmp_path), expected={"semgrep.sarif"}).reports_errored[0]

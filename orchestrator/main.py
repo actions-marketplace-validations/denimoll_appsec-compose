@@ -163,7 +163,7 @@ def main() -> int:
             print(f"ERROR: strict mode — no report from: "
                   f"{', '.join(sorted(result.reports_missing))}", file=sys.stderr)
         if result.reports_errored:
-            print(f"ERROR: strict mode — unreadable report(s): "
+            print(f"ERROR: strict mode — unreadable or incomplete report(s): "
                   f"{'; '.join(result.reports_errored)}", file=sys.stderr)
         return EXIT_SCAN
 
@@ -323,7 +323,8 @@ def main() -> int:
            scope=scope)
     brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
                  CODE_DIR, excludes, image_mode, new_fps if delta else None,
-                 scope=scope, license_stats=license_stats)
+                 scope=scope, license_stats=license_stats,
+                 incomplete=result.reports_errored)
 
     # Console summary.
     total = sum(policy.severity_counts.values())
@@ -382,7 +383,7 @@ def main() -> int:
     if result.reports_missing:
         print(f"  ! missing reports: {', '.join(result.reports_missing)}")
     if result.reports_errored:
-        print(f"  ! unreadable reports: {'; '.join(result.reports_errored)}")
+        print(f"  ! unreadable or incomplete reports: {'; '.join(result.reports_errored)}")
     for warning in coverage.warnings:
         print(f"  ! SCA coverage: {warning.message}")
         print(f"    -> {warning.advice}")
