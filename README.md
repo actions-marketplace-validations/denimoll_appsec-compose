@@ -10,6 +10,9 @@ agent: every run also writes a **review brief** — what was checked, what could
 not be, and the flagged code — and an MCP server lets an agent scan, triage and
 record verdicts itself.
 
+**AI agent asked to check a project?** Follow [AGENTS.md](AGENTS.md): how to
+run the scan, read the results and report them.
+
 A thin, stateless orchestrator: no database, no UI, no workers. Each engine runs
 as a one-shot container; a small Python collector does the rest.
 
