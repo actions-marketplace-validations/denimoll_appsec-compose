@@ -301,6 +301,22 @@ def _result_category(tool: str, category: str, rule: dict) -> str:
     return category
 
 
+def _source_suppression(res: dict) -> str | None:
+    """Why the engine itself says this result is suppressed, if it does.
+
+    SARIF records `# nosemgrep`, a Checkov skip comment and the like as a
+    `suppressions` entry on the result. Code scanning honours it; a gate that
+    did not would fail a build on a finding the code already says was
+    reviewed. A suppression whose status is "rejected" or "underReview" is not
+    in effect (SARIF 3.35.3).
+    """
+    for sup in res.get("suppressions") or []:
+        if sup.get("status", "accepted") == "accepted":
+            why = (sup.get("justification") or "").strip()
+            return f"suppressed in source ({sup.get('kind', 'inSource')})" + (f": {why}" if why else "")
+    return None
+
+
 def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
     """Parse one SARIF file. Raises ValueError if the file is not valid SARIF."""
     try:
@@ -391,6 +407,7 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
             if kind == "sca" and _malicious(finding.rule_id, finding.aliases, title,
                                             finding.cwe, msg):
                 _flag_malicious(finding)
+            finding.source_suppression = _source_suppression(res)
             findings.append(finding)
     return findings
 

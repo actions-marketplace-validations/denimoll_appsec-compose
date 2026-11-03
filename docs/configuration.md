@@ -166,6 +166,11 @@ ignore:
 `fingerprint` pins one finding rather than a pattern — the right selector for a
 triage verdict on a single result, whether a person or an agent made it.
 
+An engine's own in-code suppression — `# nosemgrep`, a Checkov skip comment,
+anything the engine reports as a SARIF `suppressions` entry — is honoured the
+same way, with the reason `suppressed in source`; one whose status is
+`rejected` or `underReview` is not in effect.
+
 Suppressed findings are excluded from `fail_on` but recorded in `findings.json`
 under `suppressed` (with the reason) for the audit trail.
 

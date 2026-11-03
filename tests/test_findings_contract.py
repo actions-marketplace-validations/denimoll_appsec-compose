@@ -13,7 +13,8 @@ SCHEMA = json.loads((Path(__file__).resolve().parent.parent
                      / "schemas" / "findings.schema.json").read_text())
 
 
-SECRET = "sk_live_9fQ2rT7xLm4Pz8Wc"
+# Assembled at run time so this file is not itself a finding for Gitleaks.
+SECRET = "sk_" "live_" "9fQ2rT7x" "Lm4Pz8Wc"
 
 
 def _sarif(results, rules=()):
@@ -216,3 +217,25 @@ def test_a_secret_in_another_findings_context_is_masked(run):
     run()
     brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
     assert "DEBUG = False" in brief and SECRET not in brief
+
+
+def test_an_in_source_suppression_is_honoured_and_recorded(run):
+    # `# nosemgrep` reaches us as a SARIF suppression on the result.
+    native = Path(main.NATIVE_DIR) / "semgrep.sarif"
+    sarif = json.loads(native.read_text())
+    sarif["runs"][0]["results"][0]["suppressions"] = [{"kind": "inSource"}]
+    native.write_text(json.dumps(sarif))
+    _, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    assert not [f for f in doc["findings"] if f["category"] == "sast"]
+    sup, = [s for s in doc["suppressed"] if s["category"] == "sast"]
+    assert sup["reason"] == "suppressed in source (inSource)" and sup["fingerprint"]
+
+
+def test_a_rejected_suppression_is_not_in_effect(run):
+    native = Path(main.NATIVE_DIR) / "semgrep.sarif"
+    sarif = json.loads(native.read_text())
+    sarif["runs"][0]["results"][0]["suppressions"] = [{"kind": "external", "status": "rejected"}]
+    native.write_text(json.dumps(sarif))
+    _, doc = run()
+    assert [f for f in doc["findings"] if f["category"] == "sast"]

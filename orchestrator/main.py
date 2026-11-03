@@ -27,7 +27,7 @@ from dedup import merge
 from normalize import load_findings, finding_to_dict, expected_reports
 from policy import evaluate, resolve_unknown
 from summary import render
-from suppress import apply as apply_ignore
+from suppress import Suppressed, apply as apply_ignore
 
 REPORTS_DIR = "/reports"
 NATIVE_DIR = f"{REPORTS_DIR}/native"
@@ -162,14 +162,23 @@ def main() -> int:
     # `unknown_severity`, before anything merges or compares them.
     unknown_count = resolve_unknown(result.findings, cfg.unknown_severity)
 
-    merged, stats = merge(result.findings, enabled=cfg.dedup)
+    # A result the engine reports as suppressed in the code (`# nosemgrep`, a
+    # Checkov skip comment) is an audited decision, not a finding: it goes to
+    # the suppressed list, like an ignore entry. Another engine reporting the
+    # same issue unsuppressed still counts.
+    in_source = [f for f in result.findings if getattr(f, "source_suppression", None)]
+    reported = [f for f in result.findings if not getattr(f, "source_suppression", None)]
+
+    merged, stats = merge(reported, enabled=cfg.dedup)
     # Fingerprints exist before suppression, so an ignore entry can name one.
     bl.assign(merged, CODE_DIR)
+    bl.assign(in_source, CODE_DIR)     # apart: never shifts a reported finding's id
     try:
         kept, suppressed, expired = apply_ignore(merged, cfg.ignore)
     except ValueError as exc:            # e.g. a malformed `expires`
         print(f"ERROR: invalid ignore entry: {exc}", file=sys.stderr)
         return EXIT_USAGE
+    suppressed += [Suppressed(f, f.source_suppression) for f in in_source]
 
     # Exploitability enrichment runs after the merge, so each CVE is looked up
     # once and the alias set is at its widest.
