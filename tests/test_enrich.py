@@ -122,6 +122,15 @@ def test_reprioritize_can_lower_a_severity(monkeypatch):
     assert f.severity == "medium" and f.scanner_severity == "critical"
 
 
+def test_reprioritize_never_talks_down_a_malicious_package(monkeypatch):
+    """debug@4.4.2 (CVE-2025-59144) is malware; a low EPSS does not change that."""
+    _stub(monkeypatch, {"CVE-2025-43859": HIGH_CVSS_LOW_EPSS})
+    f = sca("CVE-2025-43859", severity="critical")
+    f.malicious = True
+    apply([f], "http://svc", reprioritize=True)
+    assert f.severity == "critical" and f.scanner_severity == ""
+
+
 def test_the_most_urgent_cve_wins_when_a_finding_carries_several(monkeypatch):
     _stub(monkeypatch, {"CVE-2025-43859": HIGH_CVSS_LOW_EPSS,
                         "CVE-2021-44228": LOG4SHELL})

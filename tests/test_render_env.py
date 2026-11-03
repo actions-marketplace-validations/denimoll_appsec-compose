@@ -173,6 +173,6 @@ def test_smoke_test_fixture_exercises_every_category(renv):
     fixture = ROOT / "tests" / "fixtures" / "vulnerable-repo"
     present = {p.name for p in fixture.rglob("*")}
     assert {"Dockerfile", "requirements.txt", "app.py", "config.env",
-            "pr-greeter.yml"} <= present
+            "pr-greeter.yml", "package-lock.json"} <= present
     reqs = (fixture / "requirements.txt").read_text()
     assert "==" in reqs, "dependencies must be pinned or SCA resolves nothing"

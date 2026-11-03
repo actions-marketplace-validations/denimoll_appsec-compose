@@ -35,7 +35,7 @@ BASELINE_PATH = "/app/appsec-baseline.json"
 # Version of the findings.json contract (schemas/findings.schema.json). Bump
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 # Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
 # way of not reaching a verdict maps elsewhere, so a caller never mistakes a
@@ -246,6 +246,10 @@ def main() -> int:
     if unknown_count:
         print(f"  ({unknown_count} finding(s) of undetermined severity ranked as "
               f"{cfg.unknown_severity})")
+    malicious = [f for f in kept if f.malicious]
+    if malicious:
+        print(f"  ! {len(malicious)} MALICIOUS package(s), ranked critical: "
+              f"{', '.join(sorted({f.package or f.rule_id for f in malicious}))}")
     if suppressed:
         print(f"  (suppressed by ignore rules: {len(suppressed)})")
     for entry in expired:

@@ -132,6 +132,8 @@ def _labels(f: Finding, gating: bool, new: bool | None) -> str:
         tags.append("NEW")
     elif new is False:
         tags.append("baseline")
+    if f.malicious:
+        tags.append("MALICIOUS PACKAGE")
     if f.exploitable:
         tags.append("EXPLOITABLE")
     return " · ".join(tags)

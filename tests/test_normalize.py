@@ -292,3 +292,83 @@ def test_zizmor_doubt_is_shown_but_does_not_change_the_verdict(tmp_path):
 
 def test_zizmor_is_expected_when_enabled():
     assert expected_reports({"zizmor"}) == {"zizmor.sarif"}
+
+
+# --- malicious packages: critical whatever the score ------------------------
+# Shapes and titles below are what Trivy 0.74.0, OSV-Scanner 2.5.1 and Grype
+# 0.117.0 actually reported for known-hijacked npm releases.
+
+def _trivy_vuln(tmp_path, rule_id, title, tag, pkg="debug", ver="4.4.2"):
+    (tmp_path / "trivy-fs.sarif").write_text(json.dumps(_sarif([{
+        "ruleId": rule_id, "level": "error",
+        "message": {"text": f"Package: {pkg}\nInstalled Version: {ver}\n"
+                            f"Vulnerability {rule_id}\nSeverity: {tag}"},
+        "locations": [{"physicalLocation": {
+            "artifactLocation": {"uri": "package-lock.json"}}}],
+    }], rules=[{"id": rule_id, "shortDescription": {"text": title},
+                "properties": {"tags": ["vulnerability", "security", tag]}}])))
+    return load_findings(str(tmp_path), expected={"trivy-fs.sarif"}).findings[0]
+
+
+@pytest.mark.parametrize("rule_id,title,tag", [
+    # Trivy rates the Sept 2025 hijack HIGH: the score must not decide.
+    ("CVE-2025-59144", "debug: debug@4.4.2 contains malware after npm account takeover", "HIGH"),
+    ("GHSA-9x64-5r7x-2q53", "Malicious Package in flatmap-stream", "CRITICAL"),
+    ("NSWG-ECO-477", "Embedded Malicious Code", "CRITICAL"),
+    ("CVE-2021-4229", "Embedded malware in ua-parser-js", "HIGH"),
+    ("CVE-2025-59330", "error-ex: error-ex: npm account takeover leads to malware", "HIGH"),
+])
+def test_trivy_malware_advisories_are_malicious_and_critical(tmp_path, rule_id, title, tag):
+    f = _trivy_vuln(tmp_path, rule_id, title, tag)
+    assert f.malicious and f.severity == "critical" and f.severity_stated
+    assert f.scanner_severity == ("high" if tag == "HIGH" else "")
+    assert f.message.startswith("MALICIOUS PACKAGE")
+    assert f.package == "debug@4.4.2"
+
+
+@pytest.mark.parametrize("title", [
+    "Polymorphic deserialization of malicious object in jackson-databind",
+    "Composer has a command injection via malicious git branch name",
+    "nx: Nx: OS command injection via git revisions and remote refs",
+])
+def test_an_advisory_that_merely_mentions_malice_is_a_vulnerability(tmp_path, title):
+    f = _trivy_vuln(tmp_path, "CVE-2024-1", title, "HIGH")
+    assert not f.malicious and f.severity == "high"
+
+
+def test_osv_names_the_mal_alias_only_in_its_message(tmp_path):
+    (tmp_path / "osv.sarif").write_text(json.dumps(_sarif([{
+        "ruleId": "CVE-2025-59144", "level": "warning",
+        "message": {"text": "Package 'debug@4.4.2' is vulnerable to 'CVE-2025-59144' "
+                            "(also known as 'MAL-2025-46974', 'GHSA-4x49-vf9v-38px')."},
+        "locations": [{"physicalLocation": {
+            "artifactLocation": {"uri": "file:///code/package-lock.json"}}}],
+    }], rules=[{"id": "CVE-2025-59144",
+                "shortDescription": {"text": "CVE-2025-59144: Malicious code in debug (npm)"}}])))
+    f = load_findings(str(tmp_path), expected={"osv.sarif"}).findings[0]
+    assert f.malicious and f.severity == "critical" and f.package == "debug@4.4.2"
+
+
+def test_grype_github_malware_advisories_are_malicious(tmp_path):
+    """chalk@5.6.1: Trivy's DB does not have it; Grype's does, as 'Malware in chalk'."""
+    (tmp_path / "grype.json").write_text(json.dumps({"matches": [{
+        "vulnerability": {"id": "GHSA-2v46-p5h4-248w", "severity": "Critical",
+                          "description": "Malware in chalk"},
+        "artifact": {"name": "chalk", "version": "5.6.1", "locations": []},
+        "relatedVulnerabilities": [],
+    }]}))
+    f = load_findings(str(tmp_path), expected={"grype.json"}).findings[0]
+    assert f.malicious and f.severity == "critical"
+
+
+def test_one_engine_knowing_it_is_malware_is_enough_after_merge():
+    from dedup import merge
+    plain = Finding("trivy", "sca", "CVE-2025-59144", "high", "m", "package-lock.json",
+                    None, package="debug@4.4.2", severity_stated=True)
+    marked = Finding("osv", "sca", "CVE-2025-59144", "high", "m", "package-lock.json",
+                     None, package="debug@4.4.2", aliases=["MAL-2025-46974"])
+    from normalize import _flag_malicious
+    _flag_malicious(marked)
+    merged, _ = merge([plain, marked])
+    assert len(merged) == 1 and merged[0].malicious and merged[0].severity == "critical"
+    assert merged[0].message.startswith("MALICIOUS PACKAGE")

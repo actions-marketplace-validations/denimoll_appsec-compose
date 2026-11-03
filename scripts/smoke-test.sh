@@ -63,6 +63,12 @@ rules = {f["rule_id"] for f in data["findings"] if f["tool"] == "zizmor"}
 check("zizmor/template-injection" in rules,
       f"zizmor missed the PR-title injection in pr-greeter.yml (saw {sorted(rules)})")
 
+# flatmap-stream@0.1.1 is malware, not a vulnerable release: it must be
+# recognised as such from the lockfile alone and ranked critical.
+mal = [f for f in data["findings"] if f.get("malicious")]
+check(any((f.get("package") or "").startswith("flatmap-stream@") and f["severity"] == "critical"
+          for f in mal), f"flatmap-stream not reported as a critical malicious package ({mal})")
+
 # Trivy's secret scanner reports under secrets and merges with Gitleaks.
 check(not any(f["category"] == "sca" and not f.get("package") and "trivy" in f["tools"]
               for f in data["findings"]), "a Trivy result without a package landed in sca")

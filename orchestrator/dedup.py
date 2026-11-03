@@ -102,9 +102,18 @@ def _merge_group(group: list[Finding]) -> Finding:
     span = next((f for f in [rep, *group]
                  if f.column is not None and f.line == rep.line), rep)
 
+    # One engine recognising the advisory as malware is enough: OSV knows the
+    # MAL- alias that Trivy, reporting the same CVE, does not.
+    malicious = any(f.malicious for f in group)
+    if malicious:
+        severity = "critical"
+    marked = next((f for f in group if f.malicious), rep)
+
     return Finding(
         tool=rep.tool, category=rep.category, rule_id=rule_id, severity=severity,
-        message=rep.message, file=rep.file, line=rep.line, package=rep.package,
+        malicious=malicious, scanner_severity=marked.scanner_severity,
+        message=marked.message if malicious else rep.message,
+        file=rep.file, line=rep.line, package=rep.package,
         aliases=aliases, tools=tools, description=description, url=url,
         severity_stated=bool(verdicts), end_line=span.end_line,
         column=span.column, end_column=span.end_column, cwe=cwe,

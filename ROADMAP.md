@@ -64,6 +64,11 @@
   own actions may be tag-pinned unless the repo brings a `zizmor.yml`; online
   audits only with a host `ZIZMOR_GITHUB_TOKEN`. Trivy's secret results now
   count as secrets and merge with Gitleaks instead of landing in SCA.
+- **Malicious packages** — a MAL- id, CWE-506 or a GitHub malware advisory
+  makes an SCA finding `malicious`, critical whatever its score, and labelled
+  in every report. Trivy (default) knows only GitHub-reviewed malware (11/23
+  hijacked npm releases); `osv` (23/23, network) or `grype` (22/23,
+  offline) for real coverage — documented, not enabled by default.
 
 ## Release: 1.2.0
 
@@ -87,8 +92,8 @@ the first step of an AI agent's security review. CI integrations come later.
       `--baseline-commit`, Gitleaks commit range) for fast agent iterations.
 - [ ] **MCP server / agent skill** — `scan`, `findings`, `explain`, `suppress`
       over the same CLI and `findings.json` contract.
-- [ ] **Coverage gaps** — CI/CD workflow scanning (zizmor), dependency licenses,
-      malicious-package advisories on by default.
+- [ ] **Coverage gaps** — dependency licenses. (zizmor and malicious-package
+      handling shipped; full MAL- coverage still needs `osv` or `grype`.)
 - [ ] **Public benchmark** — precision/recall on known-vulnerable projects.
 
 ## CI integrations (later — current versions work)

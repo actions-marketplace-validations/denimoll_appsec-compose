@@ -332,6 +332,46 @@ The check is skipped in `offline` mode.
 > keep the scanners' severities, and a finding known only by a GHSA with no CVE
 > alias cannot be looked up.
 
+## Malicious packages
+
+A hijacked or typosquatted release is not a vulnerability waiting for an
+exploit — it is the exploit, and it runs at install time. The advisory
+databases still ship it as one more "vulnerability", scored like one: Trivy
+rates the September 2025 `debug@4.4.2` takeover **HIGH**. So the collector
+recognises a malicious-package advisory by what it is — an OpenSSF `MAL-` id,
+CWE-506 (Embedded Malicious Code), or GitHub's malware titles ("Malware in X",
+"Malicious code in X", "X contains malware…") — and then:
+
+- ranks it **critical** whatever its score (the engine's own level is kept in
+  `scanner_severity`), and CVE-PaaS `reprioritize` never lowers it;
+- sets `malicious: true` in `findings.json`, prefixes the message with
+  `MALICIOUS PACKAGE`, and labels it in both summaries, the review brief and the
+  console.
+
+How much each SCA engine knows, measured on 23 hijacked npm releases (the 2025
+chalk/debug takeover, Shai-Hulud's `@ctrl/tinycolor`, `nx` 21.5.0, and the
+older `flatmap-stream`, `eslint-scope`, `ua-parser-js`), from the lockfile alone:
+
+| Engine | Detected | Source |
+|---|---|---|
+| Trivy (default) | 11 / 23 | GitHub-*reviewed* malware advisories only |
+| Grype (offline DB) | 22 / 23 | all GitHub malware advisories |
+| OSV-Scanner (network) | 23 / 23 | the OpenSSF `MAL-` feed |
+
+Out of the box Trivy catches the reviewed ones (`flatmap-stream`, the CVE-
+numbered half of the 2025 takeover) and they are handled as above. For real
+coverage enable **`osv`** where the scan may reach the network, or **`grype`**
+offline (its database is ~3 GB on disk, so it stays opt-in):
+
+```yaml
+scanners:
+  osv:   { enabled: true }   # broadest: OpenSSF malicious-packages, needs network
+  grype: { enabled: true }   # offline alternative: GitHub malware advisories
+```
+
+Only a lockfile or exact pin can be matched: a range in `requirements.txt` says
+nothing about which release was installed.
+
 ## SCA coverage check
 
 The most dangerous result a dependency scanner can produce is *nothing*: an
@@ -402,7 +442,7 @@ since the accepted snapshot. It is fully self-contained (no external assets).
 ### `findings.json` contract
 
 `findings.json` is the machine-readable interface for ASPM imports, CI scripts
-and AI agents, and it is versioned: `schema_version` (`1.0`) refers to
+and AI agents, and it is versioned: `schema_version` (`1.1`) refers to
 [`schemas/findings.schema.json`](schemas/findings.schema.json). The major only
 changes when a field is removed, renamed or changes meaning; additions bump the
 minor, so ignore fields you do not know.

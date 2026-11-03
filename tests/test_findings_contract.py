@@ -124,6 +124,24 @@ def test_the_brief_says_when_workflows_went_unchecked_or_offline(run, monkeypatc
     assert "CI/CD" not in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
 
 
+def test_a_malicious_package_is_labelled_in_every_report(run):
+    (Path(main.NATIVE_DIR) / "trivy-fs.sarif").write_text(json.dumps(_sarif(
+        [{"ruleId": "GHSA-9x64-5r7x-2q53", "level": "error",
+          "message": {"text": "Package: flatmap-stream\nInstalled Version: 0.1.1\n"},
+          "locations": _loc("/code/package-lock.json")}],
+        [{"id": "GHSA-9x64-5r7x-2q53",
+          "shortDescription": {"text": "Malicious Package in flatmap-stream"},
+          "properties": {"tags": ["vulnerability", "security", "HIGH"]}}])))
+    _, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    mal = next(f for f in doc["findings"] if f["rule_id"] == "GHSA-9x64-5r7x-2q53")
+    assert mal["malicious"] and mal["severity"] == "critical" and mal["scanner_severity"] == "high"
+    reports = Path(main.REPORTS_DIR)
+    assert "MALICIOUS PACKAGE" in (reports / "review-brief.md").read_text()
+    assert "**MALICIOUS**" in (reports / "summary.md").read_text()
+    assert ">MALICIOUS</span>" in (reports / "summary.html").read_text()
+
+
 def test_no_report_carries_the_secret_value(run):
     run()
     for name in ("review-brief.md", "findings.json", "summary.md", "summary.html"):
