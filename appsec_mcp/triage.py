@@ -9,12 +9,11 @@ but `ignore` must be unchanged, `ignore` must have gained exactly this entry,
 and the collector's schema must accept it. Anything unexpected and nothing is
 written.
 
-A project without the file gets one copied from the tool's scan-config.yml.
-run.sh reads a `--config` file *instead of* scan-config.yml, not on top of it;
-a file holding only `ignore:` would enable no scanners at all (render-env
-derives the enabled list from `scanners:`), and one holding only defaults would
-quietly drop whatever the user had set in the tool's own config. A copy keeps
-the next scan identical to the last, plus one suppression.
+A project without the file gets a minimal one: a header and the `ignore:`
+list. run.sh lays a project config over the tool's scan-config.yml
+(scripts/effective-config.py), so everything else — engines, gate, excludes —
+stays as shipped, and keeps following the defaults across upgrades instead of
+freezing a copy of them.
 """
 from __future__ import annotations
 
@@ -47,9 +46,8 @@ def _header(version: str) -> str:
         "# appsec-compose scan config for this project.\n"
         "#\n"
         "# Created by the appsec-compose MCP server to record a triage verdict.\n"
-        f"# It starts as a copy of the tool's scan-config.yml (appsec-compose {version}),\n"
-        "# because a project config replaces that file rather than overlaying it:\n"
-        "# the scanners and the gate stay exactly as they were. Edit freely.\n"
+        f"# It is laid over the tool's scan-config.yml (appsec-compose {version}):\n"
+        "# state only what differs from the defaults. Edit freely.\n"
         "\n")
 
 
@@ -215,14 +213,10 @@ def suppress(report: Report, fingerprint: str, reason: str,
 
     create = st is None
     if create:
-        template = core.TOOL_DIR / "scan-config.yml"
-        try:
-            text = _header(_tool_version()) + template.read_text()
-        except OSError as exc:
-            raise core.UserError(f"cannot read the tool's {template}: {exc}") from None
+        text = _header(_tool_version()) + "ignore:\n"
     else:
         text = path.read_text(encoding="utf-8")
-    old = _load(text, str(path) if not create else "the tool's scan-config.yml")
+    old = _load(text, str(path) if not create else "the new config")
 
     for e in old.get("ignore") or []:
         if isinstance(e, dict) and str(e.get("fingerprint", "")).lower() == fp:

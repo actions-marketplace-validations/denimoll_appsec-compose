@@ -83,10 +83,9 @@ prefix `findings()` prints.
 - **`suppress`** writes exactly one file, `<repo>/.appsec-compose.yml`. An
   existing file is edited as text — the entry is inserted into `ignore:`,
   comments and layout are kept — then parsed back and validated against the
-  collector's schema before anything is written. A missing file is created as a
-  copy of the tool's `scan-config.yml`: a project config *replaces* that file
-  for the scan, so starting from anything smaller would change which scanners
-  run.
+  collector's schema before anything is written. A missing file is created holding
+  only the `ignore:` list: a project config is laid over the tool's
+  `scan-config.yml`, so the engines and the gate stay as shipped.
 - If `<repo>/.appsec-compose.yml` or `<repo>/.appsec-baseline.json` exist, every
   scan uses them.
 

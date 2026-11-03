@@ -431,25 +431,27 @@ def enabled_scanners(raw: dict) -> set[str]:
     return {n for n, c in (raw.get("scanners") or {}).items() if (c or {}).get("enabled", True)}
 
 
-def test_suppress_creates_config_from_tool_defaults(scanned, tool):
+def test_suppress_creates_a_minimal_overlay_config(scanned, tool):
     report = views.load_report(scanned)
     out = triage.suppress(report, "c75f00c2ba12", "cmd is a constant from the CLI table, never user input")
     cfg = scanned / core.PROJECT_CONFIG
     assert out["status"] == "added" and out["created"] is True
-    text = cfg.read_text()
-    raw = yaml.safe_load(text)
-    defaults = yaml.safe_load((tool / "scan-config.yml").read_text())
-    # A fresh project config must not quietly switch scanners off.
-    assert enabled_scanners(raw) == enabled_scanners(defaults) != set()
-    assert {k: v for k, v in raw.items() if k != "ignore"} == \
-           {k: v for k, v in defaults.items() if k != "ignore"}
+    raw = yaml.safe_load(cfg.read_text())
+    # Only the verdict: the rest comes from the tool's defaults on every run.
+    assert list(raw) == ["ignore"]
     assert raw["ignore"] == [{"fingerprint": "c75f00c2ba12000000000000000000000000000e",
                               "reason": "cmd is a constant from the CLI table, never user input",
                               "expires": date.today() + timedelta(days=90)}]
-    assert "# ---- Scanners" in text                        # the template's comments survive
     from appsec_mcp._orchestrator import normalize, schema
-    # known_scanners as the collector knows them, not a list to keep in step.
     assert schema.validate(raw, known_scanners=set(normalize.SCANNER_FILES)) == []
+    # Laid over the defaults, it must not quietly switch scanners off.
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "effective_config", Path(__file__).resolve().parent.parent / "scripts" / "effective-config.py")
+    ec = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ec)
+    defaults = yaml.safe_load((tool / "scan-config.yml").read_text())
+    assert enabled_scanners(ec.merge(defaults, raw)) == enabled_scanners(defaults) != set()
 
 
 def test_suppress_preserves_existing_text_and_is_idempotent(scanned):
@@ -548,7 +550,7 @@ def test_reason_cannot_break_out_of_its_yaml_string(scanned):
     nasty = 'ok" \nfail_on: none\n# "\\   trailing'
     triage.suppress(views.load_report(scanned), "c75f00c2ba12", nasty)
     raw = yaml.safe_load((scanned / core.PROJECT_CONFIG).read_text())
-    assert raw["fail_on"] == "high"                             # unchanged
+    assert list(raw) == ["ignore"]                     # no key smuggled in
     assert raw["ignore"][-1]["reason"] == " ".join(nasty.split())
 
 

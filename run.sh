@@ -143,7 +143,6 @@ cd "$SCRIPT_DIR"
 # Resolve the per-project state paths (defaults keep the single-project layout).
 if [[ -n "$CONFIG_FILE" ]]; then
   [[ -f "$CONFIG_FILE" ]] || { echo "Error: config '$CONFIG_FILE' not found" >&2; exit $EXIT_USAGE; }
-  ASS_CONFIG_FILE="$CONFIG_FILE"; export ASS_CONFIG_FILE
 fi
 if [[ -n "$REPORTS_DIR" ]]; then
   mkdir -p "$REPORTS_DIR/native"
@@ -170,6 +169,16 @@ RUN_DIR="$(mktemp -d "$SCRIPT_DIR/.run/run.XXXXXX")"   # on_exit removes it
 ASS_EXCLUDES_DIR="$RUN_DIR/excludes"; ASS_ARCHIVE_DIR="$RUN_DIR/archive"
 export ASS_EXCLUDES_DIR ASS_ARCHIVE_DIR
 mkdir -p "$ASS_EXCLUDES_DIR" "$ASS_ARCHIVE_DIR"
+
+# A project config is laid over the shipped defaults rather than replacing
+# them, so it states only what differs. Both render-env and the collector read
+# the merged result.
+if [[ -n "$CONFIG_FILE" ]]; then
+  python3 scripts/effective-config.py "$SCRIPT_DIR/scan-config.yml" "$CONFIG_FILE" \
+    "$RUN_DIR/scan-config.yml" || {
+    rc=$?; [[ $rc == "$EXIT_USAGE" ]] || rc=$EXIT_SCAN; exit $rc; }
+  ASS_CONFIG_FILE="$RUN_DIR/scan-config.yml"; export ASS_CONFIG_FILE
+fi
 
 # Every compose call reads this run's .env, never the tool directory's.
 compose() { docker compose --env-file "$RUN_DIR/.env" "$@"; }
@@ -323,7 +332,7 @@ offline_flag=""; [[ "$ASS_OFFLINE" == "1" ]] && offline_flag="--offline"
 ASS_COLLECTOR_IMAGE="$(scripts/collector-image.sh $offline_flag)" || exit $EXIT_SCAN
 export ASS_COLLECTOR_IMAGE
 
-[[ -n "${ASS_CONFIG_FILE:-}" ]] && echo "Config   : $ASS_CONFIG_FILE"
+[[ -n "$CONFIG_FILE" ]] && echo "Config   : $CONFIG_FILE (over the shipped defaults)"
 [[ -n "${ASS_REPORTS_DIR:-}" ]] && echo "Reports  : $ASS_REPORTS_DIR"
 echo "Target   : $TARGET_LABEL"
 echo "Scanners : ${RUN_ENGINES:-none}"

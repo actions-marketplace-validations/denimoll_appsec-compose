@@ -310,6 +310,27 @@ strict: false              # a scanner with no readable report fails the run
 offline: false             # use ./preload.sh cache, no network during scan
 ```
 
+A **project config** (`--config`, or `<target>/.appsec-compose.yml` with the
+CLI) is laid over these defaults, not swapped in for them, so it states only
+what differs:
+
+```yaml
+# .appsec-compose.yml — everything else stays as shipped
+fail_on: { secrets: low, default: high }
+scanners:
+  zizmor: { enabled: false }
+ignore:
+  - rule: CVE-2018-1000656
+    reason: "no fix available, mitigated at the proxy"
+```
+
+Mappings merge key by key (`scanners.zizmor.enabled` leaves zizmor's version
+and every other engine alone); lists such as `ignore:` and `exclude:` and plain
+values replace the default whole. A project config therefore keeps following
+the shipped defaults across upgrades — a new default engine reaches it —
+instead of freezing a copy. To turn a default engine off, say so with
+`enabled: false`. Mistakes are reported against the project file and key.
+
 Disable a check by setting `enabled: false` — that scanner won't run and the
 collector won't expect its report. Upgrade a tool by changing its `version`.
 Set `secrets_history: true` to have Gitleaks scan the full **git history**

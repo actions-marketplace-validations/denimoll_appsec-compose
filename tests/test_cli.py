@@ -54,7 +54,9 @@ def test_scan_picks_up_the_project_conventions(cli):
     assert result["reports_dir"] == str(reports)
     assert (reports / ".gitignore").read_text().strip().endswith("*")
     env = environ(cli.dump)
-    assert env["ASS_CONFIG_FILE"] == str(cli.target / ".appsec-compose.yml")
+    # The project file is laid over the defaults into the run's own config.
+    assert f"Config   : {cli.target / '.appsec-compose.yml'}" in proc.stderr
+    assert "/.run/run." in env["ASS_CONFIG_FILE"]
     assert env["ASS_BASELINE_FILE"] == str(cli.target / ".appsec-baseline.json")
     assert env["ASS_CACHE_DIR"] == str(cli.home / ".cache" / "appsec-compose")
     assert env["COMPOSE_PROJECT_NAME"] == "appsec-project"
@@ -68,7 +70,7 @@ def test_explicit_flags_win_over_conventions(cli, tmp_path):
                "--reports", str(tmp_path / "r"), "--name", "a-own", run=0, findings=1)
     assert proc.returncode == 0, proc.stderr
     env = environ(cli.dump)
-    assert env["ASS_CONFIG_FILE"] == str(own)
+    assert f"Config   : {own}" in proc.stdout + proc.stderr
     assert env["ASS_REPORTS_DIR"] == str(tmp_path / "r")
     assert env["COMPOSE_PROJECT_NAME"] == "appsec-a-own"
 
