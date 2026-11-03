@@ -112,6 +112,32 @@
     "reports_found": {"type": "array", "items": {"type": "string"}},
     "reports_missing": {"type": "array", "items": {"type": "string"}},
     "reports_errored": {"type": "array", "items": {"type": "string"}},
+    "components": {
+      "type": "array",
+      "description": "1.2: SCA findings grouped by package. A view over `findings`: each finding is still gated, suppressed and baselined on its own.",
+      "items": {
+        "type": "object",
+        "required": ["package", "name", "version", "files", "severity", "counts", "vulnerabilities",
+                     "upgrade_to", "fixed_in", "unfixed", "malicious", "exploitable", "findings"],
+        "properties": {
+          "package": {"type": "string", "description": "name@version, as the engines name it."},
+          "name": {"type": "string"},
+          "version": {"type": "string"},
+          "files": {"type": "array", "items": {"type": "string"}, "description": "Manifests that declare it."},
+          "severity": {"$ref": "#/$defs/severity"},
+          "counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
+          "vulnerabilities": {"type": "integer", "minimum": 1},
+          "upgrade_to": {"type": ["string", "null"],
+                         "description": "Lowest version that fixes every listed vulnerability: per vulnerability the lowest named fix above the installed version, then the highest of those. Plain numeric versions only; null when it cannot be derived."},
+          "fixed_in": {"type": "array", "items": {"type": "string"},
+                       "description": "Every fix version an engine names, first seen first; no single upgrade target is computed."},
+          "unfixed": {"type": "integer", "minimum": 0, "description": "Vulnerabilities with no known fixed version."},
+          "malicious": {"type": "boolean"},
+          "exploitable": {"type": "boolean"},
+          "findings": {"type": "array", "items": {"type": "string"}, "description": "Fingerprints of the findings in this component."}
+        }
+      }
+    },
     "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
     "suppressed": {
       "type": "array",

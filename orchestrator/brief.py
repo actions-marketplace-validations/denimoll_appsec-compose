@@ -17,6 +17,7 @@ from collections import Counter
 from pathlib import Path
 
 from baseline import _Source, _mask_secret
+from components import group
 from dedup import _norm_file
 from normalize import _SEVERITY_RANK, Finding
 from policy import breaches
@@ -205,6 +206,54 @@ def _finding(f: Finding, gating: bool, new: bool | None, source: _Source,
     return out + [""]
 
 
+MAX_COMPONENTS = 60
+
+
+def _components(comps, gates, is_new) -> list[str]:
+    """One entry per vulnerable package: what to upgrade, and what is in it."""
+    comps = sorted(comps, key=lambda c: (not any(gates(f) for f in c.findings),
+                                         not any(is_new(f) for f in c.findings)))
+    out = ["### Vulnerable components", "",
+           f"{sum(len(c.findings) for c in comps)} SCA finding(s) in {len(comps)} "
+           "package(s). Each vulnerability still gates and is suppressed on its own "
+           "fingerprint.", ""]
+    for c in comps[:MAX_COMPONENTS]:
+        tags = [c.severity.upper()]
+        if c.malicious:
+            tags.append("MALICIOUS PACKAGE")
+        if any(gates(f) for f in c.findings):
+            tags.append("GATING")
+        if any(is_new(f) for f in c.findings):
+            tags.append("NEW")
+        if c.exploitable and not c.malicious:
+            tags.append("EXPLOITABLE")
+        counts = ", ".join(f"{n} {s}" for s, n in c.counts.items())
+        if c.upgrade_to:
+            fix = (f"upgrade to **{c.upgrade_to}** — the lowest version that fixes "
+                   f"all {len(c.findings)}")
+        elif c.fixed_in:
+            fix = "no single upgrade version can be derived; per-vulnerability fixes below"
+        else:
+            fix = "no fix known"
+        if c.unfixed and c.fixed_in:
+            fix += f" ({c.unfixed} without a fix)"
+        out += [f"#### `{c.package}` — {len(c.findings)} vulnerabilit"
+                f"{'y' if len(c.findings) == 1 else 'ies'} ({counts})", "",
+                f"- **{' · '.join(tags)}** · declared in {', '.join(c.files) or '(unknown)'}",
+                f"- {fix}"]
+        for f in c.findings:
+            extra = "".join([" · KEV" if f.kev else "", " · MALICIOUS" if f.malicious else ""])
+            fixed = f" → {f.fixed_version}" if f.fixed_version else ""
+            aliases = f" ({', '.join(f.aliases)})" if f.aliases else ""
+            out.append(f"  - {f.severity} `{f.rule_id}`{aliases}{fixed}{extra} · "
+                       f"fingerprint `{f.fingerprint}`")
+        out.append("")
+    if len(comps) > MAX_COMPONENTS:
+        out += [f"…and {len(comps) - MAX_COMPONENTS} more component(s); all are in "
+                "findings.json (`components`).", ""]
+    return out
+
+
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
            image_mode: bool, new_fps: set[str] | None, scope=None,
@@ -219,7 +268,8 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
     def gates(f: Finding) -> bool:
         return breaches(f, cfg) and is_new(f) is not False
 
-    ordered = sorted(findings, key=lambda f: (
+    # SCA is listed per component below; this ordering covers the rest.
+    ordered = sorted((f for f in findings if f.category != "sca"), key=lambda f: (
         not gates(f), not is_new(f), not getattr(f, "on_changed_line", None),
         -_SEVERITY_RANK.get(f.severity, 0),
         f.category, _norm_file(f.file), f.line or 0))
@@ -294,6 +344,11 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
                      "`CHANGED LINE` marks the ones on a line the change wrote; "
                      "start there.")
     lines.append("")
+    comps = group(findings)
+    if comps:
+        lines += _components(comps, gates, is_new)
+        if shown:
+            lines += ["### Code, secrets and IaC", ""]
     for f in shown:
         lines += _finding(f, gates(f), is_new(f), source, secrets)
     if rest:

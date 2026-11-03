@@ -52,7 +52,7 @@ and merged across engines: [engines](docs/engines.md).
 
 | File | For |
 |---|---|
-| `summary.html`, `summary.md` | reading the result |
+| `summary.html`, `summary.md` | reading the result — dependencies grouped per vulnerable component, with the version to upgrade to |
 | `review-brief.md` | the next reviewer — a person or an AI agent: scope, **blind spots**, findings with code (secrets masked), how to record a verdict |
 | `findings.json` | tools and agents: a versioned contract ([schema](schemas/findings.schema.json)), stable fingerprints |
 | `native/*.sarif`, `sbom.*.json` | ASPM upload (DefectDojo, Dependency-Track, GitHub code scanning, …) |
