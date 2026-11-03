@@ -194,6 +194,99 @@ def _write_exclude_files(patterns: list[str], out: Path) -> None:
 
 
 
+# ---- Checkov: run only the frameworks the repository has files for ---------
+#
+# Checkov walks the whole tree once per framework, whether or not anything of
+# that kind exists: on django (7,000 files, one IaC type) helm alone took 49 s,
+# ansible 41 s, and the scan's only useful one, github_actions, 11 s. Running
+# the frameworks the repo actually uses gives the same findings in a fraction
+# of the time, and leaves the CPU to the engines running alongside.
+#
+# Detection errs towards running a framework: an unneeded one costs seconds, a
+# missed one silently drops coverage. Content checks are deliberately loose.
+# Never selected: json/yaml (custom policies only), sast_*, sca_* and the
+# *_configuration frameworks (they need a Prisma API key or platform tokens),
+# 3d_policy, and secrets (Gitleaks and Trivy own those).
+_CHECKOV_BY_NAME = [
+    (re.compile(r"\.tf$"), "terraform"),
+    (re.compile(r"\.tf\.json$"), "terraform_json"),
+    (re.compile(r"(^|/)(Dockerfile|Containerfile)([.-][^/]*)?$|\.(dockerfile|containerfile)$", re.I), "dockerfile"),
+    (re.compile(r"(^|/)\.github/workflows/[^/]+\.ya?ml$|(^|/)action\.ya?ml$"), "github_actions"),
+    (re.compile(r"(^|/)(\.gitlab-ci|[^/]+\.gitlab-ci)\.ya?ml$"), "gitlab_ci"),
+    (re.compile(r"(^|/)bitbucket-pipelines\.ya?ml$"), "bitbucket_pipelines"),
+    (re.compile(r"(^|/)([^/]*azure-pipelines[^/]*)\.ya?ml$"), "azure_pipelines"),
+    (re.compile(r"(^|/)\.circleci/config\.ya?ml$"), "circleci_pipelines"),
+    (re.compile(r"(^|/)Chart\.ya?ml$"), "helm"),
+    (re.compile(r"(^|/)(kustomization\.ya?ml|Kustomization)$"), "kustomize"),
+    (re.compile(r"(^|/)serverless\.(ya?ml|json)$"), "serverless"),
+    (re.compile(r"\.bicep$"), "bicep"),
+]
+# Frameworks found by what a YAML/JSON file says rather than what it is called.
+_CHECKOV_BY_CONTENT = [
+    (re.compile(r"apiVersion\W"), re.compile(r"\bkind\W"), "kubernetes"),
+    (re.compile(r"AWSTemplateFormatVersion|AWS::[A-Za-z0-9]+::"), None, "cloudformation"),
+    (re.compile(r"schema\.management\.azure\.com"), None, "arm"),
+    (re.compile(r"""(?m)(^|[{,])\s*["']?(openapi|swagger)["']?\s*:"""), None, "openapi"),
+    (re.compile(r"(?m)^\s*-?\s*hosts\s*:"), re.compile(r"(?m)^\s*-?\s*(tasks|roles|import_playbook)\s*:"), "ansible"),
+    (re.compile(r"argoproj\.io"), None, "argo_workflows"),
+    (re.compile(r'"(planned_values|resource_changes)"\s*:'), None, "terraform_plan"),
+]
+_CHECKOV_CDK = re.compile(r"aws-cdk-lib|aws_cdk")
+_CHECKOV_CDK_FILES = re.compile(r"(^|/)(cdk\.json|requirements[^/]*\.txt|package\.json|pyproject\.toml|setup\.py)$")
+_CHECKOV_SNIFF_BYTES = 256 * 1024
+_CHECKOV_MAX_FILES = 50_000
+
+
+def _checkov_frameworks(target: str, excludes: list[str]) -> list[str] | None:
+    """The Checkov frameworks `target` has files for; None = run them all
+    (no target to inspect, or too large to inspect quickly)."""
+    root = Path(target)
+    if not target or not root.is_dir():
+        return None
+    skip = [re.compile(_path_regex(e.rstrip("/").replace("**", "*"))) for e in excludes if e]
+    found: set[str] = set()
+    seen = 0
+    for dirpath, dirs, files in os.walk(root):
+        rel_dir = os.path.relpath(dirpath, root)
+        rel_dir = "" if rel_dir == "." else rel_dir + "/"
+        dirs[:] = [d for d in dirs if d != ".git"
+                   and not any(r.search(rel_dir + d) for r in skip)]
+        for name in files:
+            seen += 1
+            if seen > _CHECKOV_MAX_FILES:
+                return None
+            rel = rel_dir + name
+            if any(r.search(rel) for r in skip):
+                continue
+            found.update(fw for rx, fw in _CHECKOV_BY_NAME if rx.search(rel))
+            low = name.lower()
+            if low.endswith((".yml", ".yaml", ".json", ".template")) or _CHECKOV_CDK_FILES.search(rel):
+                try:
+                    with open(os.path.join(dirpath, name), "rb") as fh:
+                        text = fh.read(_CHECKOV_SNIFF_BYTES).decode("utf-8", "replace")
+                except OSError:
+                    continue
+                for rx, also, fw in _CHECKOV_BY_CONTENT:
+                    if fw not in found and rx.search(text) and (also is None or also.search(text)):
+                        found.add(fw)
+                if _CHECKOV_CDK.search(text):
+                    found.add("cdk")
+    return sorted(found)
+
+
+def _checkov_flags(scanners: dict, target: str, excludes: list[str]) -> str:
+    """CHECKOV_FRAMEWORKS for compose: a list, "all" (every framework but
+    secrets), or "none" (nothing to check: Checkov is not started)."""
+    chosen = (scanners.get("checkov") or {}).get("frameworks")
+    if chosen is not None:                 # the user decides
+        chosen = [chosen] if isinstance(chosen, str) else list(chosen)
+        return "all" if "all" in chosen else " ".join(chosen) or "none"
+    found = _checkov_frameworks(target, excludes)
+    if found is None:
+        return "all"
+    return " ".join(found) or "none"
+
+
 def _autodetect_packs() -> list[str]:
     """Detect the repo's stack and map it to Semgrep registry packs."""
     target = os.environ.get("SCAN_TARGET", "")
@@ -418,6 +511,12 @@ def main(argv: list[str] | None = None) -> int:
 
     env.update({
         "SEMGREP_CONFIGS": _semgrep_configs(scanners, offline),
+        "CHECKOV_FRAMEWORKS": _checkov_flags(scanners, os.environ.get("SCAN_TARGET", ""),
+                                             excludes),
+        # Prisma Cloud guideline links: ~25 s of network per run for a doc URL
+        # on each finding. Opt-in, and never offline.
+        "CHECKOV_DOWNLOAD": "" if ((scanners.get("checkov") or {}).get("guidelines")
+                                   and not offline) else "--skip-download",
         "TRIVY_DB_FLAGS": TRIVY_OFFLINE_FLAGS if offline else "",
         "GRYPE_DB_AUTO_UPDATE": "false" if offline else "true",
         # zizmor's online audits (impostor commits, known-vulnerable actions,

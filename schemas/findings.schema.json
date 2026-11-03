@@ -23,6 +23,10 @@
         "databases": {"type": "object", "additionalProperties": {"type": "string"},
                       "description": "Vulnerability database -> date it was built."},
         "scope": {"$ref": "#/$defs/scope"},
+        "checkov_frameworks": {
+          "description": "1.3: the Checkov frameworks run — the ones the repository has files for, \"all\", or \"none\" (no IaC, Checkov not started).",
+          "anyOf": [{"type": "string", "enum": ["all", "none"]}, {"type": "array", "items": {"type": "string"}}]
+        },
         "timings": {
           "type": "object",
           "description": "1.3: where the run's time went. Engines run in parallel, so the scan takes as long as the slowest.",

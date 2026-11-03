@@ -21,7 +21,7 @@ TOP_LEVEL = {
     "unknown_severity", "dedup", "strict", "require_pinned", "baseline",
     "ignore", "offline", "licenses",
 }
-SCANNER = {"enabled", "version", "rules", "verify"}
+SCANNER = {"enabled", "version", "rules", "verify", "frameworks", "guidelines"}
 ENRICH = {"cve_paas"}
 CVE_PAAS = {"enabled", "url", "api_key_env", "mode", "timeout",
             "fail_on_exploitable"}

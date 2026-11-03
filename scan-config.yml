@@ -45,6 +45,10 @@ scanners:
   # -- IaC — Checkov and/or Hadolint; zizmor for CI/CD workflows ------
   checkov:                 # IaC policy (deeper than Trivy config)
     enabled: true
+    # frameworks: all      # default: only the frameworks the repo has files
+                           # for (terraform, dockerfile, kubernetes, ...)
+    # guidelines: true     # fetch Prisma Cloud doc links per finding (~25 s
+                           # of network per scan; findings are the same)
     version: "3.3.13"
   hadolint:                # Dockerfile linter / best-practices
     enabled: false

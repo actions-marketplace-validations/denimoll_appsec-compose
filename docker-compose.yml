@@ -175,15 +175,29 @@ services:
     # pass reads every file — 27 of a 44 s scan on juice-shop — and its hits
     # landed as IaC findings, under the wrong gate and never merged; the ones
     # only it found there were high-entropy words in translation files.
+    # CHECKOV_FRAMEWORKS (render-env) names the frameworks the repo has files
+    # for: Checkov walks the whole tree once per framework, files or not.
+    # "all" keeps every framework but secrets; "none" means no IaC at all, so
+    # Checkov is not started and its report is an empty, valid SARIF.
     command:
       - >-
         set -f;
-        checkov -d /code --soft-fail --compact --skip-framework secrets $$CHECKOV_SKIP_PATHS -o sarif
+        if [ "$$CHECKOV_FRAMEWORKS" = none ]; then
+        printf '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Checkov"}},"results":[]}]}'
+        > /reports/native/checkov.sarif; exit 0; fi;
+        if [ "$$CHECKOV_FRAMEWORKS" = all ]; then FW="--skip-framework secrets";
+        else FW="--framework $$CHECKOV_FRAMEWORKS"; fi;
+        checkov -d /code --soft-fail --compact $$FW $$CHECKOV_DOWNLOAD $$CHECKOV_SKIP_PATHS -o sarif
         --output-file-path /reports/native/_checkov >/dev/null 2>&1 || true ;
         mv /reports/native/_checkov/results_sarif.sarif /reports/native/checkov.sarif 2>/dev/null || true ;
         rm -rf /reports/native/_checkov
     environment:
       CHECKOV_SKIP_PATHS: ${CHECKOV_SKIP_PATHS:-}
+      CHECKOV_FRAMEWORKS: ${CHECKOV_FRAMEWORKS:-all}
+      # --skip-download unless `guidelines: true`: fetching Prisma Cloud's
+      # guideline links costs about 25 s per run (and hangs offline); the
+      # findings and their levels are identical without it.
+      CHECKOV_DOWNLOAD: ${CHECKOV_DOWNLOAD:---skip-download}
     volumes: *iac-volumes
 
   # ---- SCA (alternative) -----------------------------------------------
@@ -351,6 +365,7 @@ services:
       ASS_ENGINE_IMAGES: ${ASS_ENGINE_IMAGES:-}
       ASS_DB_DATES: ${ASS_DB_DATES:-}
       ASS_ENGINE_TIMINGS: ${ASS_ENGINE_TIMINGS:-}
+      CHECKOV_FRAMEWORKS: ${CHECKOV_FRAMEWORKS:-all}
       ASS_SCAN_SECONDS: ${ASS_SCAN_SECONDS:-}
       ASS_RUN_START: ${ASS_RUN_START:-}
       # Diff mode: /diff/scope.json says what changed and what was skipped.

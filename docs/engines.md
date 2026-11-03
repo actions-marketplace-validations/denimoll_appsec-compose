@@ -32,6 +32,43 @@ That sends the secret found in your repository to a third party, so it is off
 unless you set `scanners.trufflehog.verify: true`; without it, findings are
 reported unverified (high), and nothing leaves the machine.
 
+## Checkov: only the IaC the repository has
+
+Checkov walks the whole tree once per framework, whether or not the repository
+holds anything of that kind. On django — 7,000 files whose only IaC is GitHub
+workflows — the helm framework alone took 49 s, ansible 41 s, and the one that
+found anything, github_actions, 11 s. So before the scan, `run.sh` lists the
+frameworks the repository has files for and runs only those:
+
+| Framework | Selected when the repo has |
+|---|---|
+| terraform, terraform_json, terraform_plan | `*.tf`, `*.tf.json`, a plan JSON |
+| dockerfile | `Dockerfile*`, `Containerfile*`, `*.dockerfile` |
+| kubernetes, helm, kustomize | YAML/JSON with `apiVersion` and `kind`; `Chart.yaml`; `kustomization.yaml` |
+| cloudformation, serverless, cdk | `AWSTemplateFormatVersion` or `AWS::` types; `serverless.yml`; `aws-cdk-lib` |
+| arm, bicep | an Azure deployment-template schema; `*.bicep` |
+| github_actions, gitlab_ci, bitbucket_pipelines, azure_pipelines, circleci_pipelines, argo_workflows | the pipeline files of each |
+| openapi, ansible | an `openapi:`/`swagger:` key; plays with `hosts:` and `tasks:`/`roles:` |
+
+Detection errs towards running a framework — an extra one costs seconds, a
+missed one would silently drop coverage — respects `exclude:`, and takes a
+fraction of a second (0.24 s on django). A repository with no IaC at all does
+not start Checkov; its report is an empty SARIF. Frameworks that need a Prisma
+API key or platform tokens (`sast_*`, `sca_*`, `*_configuration`) and the
+custom-policy-only `json`/`yaml` are never selected; secrets belong to Gitleaks
+and Trivy. The frameworks used are recorded in `findings.json`
+(`provenance.checkov_frameworks`) and in the review brief. To run them all:
+
+```yaml
+scanners:
+  checkov: { frameworks: all }      # or an explicit list: [terraform, helm]
+```
+
+Checkov also runs with `--skip-download`: otherwise every scan spends about
+25 s fetching Prisma Cloud guideline links (and waits out a timeout offline).
+The findings and their levels are the same; only the per-finding doc link is
+missing. `guidelines: true` brings the links back, online only.
+
 ## CI/CD workflows (zizmor)
 
 A workflow runs with the repository's secrets and a token that can push, so it

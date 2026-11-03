@@ -72,7 +72,15 @@ def _provenance(cfg, image_mode: bool, scope=None) -> dict:
         # What was scanned: the whole target, or only what a change touched.
         "scope": scope.provenance() if scope else dict(diffscope.FULL_SCOPE),
         "timings": _timings(_json_env("ASS_ENGINE_TIMINGS")),
+        # The Checkov frameworks this run used ("all", or the ones the repo
+        # has files for): a framework not listed was not checked.
+        "checkov_frameworks": _checkov_frameworks(),
     }
+
+
+def _checkov_frameworks() -> list[str] | str:
+    raw = os.environ.get("CHECKOV_FRAMEWORKS", "").strip() or "all"
+    return raw if raw in ("all", "none") else raw.split()
 
 
 def _timings(engines: dict) -> dict:

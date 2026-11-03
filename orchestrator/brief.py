@@ -312,6 +312,10 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
             lines.append("- Languages (files): " + ", ".join(f"{l} ({n})" for l, n in langs))
         if excludes:
             lines.append("- Not scanned (excluded): " + ", ".join(f"`{e}`" for e in sorted(excludes)))
+    fws = provenance.get("checkov_frameworks")
+    if "checkov" in enabled and isinstance(fws, list):
+        lines.append("- Checkov frameworks (the IaC kinds found in the repo): "
+                     + (", ".join(fws) or "none"))
     lines += [f"- Gate: fail_on {cfg.threshold_label()}"
               + (" + exploitable" if cfg.fail_on_exploitable else "")
               + (" (new findings only)" if new_fps is not None else ""), ""]
