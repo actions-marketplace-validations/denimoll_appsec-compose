@@ -214,3 +214,22 @@ def test_grype_fixed_version_only_when_a_fix_exists(tmp_path):
         return load_findings(str(tmp_path), expected={"grype.json"}).findings[0].fixed_version
     assert fixed({"versions": ["1.2.0"], "state": "fixed"}) == "1.2.0"
     assert fixed({"versions": [], "state": "not-fixed"}) == ""
+
+
+def test_a_result_without_a_level_takes_its_rules_default(tmp_path):
+    # Semgrep: the level lives on the rule (defaultConfiguration), never on the
+    # result. An ERROR rule must come out high, not the "warning" fallback.
+    rules = [{"id": "php.exec", "defaultConfiguration": {"level": "error"}},
+             {"id": "php.info", "defaultConfiguration": {"level": "note"}}]
+    results = [{"ruleId": r["id"], "message": {"text": "m"},
+                "locations": [{"physicalLocation": {
+                    "artifactLocation": {"uri": "/code/a.php"},
+                    "region": {"startLine": 1}}}]} for r in rules]
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif(results, rules=rules)))
+    found = load_findings(str(tmp_path), expected={"semgrep.sarif"}).findings
+    assert {f.rule_id: f.severity for f in found} == {"php.exec": "high", "php.info": "low"}
+
+
+def test_a_results_own_level_still_wins_over_the_rule_default(tmp_path):
+    rule = {"id": "r", "defaultConfiguration": {"level": "error"}}
+    assert _one(tmp_path, "semgrep.sarif", rule, level="note").severity == "low"

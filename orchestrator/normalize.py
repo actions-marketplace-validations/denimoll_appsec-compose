@@ -241,11 +241,19 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
             # or the rule, then the coarse SARIF level. CVSS is a fallback, not
             # an override — see _tool_severity.
             stated = _tool_severity(rule)
+            # SARIF §3.27.10: a result without a level takes its rule's
+            # defaultConfiguration.level, and only then "warning". Semgrep puts
+            # the level on the rule and never on the result, so reading the
+            # result alone turned every ERROR rule into medium — and the
+            # default `fail_on: high` gate could never fail on SAST.
+            level = (res.get("level")
+                     or (rule.get("defaultConfiguration") or {}).get("level")
+                     or "warning")
             sev = (
                 stated
                 or _security_severity(res.get("properties") or {})
                 or _security_severity(rule.get("properties") or {})
-                or _LEVEL_TO_SEVERITY.get(res.get("level", "warning"), "medium")
+                or _LEVEL_TO_SEVERITY.get(level, "medium")
             )
             floor = _CATEGORY_FLOOR.get(category)
             if floor:
