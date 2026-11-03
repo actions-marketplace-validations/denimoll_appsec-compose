@@ -243,3 +243,9 @@ def test_mcp_without_setup_says_how_and_keeps_stdout_clean(tmp_path):
     proc = subprocess.run([str(LAUNCHER), "mcp"], env=env, capture_output=True, text=True)
     assert proc.returncode == 2
     assert proc.stdout == "" and "appsec-compose mcp --setup" in proc.stderr
+
+
+def test_a_new_build_drops_superseded_local_images(pick, tmp_path):
+    code, image, calls = pick(build=0)
+    assert code == 0 and image == LOCAL
+    assert "images --format" in calls          # pruning ran without failing the pick

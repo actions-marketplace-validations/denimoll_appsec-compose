@@ -73,21 +73,33 @@ hash="$(content_hash)"
 local_ref="$LOCAL_REPO:local-${hash:0:12}"
 published="$PUBLISHED_REPO:v.$(tr -d '[:space:]' < "$ROOT/VERSION")"
 
+# Each change to orchestrator/ (an upgrade, or editing a checkout) builds a new
+# local-<hash>; once a run settles on its image, the superseded local builds
+# go, so they don't pile up. Never forced: an image a concurrent run is using
+# is refused by Docker and kept. Two checkouts with different collector code
+# on one daemon rebuild each other's image when alternating — a cheap build.
+use() {
+  docker images --format '{{.Repository}}:{{.Tag}}' "$LOCAL_REPO" 2>/dev/null \
+    | grep -E ":local-[0-9a-f]{12}$" | grep -vx "$1" \
+    | while read -r old; do docker rmi "$old" >/dev/null 2>&1 || true; done || true
+  echo "$1"; exit 0
+}
+
 if docker image inspect "$local_ref" >/dev/null 2>&1; then
   echo "Collector: $local_ref (local build)" >&2
-  echo "$local_ref"; exit 0
+  use "$local_ref"
 fi
 
 if [[ "$(label_of "$published")" == "$hash" ]]; then
   echo "Collector: $published (prebuilt)" >&2
-  echo "$published"; exit 0
+  use "$published"
 fi
 # Pull only when the image is not here at all: one that is here with another
 # label is this release's image under a checkout that has since changed.
 if [[ "$OFFLINE" != "1" ]] && ! docker image inspect "$published" >/dev/null 2>&1; then
   if docker pull -q "$published" >/dev/null 2>&1 && [[ "$(label_of "$published")" == "$hash" ]]; then
     echo "Collector: $published (prebuilt, pulled)" >&2
-    echo "$published"; exit 0
+    use "$published"
   fi
 fi
 
@@ -97,4 +109,4 @@ docker build --label "$LABEL=$hash" -t "$local_ref" "$ROOT/orchestrator" >&2 || 
   [[ "$OFFLINE" == "1" ]] && echo "  Offline: run ./preload.sh (appsec-compose preload) once with network." >&2
   exit 1
 }
-echo "$local_ref"
+use "$local_ref"
