@@ -4,7 +4,7 @@
     scan-result.py <exit_code> <reports_dir> <fresh>
 
 This is the interface agents and the MCP server consume (documented in
-README.md, "Machine-readable result"); fields are only ever added. `fresh` is 1
+docs/usage.md, "Machine-readable result"); fields are only ever added. `fresh` is 1
 once run.sh has cleared the previous run's reports: before that point (an early
 usage error) a findings.json in reports_dir belongs to an older run and must not
 be reported as this one's. Stdlib only — it runs on the host.
