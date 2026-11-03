@@ -18,6 +18,8 @@ SOURCES = [
     ("trivy-fs.sarif", "trivy", "sca", "sarif"),
     ("trivy-config.sarif", "trivy", "iac", "sarif"),
     ("gitleaks.sarif", "gitleaks", "secrets", "sarif"),
+    # Diff mode only: the branch's commits (merge-base..HEAD), see diffscope.py.
+    ("gitleaks-history.sarif", "gitleaks", "secrets", "sarif"),
     ("checkov.sarif", "checkov", "iac", "sarif"),
     ("grype.json", "grype", "sca", "grype-json"),
     ("trufflehog.sarif", "trufflehog", "secrets", "sarif"),  # generated from json

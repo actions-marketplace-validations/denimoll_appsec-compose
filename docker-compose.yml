@@ -33,9 +33,30 @@ x-image-volumes: &image-volumes
   - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
   - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
+# Diff mode (./run.sh --diff <ref>): the engines that read files see a copy of
+# only what the change touched, mounted at /code in place of the repo, so their
+# command lines and report paths stay those of a full scan. ASS_DIFF_TREE holds
+# the changed files; ASS_DIFF_IAC_TREE the changed IaC files plus the Terraform
+# files beside them. Outside diff mode both fall back to the repo itself.
+x-diff-code-mount: &diff-code-mount
+  type: bind
+  source: ${ASS_DIFF_TREE:-${SCAN_TARGET:?set SCAN_TARGET to the absolute path of the repo to scan}}
+  target: /code
+  read_only: true
+
+x-iac-code-mount: &iac-code-mount
+  type: bind
+  source: ${ASS_DIFF_IAC_TREE:-${SCAN_TARGET:?set SCAN_TARGET to the absolute path of the repo to scan}}
+  target: /code
+  read_only: true
+
+x-iac-volumes: &iac-volumes
+  - *iac-code-mount
+  - ${ASS_REPORTS_DIR:-./reports}:/reports
+
 # Generated per-engine exclude configs (gitleaks TOML, trufflehog regex list).
 x-exclude-volumes: &exclude-volumes
-  - *code-mount
+  - *diff-code-mount
   - ${ASS_REPORTS_DIR:-./reports}:/reports
   - ${ASS_EXCLUDES_DIR:-./excludes}:/excludes:ro
 
@@ -61,7 +82,7 @@ services:
       SEMGREP_CONFIGS: ${SEMGREP_CONFIGS:---config p/default}
       SEMGREP_EXCLUDES: ${SEMGREP_EXCLUDES:-}
     volumes:
-      - *code-mount
+      - *diff-code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
       - ./cache/semgrep:/cache/semgrep
       - ./semgrep-rules:/semgrep-rules:ro
@@ -69,6 +90,9 @@ services:
   # ---- SCA + IaC + SBOM (Trivy covers all three) ------------------------
   # Scans the repo filesystem, or a container image when ASS_IMAGE is set
   # (./run.sh --image <ref>). SBOM formats are controlled by ASS_SBOM_CDX/SPDX.
+  # Diff mode: SCA (and its SBOM) runs only when a manifest changed
+  # (ASS_DIFF_SCA), over the whole repo; the config scan reads only the changed
+  # IaC files, mounted at /iac (ASS_DIFF_IAC).
   trivy:
     image: ${TRIVY_IMAGE:-aquasec/trivy:0.74.0}
     <<: *sh
@@ -78,10 +102,13 @@ services:
         if [ -n "$$ASS_IMAGE_TAR" ]; then SRC=image; SRCARG="--input $$ASS_IMAGE_TAR"; SKIP=;
         elif [ -n "$$ASS_IMAGE" ]; then SRC=image; SRCARG="$$ASS_IMAGE"; SKIP=;
         else SRC=fs; SRCARG=/code; SKIP=$$TRIVY_SKIP_DIRS; fi
+        CFG=/code; [ "$$ASS_DIFF" = 1 ] && CFG=/iac
+        if [ "$$ASS_DIFF_SCA" != 0 ]; then
         trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --scanners vuln,secret --format sarif --output /reports/native/trivy-fs.sarif $$SRCARG
-        [ "$$SRC" = fs ] && trivy config --quiet $$SKIP --format sarif --output /reports/native/trivy-config.sarif /code || true
         [ "$$ASS_SBOM_CDX" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --format cyclonedx --output /reports/sbom.trivy.cdx.json $$SRCARG || true
         [ "$$ASS_SBOM_SPDX" = "1" ] && trivy $$SRC --quiet $$TRIVY_DB_FLAGS $$SKIP --format spdx-json --output /reports/sbom.trivy.spdx.json $$SRCARG || true
+        fi
+        [ "$$SRC" = fs ] && [ "$$ASS_DIFF_IAC" != 0 ] && trivy config --quiet $$SKIP --format sarif --output /reports/native/trivy-config.sarif $$CFG || true
     environment:
       TRIVY_DB_FLAGS: ${TRIVY_DB_FLAGS:-}
       TRIVY_SKIP_DIRS: ${TRIVY_SKIP_DIRS:-}
@@ -89,9 +116,13 @@ services:
       ASS_IMAGE_TAR: ${ASS_IMAGE_TAR:-}
       ASS_SBOM_CDX: ${ASS_SBOM_CDX:-1}
       ASS_SBOM_SPDX: ${ASS_SBOM_SPDX:-0}
+      ASS_DIFF: ${ASS_DIFF:-}
+      ASS_DIFF_SCA: ${ASS_DIFF_SCA:-}
+      ASS_DIFF_IAC: ${ASS_DIFF_IAC:-}
       DOCKER_CONFIG: /dockercfg
     volumes:
       - *code-mount
+      - ${ASS_DIFF_IAC_TREE:-./.img-empty}:/iac:ro
       - ${ASS_REPORTS_DIR:-./reports}:/reports
       - ./cache/trivy:/root/.cache/trivy
       - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
@@ -107,15 +138,27 @@ services:
     # and writes an empty report, i.e. it silently finds nothing.
     # --redact: this SARIF is uploaded to code scanning and kept as a CI
     # artifact, and must not carry the secret it reports.
+    # Diff mode: /code holds only the changed files (working-tree pass), and a
+    # second pass walks the branch's commits in the real repo at /repo
+    # (ASS_DIFF_LOG_OPTS = merge-base..HEAD) into gitleaks-history.sarif, so a
+    # secret committed and then removed on the branch is still reported.
     command:
       - >-
         set -f;
         gitleaks $$GITLEAKS_CMD /code --config=/excludes/gitleaks.toml $$GITLEAKS_LOG_OPTS
-        --redact --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0
+        --redact --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0;
+        [ -z "$$ASS_DIFF_LOG_OPTS" ] ||
+        gitleaks git /repo --config=/excludes/gitleaks.toml $$ASS_DIFF_LOG_OPTS
+        --redact --report-format=sarif --report-path=/reports/native/gitleaks-history.sarif --exit-code=0
     environment:
       GITLEAKS_CMD: ${GITLEAKS_CMD:-dir}
       GITLEAKS_LOG_OPTS: ${GITLEAKS_LOG_OPTS:-}
-    volumes: *exclude-volumes
+      ASS_DIFF_LOG_OPTS: ${ASS_DIFF_LOG_OPTS:-}
+    volumes:
+      - *diff-code-mount
+      - ${ASS_REPORTS_DIR:-./reports}:/reports
+      - ${ASS_EXCLUDES_DIR:-./excludes}:/excludes:ro
+      - ${SCAN_TARGET:?set SCAN_TARGET to the absolute path of the repo to scan}:/repo:ro
 
   # ---- IaC (deeper policy coverage than Trivy config) -------------------
   checkov:
@@ -132,7 +175,7 @@ services:
         rm -rf /reports/native/_checkov
     environment:
       CHECKOV_SKIP_PATHS: ${CHECKOV_SKIP_PATHS:-}
-    volumes: *scan-volumes
+    volumes: *iac-volumes
 
   # ---- SCA (alternative) -----------------------------------------------
   grype:
@@ -203,7 +246,7 @@ services:
         else printf '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Hadolint"}},"results":[]}]}' > /reports/native/hadolint.sarif; fi
     environment:
       HADOLINT_PRUNE: ${HADOLINT_PRUNE:-}
-    volumes: *scan-volumes
+    volumes: *iac-volumes
 
   # ---- SCA (alternative, OSV database) ---------------------------------
   osv:
@@ -253,6 +296,8 @@ services:
       ASS_VERSION: ${ASS_VERSION:-}
       ASS_ENGINE_IMAGES: ${ASS_ENGINE_IMAGES:-}
       ASS_DB_DATES: ${ASS_DB_DATES:-}
+      # Diff mode: /diff/scope.json says what changed and what was skipped.
+      ASS_DIFF: ${ASS_DIFF:-}
     # Lets `url: http://host.docker.internal:8000` reach a CVE-PaaS running on
     # the host from Linux too (a no-op on Docker Desktop, which already has it).
     extra_hosts:
@@ -264,3 +309,4 @@ services:
       - ${ASS_REPORTS_DIR:-./reports}:/reports
       - ${ASS_CONFIG_FILE:-./scan-config.yml}:/app/scan-config.yml:ro
       - ${ASS_BASELINE_FILE:-./appsec-baseline.json}:/app/appsec-baseline.json
+      - ${ASS_DIFF_DIR:-./.img-empty}:/diff:ro

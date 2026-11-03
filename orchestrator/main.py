@@ -18,6 +18,7 @@ import yaml
 import baseline as bl
 import brief
 import coverage as cov
+import diffscope
 import enrich as enr
 from config import load_config
 from converters import trufflehog_json_to_sarif
@@ -31,11 +32,12 @@ REPORTS_DIR = "/reports"
 NATIVE_DIR = f"{REPORTS_DIR}/native"
 CODE_DIR = "/code"
 BASELINE_PATH = "/app/appsec-baseline.json"
+DIFF_SCOPE_PATH = "/diff/scope.json"
 
 # Version of the findings.json contract (schemas/findings.schema.json). Bump
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 # Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
 # way of not reaching a verdict maps elsewhere, so a caller never mistakes a
@@ -46,7 +48,7 @@ EXIT_USAGE = 2     # invalid configuration: fix scan-config.yml
 EXIT_SCAN = 3      # the scan is incomplete or unreadable: no trustworthy verdict
 
 
-def _provenance(cfg, image_mode: bool) -> dict:
+def _provenance(cfg, image_mode: bool, scope=None) -> dict:
     """What produced this report — the engines, their DBs, and the target."""
     def _json_env(name: str) -> dict:
         try:
@@ -64,6 +66,8 @@ def _provenance(cfg, image_mode: bool) -> dict:
         "offline": cfg.offline,
         "engines": _json_env("ASS_ENGINE_IMAGES"),
         "databases": _json_env("ASS_DB_DATES"),
+        # What was scanned: the whole target, or only what a change touched.
+        "scope": scope.provenance() if scope else dict(diffscope.FULL_SCOPE),
     }
 
 
@@ -84,9 +88,17 @@ def main() -> int:
     enabled = set(env_enabled) if env_enabled else cfg.enabled_scanners
 
     image_mode = bool(os.environ.get("ASS_IMAGE") or os.environ.get("ASS_IMAGE_TAR"))
+    # Diff mode (run.sh --diff): which files the change touched, and which
+    # engines had nothing in them to scan.
+    scope = diffscope.load(os.environ.get("ASS_DIFF") == "1", DIFF_SCOPE_PATH)
+    if scope and os.environ.get("ASS_UPDATE_BASELINE") == "1":
+        print("ERROR: --update-baseline needs a full scan, not a diff", file=sys.stderr)
+        return EXIT_USAGE
     expected = expected_reports(enabled)
     if image_mode:
         expected.discard("trivy-config.sarif")   # no IaC config scan in image mode
+    if scope:
+        expected = scope.expected(expected)
     result = load_findings(NATIVE_DIR, expected=expected)
 
     # In image mode, a vuln scanner that ran but produced no report means the
@@ -112,13 +124,23 @@ def main() -> int:
     # project with no vulnerable dependencies, and the gate cannot tell them apart.
     excludes = set(os.environ.get("ASS_EXCLUDES", "").split())
     sca_found = sum(1 for f in result.findings if f.category == "sca")
-    coverage = cov.analyse(CODE_DIR, REPORTS_DIR, enabled, excludes,
-                           image_mode=image_mode, sca_findings=sca_found)
+    if scope and scope.skipped("sca"):
+        # No manifest changed, so no SCA engine ran: there is nothing to verify,
+        # and an absent SBOM is the plan, not a blind spot.
+        coverage = cov.Coverage([], [], None, [])
+    else:
+        coverage = cov.analyse(CODE_DIR, REPORTS_DIR, enabled, excludes,
+                               image_mode=image_mode, sca_findings=sca_found)
     if cfg.strict and coverage.warnings:
         for warning in coverage.warnings:
             print(f"ERROR: strict mode — {warning.message} {warning.advice}",
                   file=sys.stderr)
         return EXIT_SCAN
+
+    # Diff mode reports and gates on the changed files only. After the coverage
+    # check, which judges the SCA engines on everything they resolved.
+    if scope:
+        result.findings = scope.filter(result.findings)
 
     # Tools that could not determine a severity are ranked by the user's
     # `unknown_severity`, before anything merges or compares them.
@@ -159,16 +181,21 @@ def main() -> int:
     delta = None
     if cfg.baseline:
         delta = bl.classify(kept, bl.load(BASELINE_PATH))
+        if scope:
+            # A baseline entry outside the changed files was not looked for,
+            # so "not seen" no longer means "fixed".
+            delta.fixed = None
     gate_findings = delta.new if delta is not None else None
     policy = evaluate(kept, cfg, raw_findings=result.findings, gate_findings=gate_findings)
     new_fps = {f.fingerprint for f in delta.new} if delta else set()
-    for f in kept:                       # transient flag for the HTML report
+    for f in kept:                       # transient flags for the summaries
         f.is_new = bool(delta) and f.fingerprint in new_fps
+        f.on_changed_line = scope.on_changed_line(f) if scope else None
 
     # Machine-readable consolidated output (for ASPM/ASOC ingestion).
     consolidated = {
         "schema_version": SCHEMA_VERSION,
-        "provenance": _provenance(cfg, image_mode),
+        "provenance": _provenance(cfg, image_mode, scope),
         "policy": {
             "fail_on": policy.threshold,
             "fail_on_by_category": policy.thresholds,
@@ -217,7 +244,8 @@ def main() -> int:
         "reports_missing": result.reports_missing,
         "reports_errored": result.reports_errored,
         "findings": [{**finding_to_dict(f),
-                      **({"new": f.fingerprint in new_fps} if delta else {})}
+                      **({"new": f.fingerprint in new_fps} if delta else {}),
+                      **({"on_changed_line": f.on_changed_line} if scope else {})}
                      for f in kept],
         "suppressed": [{**finding_to_dict(s.finding), "reason": s.reason}
                        for s in suppressed],
@@ -227,9 +255,11 @@ def main() -> int:
     provenance = consolidated["provenance"]
     render(result, policy, kept, stats, REPORTS_DIR,
            suppressed_count=len(suppressed), delta=delta, coverage=coverage,
-           enrichment=enrichment, expired=expired, provenance=provenance)
+           enrichment=enrichment, expired=expired, provenance=provenance,
+           scope=scope)
     brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
-                 CODE_DIR, excludes, image_mode, new_fps if delta else None)
+                 CODE_DIR, excludes, image_mode, new_fps if delta else None,
+                 scope=scope)
 
     # Console summary.
     total = sum(policy.severity_counts.values())
@@ -243,6 +273,19 @@ def main() -> int:
           f"{len(result.reports_found)} report(s){dup_note}")
     for sev in ["critical", "high", "medium", "low", "info"]:
         print(f"  {sev:>8}: {policy.severity_counts[sev]}")
+    if scope:
+        print(f"  scope: {scope.label()} — unchanged code was not scanned")
+        if scope.dropped:
+            print(f"  ({scope.dropped} raw finding(s) outside the changed files dropped)")
+        on_lines = sum(1 for f in kept if f.on_changed_line)
+        print(f"  on changed lines: {on_lines} of {len(kept)}")
+        for name, reason in sorted(scope.skipped_engines.items()):
+            print(f"  - {name} not run: {reason}")
+        for report, reason in sorted(scope.skipped_reports.items()):
+            if not any(report.startswith(name) for name in scope.skipped_engines):
+                print(f"  - {report} not produced: {reason}")
+        if scope.commits and not scope.history_scanned and scope.history_note:
+            print(f"  ! branch commits not scanned for secrets: {scope.history_note}")
     if unknown_count:
         print(f"  ({unknown_count} finding(s) of undetermined severity ranked as "
               f"{cfg.unknown_severity})")
@@ -266,8 +309,9 @@ def main() -> int:
         print(f"  ! SCA coverage: {warning.message}")
         print(f"    -> {warning.advice}")
     if delta is not None:
-        print(f"  baseline: {len(delta.new)} new, {len(delta.known)} known, "
-              f"{delta.fixed} fixed")
+        fixed = (f"{delta.fixed} fixed" if delta.fixed is not None
+                 else "fixed not determinable in diff mode")
+        print(f"  baseline: {len(delta.new)} new, {len(delta.known)} known, {fixed}")
         if delta.legacy:
             print("  ! baseline uses v1 fingerprints, which break when lines shift; "
                   "re-snapshot it with --update-baseline")

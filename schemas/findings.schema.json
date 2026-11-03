@@ -21,7 +21,8 @@
         "engines": {"type": "object", "additionalProperties": {"type": "string"},
                     "description": "Engine -> resolved image ref (a digest when pinned)."},
         "databases": {"type": "object", "additionalProperties": {"type": "string"},
-                      "description": "Vulnerability database -> date it was built."}
+                      "description": "Vulnerability database -> date it was built."},
+        "scope": {"$ref": "#/$defs/scope"}
       }
     },
     "policy": {
@@ -73,7 +74,8 @@
         "enabled": {"type": "boolean"},
         "new": {"type": ["integer", "null"]},
         "known": {"type": ["integer", "null"]},
-        "fixed": {"type": ["integer", "null"]},
+        "fixed": {"type": ["integer", "null"],
+                  "description": "Null in diff mode: a baseline entry outside the changed files was not looked for."},
         "legacy_format": {"type": ["boolean", "null"],
                           "description": "True when matched against a v1 (line-number) baseline."}
       }
@@ -108,6 +110,33 @@
     }
   },
   "$defs": {
+    "scope": {
+      "type": "object",
+      "description": "Since 1.1. What was scanned. `full`: the whole target. `diff` (run.sh --diff): only the files changed between merge-base(base, HEAD) and the working tree, including uncommitted and untracked ones; findings are reported and gated for those files only.",
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["full", "diff"]},
+        "base": {"type": "string", "description": "The ref given to --diff."},
+        "merge_base": {"type": "string", "pattern": "^[0-9a-f]{40,64}$"},
+        "head": {"type": "string", "pattern": "^[0-9a-f]{40,64}$"},
+        "files": {"type": "integer", "minimum": 0, "description": "Changed files scanned."},
+        "paths": {"type": "array", "items": {"type": "string"}, "description": "Their repo-relative paths."},
+        "commits": {"type": "integer", "minimum": 0, "description": "Commits merge_base..head."},
+        "history_scanned": {"type": "boolean", "description": "Whether those commits were searched for secrets."},
+        "excluded": {"type": "integer", "minimum": 0, "description": "Changed files left out by `exclude:`."},
+        "deleted": {"type": "integer", "minimum": 0, "description": "Changed files deleted, so not scanned."},
+        "skipped_engines": {"type": "object", "additionalProperties": {"type": "string"},
+                            "description": "Engine -> why it was not run (nothing it reads was changed)."},
+        "skipped_reports": {"type": "object", "additionalProperties": {"type": "string"},
+                            "description": "Native report -> why it was not produced; not counted as missing."},
+        "out_of_scope_dropped": {"type": "integer", "minimum": 0,
+                                 "description": "Raw findings outside the changed files, dropped."}
+      },
+      "if": {"properties": {"mode": {"const": "diff"}}},
+      "then": {"required": ["base", "merge_base", "head", "files", "paths", "commits",
+                            "history_scanned", "skipped_engines", "skipped_reports",
+                            "out_of_scope_dropped"]}
+    },
     "severity": {"enum": ["critical", "high", "medium", "low", "info"]},
     "threshold": {"enum": ["critical", "high", "medium", "low", "info", "none"]},
     "finding": {
@@ -144,7 +173,9 @@
         "poc": {"type": "boolean"},
         "nuclei": {"type": "boolean"},
         "exploitable": {"type": "boolean"},
-        "new": {"type": "boolean", "description": "Present only in baseline mode."}
+        "new": {"type": "boolean", "description": "Present only in baseline mode."},
+        "on_changed_line": {"type": ["boolean", "null"],
+                            "description": "Since 1.1. Present only in diff mode: true when the finding's span touches a line the change added or modified (every line of a new file); null when there is no line to compare (a dependency, or a secret found only in the branch's commits)."}
       }
     }
   }
