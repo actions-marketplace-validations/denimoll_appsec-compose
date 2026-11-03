@@ -1,0 +1,2029 @@
+{
+  "generated": "2026-11-03T05:15:34Z",
+  "appsec_compose": "1.2.0",
+  "appsec_compose_commit": "38eb0ff7a89196f98ef47496f6ae8fae4813cd83",
+  "host": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "docker": "28.2.2"
+  },
+  "suites": {
+    "sast": {
+      "corpus": {
+        "description": "OWASP Benchmark for Java 1.2: 2,740 servlet test cases across 11 vulnerability categories, each labelled as a real vulnerability or a false-positive trap.",
+        "repo": "https://github.com/OWASP-Benchmark/BenchmarkJava",
+        "commit": "1fa16b84f77a438a7b7c929f0e67b947b0766861",
+        "license": "GPL-2.0 (scanned locally, not redistributed)",
+        "expected_results": "expectedresults-1.2.csv",
+        "test_dir": "src/main/java/org/owasp/benchmark/testcode",
+        "tree_sha256": "201e75c419ff03dec1b883d8a609985a643f909c71bddeb45cc1f9111f882aba"
+      },
+      "runs": {
+        "default": {
+          "label": "Semgrep, p/default (shipped default)",
+          "engines_enabled": [
+            "semgrep"
+          ],
+          "semgrep_rules": [
+            "default"
+          ],
+          "runtime_seconds": 81.2,
+          "corpus_tree_sha256": "201e75c419ff03dec1b883d8a609985a643f909c71bddeb45cc1f9111f882aba",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-02T13:15:56.44112656Z"
+          },
+          "provenance": {
+            "appsec_compose": "1.2.0",
+            "generated": "2026-11-03T05:12:42Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+            },
+            "databases": {
+              "trivy": "2026-11-02T13:15:56.44112656Z"
+            }
+          },
+          "score": {
+            "categories": {
+              "cmdi": {
+                "cwe": 78,
+                "tp": 117,
+                "fp": 109,
+                "fn": 9,
+                "tn": 16,
+                "tpr": 0.9286,
+                "fpr": 0.872,
+                "score": 0.0566
+              },
+              "crypto": {
+                "cwe": 327,
+                "tp": 130,
+                "fp": 0,
+                "fn": 0,
+                "tn": 116,
+                "tpr": 1.0,
+                "fpr": 0.0,
+                "score": 1.0
+              },
+              "hash": {
+                "cwe": 328,
+                "tp": 89,
+                "fp": 0,
+                "fn": 40,
+                "tn": 107,
+                "tpr": 0.6899,
+                "fpr": 0.0,
+                "score": 0.6899
+              },
+              "ldapi": {
+                "cwe": 90,
+                "tp": 26,
+                "fp": 28,
+                "fn": 1,
+                "tn": 4,
+                "tpr": 0.963,
+                "fpr": 0.875,
+                "score": 0.088
+              },
+              "pathtraver": {
+                "cwe": 22,
+                "tp": 120,
+                "fp": 106,
+                "fn": 13,
+                "tn": 29,
+                "tpr": 0.9023,
+                "fpr": 0.7852,
+                "score": 0.1171
+              },
+              "securecookie": {
+                "cwe": 614,
+                "tp": 36,
+                "fp": 0,
+                "fn": 0,
+                "tn": 31,
+                "tpr": 1.0,
+                "fpr": 0.0,
+                "score": 1.0
+              },
+              "sqli": {
+                "cwe": 89,
+                "tp": 253,
+                "fp": 170,
+                "fn": 19,
+                "tn": 62,
+                "tpr": 0.9301,
+                "fpr": 0.7328,
+                "score": 0.1973
+              },
+              "trustbound": {
+                "cwe": 501,
+                "tp": 43,
+                "fp": 18,
+                "fn": 40,
+                "tn": 25,
+                "tpr": 0.5181,
+                "fpr": 0.4186,
+                "score": 0.0995
+              },
+              "weakrand": {
+                "cwe": 330,
+                "tp": 218,
+                "fp": 0,
+                "fn": 0,
+                "tn": 275,
+                "tpr": 1.0,
+                "fpr": 0.0,
+                "score": 1.0
+              },
+              "xpathi": {
+                "cwe": 643,
+                "tp": 14,
+                "fp": 13,
+                "fn": 1,
+                "tn": 7,
+                "tpr": 0.9333,
+                "fpr": 0.65,
+                "score": 0.2833
+              },
+              "xss": {
+                "cwe": 79,
+                "tp": 202,
+                "fp": 108,
+                "fn": 44,
+                "tn": 101,
+                "tpr": 0.8211,
+                "fpr": 0.5167,
+                "score": 0.3044
+              }
+            },
+            "average": {
+              "tpr": 0.8806,
+              "fpr": 0.4409,
+              "score": 0.4396
+            },
+            "totals": {
+              "tp": 1248,
+              "fp": 552,
+              "fn": 167,
+              "tn": 773,
+              "tpr": 0.882,
+              "fpr": 0.4166,
+              "precision": 0.6933
+            },
+            "test_cases": 2740,
+            "rules": 1074,
+            "semgrep_version": "1.174.0",
+            "sast_findings": 3252,
+            "sast_findings_by_severity": {
+              "medium": 3252
+            }
+          }
+        },
+        "auto": {
+          "label": "Semgrep, p/default + `auto` stack packs (opt-in)",
+          "engines_enabled": [
+            "semgrep"
+          ],
+          "semgrep_rules": [
+            "default",
+            "auto"
+          ],
+          "runtime_seconds": 108.0,
+          "corpus_tree_sha256": "201e75c419ff03dec1b883d8a609985a643f909c71bddeb45cc1f9111f882aba",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-02T13:15:56.44112656Z"
+          },
+          "provenance": {
+            "appsec_compose": "1.2.0",
+            "generated": "2026-11-03T05:14:30Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+            },
+            "databases": {
+              "trivy": "2026-11-02T13:15:56.44112656Z"
+            }
+          },
+          "score": {
+            "categories": {
+              "cmdi": {
+                "cwe": 78,
+                "tp": 117,
+                "fp": 109,
+                "fn": 9,
+                "tn": 16,
+                "tpr": 0.9286,
+                "fpr": 0.872,
+                "score": 0.0566
+              },
+              "crypto": {
+                "cwe": 327,
+                "tp": 130,
+                "fp": 0,
+                "fn": 0,
+                "tn": 116,
+                "tpr": 1.0,
+                "fpr": 0.0,
+                "score": 1.0
+              },
+              "hash": {
+                "cwe": 328,
+                "tp": 89,
+                "fp": 0,
+                "fn": 40,
+                "tn": 107,
+                "tpr": 0.6899,
+                "fpr": 0.0,
+                "score": 0.6899
+              },
+              "ldapi": {
+                "cwe": 90,
+                "tp": 26,
+                "fp": 28,
+                "fn": 1,
+                "tn": 4,
+                "tpr": 0.963,
+                "fpr": 0.875,
+                "score": 0.088
+              },
+              "pathtraver": {
+                "cwe": 22,
+                "tp": 120,
+                "fp": 106,
+                "fn": 13,
+                "tn": 29,
+                "tpr": 0.9023,
+                "fpr": 0.7852,
+                "score": 0.1171
+              },
+              "securecookie": {
+                "cwe": 614,
+                "tp": 36,
+                "fp": 0,
+                "fn": 0,
+                "tn": 31,
+                "tpr": 1.0,
+                "fpr": 0.0,
+                "score": 1.0
+              },
+              "sqli": {
+                "cwe": 89,
+                "tp": 253,
+                "fp": 170,
+                "fn": 19,
+                "tn": 62,
+                "tpr": 0.9301,
+                "fpr": 0.7328,
+                "score": 0.1973
+              },
+              "trustbound": {
+                "cwe": 501,
+                "tp": 43,
+                "fp": 18,
+                "fn": 40,
+                "tn": 25,
+                "tpr": 0.5181,
+                "fpr": 0.4186,
+                "score": 0.0995
+              },
+              "weakrand": {
+                "cwe": 330,
+                "tp": 218,
+                "fp": 0,
+                "fn": 0,
+                "tn": 275,
+                "tpr": 1.0,
+                "fpr": 0.0,
+                "score": 1.0
+              },
+              "xpathi": {
+                "cwe": 643,
+                "tp": 14,
+                "fp": 13,
+                "fn": 1,
+                "tn": 7,
+                "tpr": 0.9333,
+                "fpr": 0.65,
+                "score": 0.2833
+              },
+              "xss": {
+                "cwe": 79,
+                "tp": 202,
+                "fp": 108,
+                "fn": 44,
+                "tn": 101,
+                "tpr": 0.8211,
+                "fpr": 0.5167,
+                "score": 0.3044
+              }
+            },
+            "average": {
+              "tpr": 0.8806,
+              "fpr": 0.4409,
+              "score": 0.4396
+            },
+            "totals": {
+              "tp": 1248,
+              "fp": 552,
+              "fn": 167,
+              "tn": 773,
+              "tpr": 0.882,
+              "fpr": 0.4166,
+              "precision": 0.6933
+            },
+            "test_cases": 2740,
+            "rules": 1076,
+            "semgrep_version": "1.174.0",
+            "sast_findings": 3252,
+            "sast_findings_by_severity": {
+              "medium": 3252
+            }
+          }
+        }
+      }
+    },
+    "secrets": {
+      "corpus": {
+        "description": "SYNTHETIC line-labelled secrets corpus generated by benchmark/synthetic_secrets.py (seeded). Random values in real credential formats plus realistic decoys; nothing in it was ever a live credential.",
+        "generator": "benchmark/synthetic_secrets.py",
+        "seed": 20261102,
+        "generator_version": "1",
+        "files": 17,
+        "secrets": 26,
+        "decoys": 20,
+        "tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b"
+      },
+      "runs": {
+        "default": {
+          "label": "Gitleaks + Trivy (shipped default)",
+          "engines_enabled": [
+            "gitleaks",
+            "trivy"
+          ],
+          "semgrep_rules": null,
+          "runtime_seconds": 4.6,
+          "corpus_tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-02T13:15:56.44112656Z"
+          },
+          "provenance": {
+            "appsec_compose": "1.2.0",
+            "generated": "2026-11-03T05:14:35Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969",
+              "gitleaks": "zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f"
+            },
+            "databases": {
+              "trivy": "2026-11-02T13:15:56.44112656Z"
+            }
+          },
+          "score": {
+            "merged": {
+              "tp": 23,
+              "fn": 3,
+              "fp_decoy": 1,
+              "tn": 19,
+              "fp_unlabeled": 0,
+              "recall": 0.8846,
+              "precision": 0.9583,
+              "decoy_fpr": 0.05,
+              "findings": 25,
+              "by_kind": {
+                "anthropic-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-access-key-id": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-docs-example": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "aws-secret-access-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "azure-storage-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "checksum": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "commit-sha": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "connection-string-password": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "data-uri": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "django-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "env-reference": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "gcp-service-account-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-api-secret": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 2
+                },
+                "github-fine-grained-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "github-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "gitlab-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "google-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "integrity-hash": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "jwt": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "k8s-secret-base64": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "keyword-not-secret": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "low-entropy-password": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "masked": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "npm-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "openai-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "placeholder": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "public-key": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "rsa-private-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "sendgrid-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-bot-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-webhook": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "stripe-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "template-variable": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "test-vector": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 1
+                },
+                "twilio-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "url-embedded-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 0
+                },
+                "uuid": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                }
+              },
+              "unlabeled": []
+            },
+            "per_tool": {
+              "gitleaks": {
+                "tp": 23,
+                "fn": 3,
+                "fp_decoy": 1,
+                "tn": 19,
+                "fp_unlabeled": 0,
+                "recall": 0.8846,
+                "precision": 0.9583,
+                "decoy_fpr": 0.05,
+                "findings": 25,
+                "by_kind": {
+                  "anthropic-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-access-key-id": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-docs-example": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "aws-secret-access-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "azure-storage-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "checksum": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "commit-sha": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "connection-string-password": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "data-uri": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "django-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "env-reference": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "gcp-service-account-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-api-secret": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 2
+                  },
+                  "github-fine-grained-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "github-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "gitlab-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "google-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "integrity-hash": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "jwt": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "k8s-secret-base64": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "keyword-not-secret": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "low-entropy-password": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "masked": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "npm-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "openai-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "placeholder": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "public-key": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "rsa-private-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "sendgrid-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-bot-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-webhook": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "stripe-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "template-variable": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "test-vector": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "twilio-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "url-embedded-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "uuid": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  }
+                },
+                "unlabeled": []
+              }
+            },
+            "trivy_secrets_filed_as_sca": {
+              "tp": 15,
+              "fn": 11,
+              "fp_decoy": 0,
+              "tn": 20,
+              "fp_unlabeled": 0,
+              "recall": 0.5769,
+              "precision": 1.0,
+              "decoy_fpr": 0.0,
+              "findings": 16,
+              "by_kind": {
+                "anthropic-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "aws-access-key-id": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-docs-example": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "aws-secret-access-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "azure-storage-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "checksum": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "commit-sha": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "connection-string-password": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "data-uri": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "django-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "env-reference": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "gcp-service-account-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-api-secret": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "generic-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 0
+                },
+                "github-fine-grained-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "github-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "gitlab-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "google-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "integrity-hash": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "jwt": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "k8s-secret-base64": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "keyword-not-secret": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "low-entropy-password": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "masked": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "npm-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "openai-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "placeholder": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "public-key": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "rsa-private-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "sendgrid-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-bot-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-webhook": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "stripe-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "template-variable": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "test-vector": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "twilio-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "url-embedded-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 0
+                },
+                "uuid": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                }
+              },
+              "unlabeled": []
+            }
+          }
+        },
+        "trufflehog": {
+          "label": "Gitleaks + Trivy + TruffleHog (opt-in)",
+          "engines_enabled": [
+            "gitleaks",
+            "trivy",
+            "trufflehog"
+          ],
+          "semgrep_rules": null,
+          "runtime_seconds": 8.2,
+          "corpus_tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-02T13:15:56.44112656Z"
+          },
+          "provenance": {
+            "appsec_compose": "1.2.0",
+            "generated": "2026-11-03T05:14:44Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969",
+              "gitleaks": "zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f",
+              "trufflehog": "trufflesecurity/trufflehog@sha256:ff4c95e9df7d645daf2140e3ca1039031c63106268d5fbb25feb43ceca1bcc33"
+            },
+            "databases": {
+              "trivy": "2026-11-02T13:15:56.44112656Z"
+            }
+          },
+          "score": {
+            "merged": {
+              "tp": 24,
+              "fn": 2,
+              "fp_decoy": 1,
+              "tn": 19,
+              "fp_unlabeled": 0,
+              "recall": 0.9231,
+              "precision": 0.96,
+              "decoy_fpr": 0.05,
+              "findings": 26,
+              "by_kind": {
+                "anthropic-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-access-key-id": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-docs-example": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "aws-secret-access-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "azure-storage-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "checksum": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "commit-sha": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "connection-string-password": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "data-uri": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "django-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "env-reference": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "gcp-service-account-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-api-secret": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 2
+                },
+                "github-fine-grained-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "github-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "gitlab-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "google-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "integrity-hash": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "jwt": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "k8s-secret-base64": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "keyword-not-secret": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "low-entropy-password": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "masked": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "npm-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "openai-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "placeholder": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "public-key": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "rsa-private-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "sendgrid-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-bot-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-webhook": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "stripe-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "template-variable": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "test-vector": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 1
+                },
+                "twilio-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "url-embedded-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 1
+                },
+                "uuid": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                }
+              },
+              "unlabeled": []
+            },
+            "per_tool": {
+              "gitleaks": {
+                "tp": 23,
+                "fn": 3,
+                "fp_decoy": 1,
+                "tn": 19,
+                "fp_unlabeled": 0,
+                "recall": 0.8846,
+                "precision": 0.9583,
+                "decoy_fpr": 0.05,
+                "findings": 25,
+                "by_kind": {
+                  "anthropic-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-access-key-id": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-docs-example": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "aws-secret-access-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "azure-storage-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "checksum": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "commit-sha": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "connection-string-password": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "data-uri": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "django-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "env-reference": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "gcp-service-account-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-api-secret": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 2
+                  },
+                  "github-fine-grained-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "github-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "gitlab-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "google-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "integrity-hash": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "jwt": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "k8s-secret-base64": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "keyword-not-secret": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "low-entropy-password": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "masked": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "npm-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "openai-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "placeholder": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "public-key": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "rsa-private-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "sendgrid-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-bot-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-webhook": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "stripe-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "template-variable": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "test-vector": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "twilio-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "url-embedded-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "uuid": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  }
+                },
+                "unlabeled": []
+              },
+              "trufflehog": {
+                "tp": 14,
+                "fn": 12,
+                "fp_decoy": 0,
+                "tn": 20,
+                "fp_unlabeled": 0,
+                "recall": 0.5385,
+                "precision": 1.0,
+                "decoy_fpr": 0.0,
+                "findings": 14,
+                "by_kind": {
+                  "anthropic-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-access-key-id": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-docs-example": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "aws-secret-access-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "azure-storage-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "checksum": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "commit-sha": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "connection-string-password": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "data-uri": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "django-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "env-reference": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "gcp-service-account-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "generic-api-secret": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "generic-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "github-fine-grained-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "github-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "gitlab-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "google-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "integrity-hash": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "jwt": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "k8s-secret-base64": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "keyword-not-secret": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "low-entropy-password": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "masked": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "npm-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "openai-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "placeholder": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "public-key": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "rsa-private-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "sendgrid-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-bot-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-webhook": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "stripe-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "template-variable": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "test-vector": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "twilio-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "url-embedded-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 1
+                  },
+                  "uuid": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  }
+                },
+                "unlabeled": []
+              }
+            },
+            "trivy_secrets_filed_as_sca": {
+              "tp": 15,
+              "fn": 11,
+              "fp_decoy": 0,
+              "tn": 20,
+              "fp_unlabeled": 0,
+              "recall": 0.5769,
+              "precision": 1.0,
+              "decoy_fpr": 0.0,
+              "findings": 16,
+              "by_kind": {
+                "anthropic-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "aws-access-key-id": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-docs-example": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "aws-secret-access-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "azure-storage-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "checksum": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "commit-sha": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "connection-string-password": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "data-uri": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "django-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "env-reference": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "gcp-service-account-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-api-secret": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "generic-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 0
+                },
+                "github-fine-grained-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "github-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "gitlab-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "google-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "integrity-hash": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "jwt": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "k8s-secret-base64": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "keyword-not-secret": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "low-entropy-password": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "masked": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "npm-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "openai-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "placeholder": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "public-key": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "rsa-private-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "sendgrid-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-bot-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-webhook": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "stripe-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "template-variable": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "test-vector": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "twilio-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "url-embedded-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 0
+                },
+                "uuid": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                }
+              },
+              "unlabeled": []
+            }
+          }
+        }
+      }
+    },
+    "sca": {
+      "corpus": {
+        "description": "Lock files / manifests generated by benchmark/sca_corpus.py pinning known-vulnerable versions in five ecosystems; truth = OSV advisories per package@version, snapshotted in benchmark/sca_truth.json.",
+        "generator": "benchmark/sca_corpus.py",
+        "truth": "benchmark/sca_truth.json",
+        "osv_snapshot": "2026-11-02T19:01:53Z",
+        "packages": 26,
+        "manifests": [
+          "go/go.mod",
+          "jvm/gradle.lockfile",
+          "node/package-lock.json",
+          "python/requirements.txt",
+          "ruby/Gemfile.lock"
+        ],
+        "tree_sha256": "7c5c1e9b79cb007e2fa98c9af71f9590f162012c9a56cb34591b61879cdfca8a"
+      },
+      "runs": {
+        "default": {
+          "label": "Trivy (shipped default)",
+          "engines_enabled": [
+            "trivy"
+          ],
+          "semgrep_rules": null,
+          "runtime_seconds": 3.4,
+          "corpus_tree_sha256": "7c5c1e9b79cb007e2fa98c9af71f9590f162012c9a56cb34591b61879cdfca8a",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-02T13:15:56.44112656Z",
+            "grype": "2026-11-02T00:22:47Z"
+          },
+          "provenance": {
+            "appsec_compose": "1.2.0",
+            "generated": "2026-11-03T05:15:37Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969"
+            },
+            "databases": {
+              "trivy": "2026-11-02T13:15:56.44112656Z"
+            }
+          },
+          "score": {
+            "ecosystems": {
+              "Go": {
+                "packages": 5,
+                "expected": 13,
+                "detected": 13,
+                "recall": 1.0
+              },
+              "Maven": {
+                "packages": 5,
+                "expected": 83,
+                "detected": 83,
+                "recall": 1.0
+              },
+              "PyPI": {
+                "packages": 7,
+                "expected": 130,
+                "detected": 128,
+                "recall": 0.9846
+              },
+              "RubyGems": {
+                "packages": 3,
+                "expected": 80,
+                "detected": 80,
+                "recall": 1.0
+              },
+              "npm": {
+                "packages": 6,
+                "expected": 39,
+                "detected": 39,
+                "recall": 1.0
+              }
+            },
+            "expected": 345,
+            "detected": 343,
+            "recall": 0.9942,
+            "missed": [
+              "pillow@8.1.0: BIT-PILLOW-2022-45199",
+              "pillow@8.1.0: PYSEC-2023-175"
+            ],
+            "outside_truth": [
+              "lodash@4.17.15: NSWG-ECO-516",
+              "nokogiri@1.10.4: CVE-2022-23437",
+              "nokogiri@1.10.4: CVE-2022-24839",
+              "nokogiri@1.10.4: GHSA-g9g8-vgvw-g3vf",
+              "rack@2.0.7: GHSA-5v64-555j-wjxm",
+              "rack@2.0.7: GHSA-p8x9-v4hv-2w4g",
+              "rack@2.0.7: GHSA-wvg4-6p58-3gh3"
+            ],
+            "findings": 350,
+            "coverage_warnings": []
+          }
+        },
+        "all": {
+          "label": "Trivy + Grype + OSV-Scanner (opt-in)",
+          "engines_enabled": [
+            "trivy",
+            "grype",
+            "osv"
+          ],
+          "semgrep_rules": null,
+          "runtime_seconds": 8.9,
+          "corpus_tree_sha256": "7c5c1e9b79cb007e2fa98c9af71f9590f162012c9a56cb34591b61879cdfca8a",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-02T13:15:56.44112656Z",
+            "grype": "2026-11-02T00:22:47Z"
+          },
+          "provenance": {
+            "appsec_compose": "1.2.0",
+            "generated": "2026-11-03T05:15:46Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969",
+              "grype": "anchore/grype@sha256:ddf9e9f204049f3a4a0955ef70873cabab6a31432125ad4f20a490b54950a253",
+              "osv": "ghcr.io/google/osv-scanner@sha256:8108ae94eadea5a02c9bec6e646909d5b790b44bd62d7f5b7f0b1d6d0ffc7734"
+            },
+            "databases": {
+              "trivy": "2026-11-02T13:15:56.44112656Z"
+            }
+          },
+          "score": {
+            "ecosystems": {
+              "Go": {
+                "packages": 5,
+                "expected": 13,
+                "detected": 13,
+                "recall": 1.0
+              },
+              "Maven": {
+                "packages": 5,
+                "expected": 83,
+                "detected": 83,
+                "recall": 1.0
+              },
+              "PyPI": {
+                "packages": 7,
+                "expected": 130,
+                "detected": 130,
+                "recall": 1.0
+              },
+              "RubyGems": {
+                "packages": 3,
+                "expected": 80,
+                "detected": 80,
+                "recall": 1.0
+              },
+              "npm": {
+                "packages": 6,
+                "expected": 39,
+                "detected": 39,
+                "recall": 1.0
+              }
+            },
+            "expected": 345,
+            "detected": 345,
+            "recall": 1.0,
+            "missed": [],
+            "outside_truth": [
+              "certifi@2026.7.22: PYSEC-2026-4320",
+              "idna@2.9.0: CVE-2024-3651",
+              "idna@2.9.0: CVE-2026-45409",
+              "lodash@4.17.15: NSWG-ECO-516",
+              "nokogiri@1.10.4: CVE-2022-23437",
+              "nokogiri@1.10.4: CVE-2022-24839",
+              "nokogiri@1.10.4: GHSA-g9g8-vgvw-g3vf",
+              "rack@2.0.7: GHSA-5v64-555j-wjxm",
+              "rack@2.0.7: GHSA-p8x9-v4hv-2w4g",
+              "rack@2.0.7: GHSA-wvg4-6p58-3gh3"
+            ],
+            "findings": 469,
+            "coverage_warnings": []
+          }
+        }
+      }
+    }
+  }
+}

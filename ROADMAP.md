@@ -84,7 +84,15 @@ the first step of an AI agent's security review. CI integrations come later.
       over the same CLI and `findings.json` contract.
 - [ ] **Coverage gaps** — CI/CD workflow scanning (zizmor), dependency licenses,
       malicious-package advisories on by default.
-- [ ] **Public benchmark** — precision/recall on known-vulnerable projects.
+- [x] **Public benchmark** — precision/recall on known-vulnerable projects:
+      [`benchmark/RESULTS.md`](benchmark/RESULTS.md), re-runnable with
+      `python3 benchmark/bench.py`. SAST on OWASP Benchmark (Java), secrets on
+      a synthetic labelled corpus, SCA against an OSV snapshot.
+  - [ ] **IaC** — needs a labelled corpus plus a cross-tool rule mapping
+        (Checkov/Trivy ids → the corpus' answers); skipped until then.
+  - [ ] **Secrets on real data** — CredData-style corpus whose values are not
+        replaced by allowlisted provider examples.
+  - [ ] More SAST languages (OWASP Benchmark for Python; a JS/TS corpus).
 
 ## CI integrations (later — current versions work)
 

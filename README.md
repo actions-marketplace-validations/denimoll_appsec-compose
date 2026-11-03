@@ -645,6 +645,7 @@ scan-config.yml         # the single file you edit
 scripts/render-env.py   # scan-config.yml -> .env
 orchestrator/           # Python collector (config, normalize, policy, summary)
 tests/                  # collector unit tests (pytest)
+benchmark/              # precision/recall harness + RESULTS.md
 ```
 
 ## Tests
@@ -671,6 +672,20 @@ engine found the thing planted for it:
 
 Both run on every push in [`appsec-scan.yml`](.github/workflows/appsec-scan.yml),
 and the scan job depends on them.
+
+## Benchmark — what it catches and what it misses
+
+A first step of a review is only useful if the reviewer knows what it already
+covered. [`benchmark/RESULTS.md`](benchmark/RESULTS.md) measures the default
+scan on corpora with known answers — OWASP Benchmark for Java (SAST), a
+synthetic labelled secrets set, and pinned vulnerable packages checked against
+an OSV snapshot (SCA) — with per-category recall and false-positive rates, the
+exact engine digests and DB dates, and a section on where the tool is weak.
+IaC has no number yet: no labelled corpus maps onto these engines.
+
+```bash
+python3 benchmark/bench.py        # re-run everything (Docker + network; ~10 min)
+```
 
 ## Configuration errors
 
