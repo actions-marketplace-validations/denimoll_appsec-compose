@@ -49,6 +49,7 @@ run `<venv>/bin/python /path/to/appsec-compose/appsec_mcp` instead.
 |---|---|---|
 | `scan(path, diff_base?, fail_on?)` | first; again after fixing | verdict (`pass` / `fail` / `usage_error` / `scan_error`), severity counts, gating count, **blind spots**, report paths |
 | `findings(path, severity_min?, category?, file?, new_only?, gating_only?, include_suppressed?, limit=50, offset=0)` | pick what to triage | one line per finding, gating first; page with `next_offset` |
+| `components(path, gating_only?, limit=50, offset=0)` | dependencies: what to upgrade | one entry per vulnerable package — severity, count, **version to upgrade to**, the findings inside |
 | `finding(path, fingerprint, context_lines=5)` | decide if one finding is real | rule, CWE, explanation, advisory, fixed version, flagged code with context |
 | `brief(path, section?)` | plan the manual review | `review-brief.md`, or one section (`Blind spots`, `Scope`, …) |
 | `suppress(path, fingerprint, reason, expires?)` | false positive / accepted risk | the `ignore:` entry written to `<repo>/.appsec-compose.yml` |

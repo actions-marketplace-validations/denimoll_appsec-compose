@@ -26,6 +26,10 @@ from policy import breaches
 # does not crowd the new and gating ones out of a reader's context.
 MAX_DETAILED = 150
 _CONTEXT = 2           # lines of code either side of a SAST/IaC finding
+# A finding can span a whole file (Checkov's OpenAPI checks flag lines 1-437,
+# zizmor's permissions a whole workflow); showing all of it made one brief
+# 2,800 lines long. The first lines locate it; the file has the rest.
+_MAX_FLAGGED = 8
 _MAX_LINE = 240        # minified code makes for useless context
 
 _LANGUAGES = {
@@ -155,8 +159,11 @@ def _snippet(f: Finding, source: _Source,
         text = source.line(f.file, f.line)
         return None if text is None else f"{f.line:>5} | {_mask_secret(f, text)[:_MAX_LINE]}"
     last = max(f.end_line or f.line, f.line)
+    cut = last - (f.line + _MAX_FLAGGED - 1)
+    if cut > 0:
+        last = f.line + _MAX_FLAGGED - 1
     rows = []
-    for n in range(max(1, f.line - _CONTEXT), last + _CONTEXT + 1):
+    for n in range(max(1, f.line - _CONTEXT), last + (0 if cut > 0 else _CONTEXT) + 1):
         text = source.line(f.file, n)
         if text is None:
             break
@@ -165,6 +172,8 @@ def _snippet(f: Finding, source: _Source,
             text = _mask_secret(secret, text)
         mark = ">" if f.line <= n <= last else " "
         rows.append(f"{mark}{n:>4} | {text[:_MAX_LINE]}")
+    if cut > 0 and rows:
+        rows.append(f"  … {cut} more flagged line(s), to {_norm_file(f.file)}:{last + cut}")
     return "\n".join(rows) or None
 
 
@@ -312,6 +321,10 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
             lines.append("- Languages (files): " + ", ".join(f"{l} ({n})" for l, n in langs))
         if excludes:
             lines.append("- Not scanned (excluded): " + ", ".join(f"`{e}`" for e in sorted(excludes)))
+    fws = provenance.get("checkov_frameworks")
+    if "checkov" in enabled and isinstance(fws, list):
+        lines.append("- Checkov frameworks (the IaC kinds found in the repo): "
+                     + (", ".join(fws) or "none"))
     lines += [f"- Gate: fail_on {cfg.threshold_label()}"
               + (" + exploitable" if cfg.fail_on_exploitable else "")
               + (" (new findings only)" if new_fps is not None else ""), ""]

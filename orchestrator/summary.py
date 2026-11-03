@@ -106,6 +106,9 @@ _Exploitability: {{ enrichment.resolved }}/{{ enrichment.requested }} CVE(s) res
 
 _appsec-compose {{ provenance.appsec_compose }} · {{ provenance.target }} target{% if provenance.offline %} · offline{% endif %}{% if scope %} · {{ scope.label() }}{% endif %}_
 
+{% if timing_label %}Time: {{ timing_label }}
+
+{% endif %}
 {% for tool, ref in provenance.engines.items() %}- **{{ tool }}**: `{{ ref }}`
 {% endfor %}
 {% if provenance.databases %}
@@ -214,7 +217,7 @@ _HTML_TEMPLATE = """<!doctype html>
 </style></head><body>
 <header><div class="wrap">
   <div class="brand"><span class="dot"></span>appsec-compose</div>
-  <div class="sub">appsec-compose {{ provenance.appsec_compose }} &middot; generated {{ generated }} UTC &middot; policy fail_on = {{ policy.label }}{% if stats.removed %} &middot; {{ total }} unique of {{ stats.raw }} ({{ stats.removed }} merged){% endif %}{% if suppressed_count %} &middot; {{ suppressed_count }} suppressed{% endif %}{% if delta %} &middot; {{ delta.new | length }} new / {{ delta.known | length }} known{% if delta.fixed is not none %} / {{ delta.fixed }} fixed{% endif %}{% endif %}{% if scope %} &middot; {{ scope.label() }}{% endif %}{% if enrichment and enrichment.exploitable %} &middot; {{ enrichment.exploitable }} exploitable{% endif %}</div>
+  <div class="sub">appsec-compose {{ provenance.appsec_compose }} &middot; generated {{ generated }} UTC &middot; policy fail_on = {{ policy.label }}{% if stats.removed %} &middot; {{ total }} unique of {{ stats.raw }} ({{ stats.removed }} merged){% endif %}{% if suppressed_count %} &middot; {{ suppressed_count }} suppressed{% endif %}{% if delta %} &middot; {{ delta.new | length }} new / {{ delta.known | length }} known{% if delta.fixed is not none %} / {{ delta.fixed }} fixed{% endif %}{% endif %}{% if scope %} &middot; {{ scope.label() }}{% endif %}{% if enrichment and enrichment.exploitable %} &middot; {{ enrichment.exploitable }} exploitable{% endif %}{% if timing_label %} &middot; {{ timing_label }}{% endif %}</div>
   <div class="pill {{ 'fail' if policy.exit_code else 'pass' }}">
     <span class="big">{{ '✗' if policy.exit_code else '✓' }} {{ verdict }}</span>
     &middot; {{ policy.breaching }} at/above threshold
@@ -385,6 +388,22 @@ def _sort_findings(findings: list[Finding]) -> list[Finding]:
     return sorted(findings, key=lambda f: (-_RANK[f.severity], f.category, f.file))
 
 
+def timing_label(timings: dict | None) -> str:
+    """"took 20 s (scanners 18 s: semgrep 18 s, checkov 13 s, trivy 5 s)"."""
+    if not timings:
+        return ""
+    parts = []
+    if timings.get("total_s") is not None:
+        parts.append(f"took {timings['total_s']} s")
+    engines = timings.get("engines") or {}
+    slowest = ", ".join(f"{e} {s:g} s" for e, s in list(engines.items())[:3])
+    if timings.get("scanners_s") is not None:
+        parts.append(f"(scanners {timings['scanners_s']} s" + (f": {slowest})" if slowest else ")"))
+    elif slowest:
+        parts.append(f"({slowest})")
+    return " ".join(parts)
+
+
 def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
              stats: DedupStats, suppressed_count: int, delta,
              coverage=None, enrichment=None, expired=None,
@@ -408,6 +427,7 @@ def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
         "enrichment": enrichment,
         "expired": expired or [],
         "provenance": provenance or {},
+        "timing_label": timing_label((provenance or {}).get("timings")),
         "scope": scope,
         "changed_line_count": sum(1 for f in findings
                                   if getattr(f, "on_changed_line", None)),

@@ -10,6 +10,9 @@ agent: every run also writes a **review brief** — what was checked, what could
 not be, and the flagged code — and an MCP server lets an agent scan, triage and
 record verdicts itself.
 
+**AI agent asked to check a project?** Follow [AGENTS.md](AGENTS.md): how to
+run the scan, read the results and report them.
+
 A thin, stateless orchestrator: no database, no UI, no workers. Each engine runs
 as a one-shot container; a small Python collector does the rest.
 
@@ -19,7 +22,7 @@ Needs Docker with Compose v2, Python 3.9+ with PyYAML, and bash.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
-# or pin a release:  bash install.sh --ref v.1.2.0
+# or pin a release:  bash install.sh --ref v.1.3.0
 ```
 
 ```bash
@@ -96,14 +99,14 @@ appsec-compose mcp --setup
 claude mcp add --scope user appsec-compose -- appsec-compose mcp
 ```
 
-The agent gets `scan`, `findings`, `finding`, `brief` and `suppress`; a
+The agent gets `scan`, `findings`, `components`, `finding`, `brief` and `suppress`; a
 suppression is written to the project config with a reason and an expiry, for
 a human to review with the code. [AI agents](docs/ai-agents.md) ·
 [MCP server](appsec_mcp/README.md).
 
 ## In CI
 
-`uses: denimoll/appsec-compose@v.1.2.0` in GitHub Actions, or an `include:` of
+`uses: denimoll/appsec-compose@v.1.3.0` in GitHub Actions, or an `include:` of
 the GitLab template: [CI/CD](docs/ci.md).
 
 ## Documentation

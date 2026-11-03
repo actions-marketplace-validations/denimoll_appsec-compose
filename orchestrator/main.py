@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,7 +28,7 @@ from converters import trufflehog_json_to_sarif
 from dedup import merge
 from normalize import load_findings, finding_to_dict, expected_reports
 from policy import evaluate, resolve_unknown
-from summary import render
+from summary import render, timing_label
 from suppress import Suppressed, apply as apply_ignore
 
 REPORTS_DIR = "/reports"
@@ -39,7 +40,7 @@ DIFF_SCOPE_PATH = "/diff/scope.json"
 # Version of the findings.json contract (schemas/findings.schema.json). Bump
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
-SCHEMA_VERSION = "1.2"
+SCHEMA_VERSION = "1.3"
 
 # Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
 # way of not reaching a verdict maps elsewhere, so a caller never mistakes a
@@ -70,7 +71,36 @@ def _provenance(cfg, image_mode: bool, scope=None) -> dict:
         "databases": _json_env("ASS_DB_DATES"),
         # What was scanned: the whole target, or only what a change touched.
         "scope": scope.provenance() if scope else dict(diffscope.FULL_SCOPE),
+        "timings": _timings(_json_env("ASS_ENGINE_TIMINGS")),
+        # The Checkov frameworks this run used ("all", or the ones the repo
+        # has files for): a framework not listed was not checked.
+        "checkov_frameworks": _checkov_frameworks(),
     }
+
+
+def _checkov_frameworks() -> list[str] | str:
+    raw = os.environ.get("CHECKOV_FRAMEWORKS", "").strip() or "all"
+    return raw if raw in ("all", "none") else raw.split()
+
+
+def _timings(engines: dict) -> dict:
+    """Where the run's time went. Engines run in parallel, so the scan costs
+    what its slowest engine costs; run.sh reads their durations from Docker."""
+    def _int_env(name: str) -> int | None:
+        try:
+            return int(os.environ.get(name, ""))
+        except ValueError:
+            return None
+    start = _int_env("ASS_RUN_START")
+    return {
+        "engines": engines,                         # seconds per engine, slowest first
+        "scanners_s": _int_env("ASS_SCAN_SECONDS"),  # wall clock of the parallel phase
+        "collector_s": round(time.monotonic() - _STARTED, 1),
+        "total_s": int(time.time()) - start if start else None,
+    }
+
+
+_STARTED = time.monotonic()
 
 
 def main() -> int:
@@ -301,6 +331,9 @@ def main() -> int:
     version = os.environ.get("ASS_VERSION", "")
     if version:
         print(f"appsec-compose {version}")
+    label = timing_label(provenance.get("timings"))
+    if label:
+        print(f"  {label}")
     dup_note = (f" ({stats.removed} duplicate(s) merged)"
                 if cfg.dedup and stats.removed else "")
     print(f"appsec-compose: {total} unique finding(s) across "

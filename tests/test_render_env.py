@@ -220,3 +220,65 @@ def test_trufflehog_never_verifies_unless_asked(tmp_path, verify, flag):
                     "--out-dir", str(tmp_path / "run")], check=True, capture_output=True,
                    env={**os.environ, "ASS_CONFIG_FILE": str(path)})
     assert f"TRUFFLEHOG_VERIFY={flag}" in (tmp_path / "run" / ".env").read_text()
+
+
+# --- Checkov frameworks from what the repository holds ----------------------
+
+def _tree(root, files):
+    for rel, text in files.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    return str(root)
+
+
+def test_checkov_runs_only_the_frameworks_the_repo_has_files_for(renv, tmp_path):
+    repo = _tree(tmp_path, {
+        "infra/main.tf": 'resource "aws_s3_bucket" "b" {}\n',
+        "Dockerfile.prod": "FROM alpine\n",
+        ".github/workflows/ci.yml": "on: push\njobs: {}\n",
+        "deploy/app.yaml": "apiVersion: apps/v1\nkind: Deployment\n",
+        "charts/web/Chart.yaml": "name: web\n",
+        "api/spec.json": '{"openapi": "3.0.0"}',
+        "cfn/stack.yaml": "Resources:\n  B:\n    Type: AWS::S3::Bucket\n",
+        "play.yml": "- hosts: all\n  tasks: []\n",
+        "src/app.py": "print('hi')\n",
+        "locale/de.json": '{"LABEL_PASSWORD": "Passwort"}',     # plain data: nothing
+    })
+    assert renv._checkov_frameworks(repo, []) == sorted([
+        "terraform", "dockerfile", "github_actions", "kubernetes", "helm",
+        "openapi", "cloudformation", "ansible"])
+
+
+def test_a_repo_without_iac_starts_no_checkov(renv, tmp_path):
+    repo = _tree(tmp_path, {"app.py": "x = 1\n", "data.json": "{}", "conf.yml": "a: 1\n"})
+    assert renv._checkov_flags({}, repo, []) == "none"
+
+
+def test_excluded_directories_do_not_select_a_framework(renv, tmp_path):
+    repo = _tree(tmp_path, {"vendor/x/main.tf": "", "app.py": ""})
+    assert renv._checkov_frameworks(repo, ["vendor"]) == []
+
+
+def test_the_user_can_still_run_every_framework(renv, tmp_path):
+    repo = _tree(tmp_path, {"app.py": ""})
+    assert renv._checkov_flags({"checkov": {"frameworks": "all"}}, repo, []) == "all"
+    assert renv._checkov_flags({"checkov": {"frameworks": ["terraform", "helm"]}}, repo, []) \
+        == "terraform helm"
+    assert renv._checkov_flags({}, "", []) == "all"          # nothing to inspect: all
+
+
+def test_checkov_skips_the_guideline_download_unless_asked(tmp_path):
+    import os, subprocess, sys, yaml
+    for checkov, offline, flag in [({}, False, "'--skip-download'"),
+                                   ({"guidelines": True}, False, "''"),
+                                   ({"guidelines": True}, True, "'--skip-download'")]:
+        cfg = yaml.safe_load((ROOT / "scan-config.yml").read_text())
+        cfg["scanners"]["checkov"].update(checkov)
+        cfg["offline"] = offline
+        path = tmp_path / "c.yml"
+        path.write_text(yaml.safe_dump(cfg))
+        subprocess.run([sys.executable, str(ROOT / "scripts" / "render-env.py"),
+                        "--out-dir", str(tmp_path / "run")], check=True, capture_output=True,
+                       env={**os.environ, "ASS_CONFIG_FILE": str(path)})
+        assert f"CHECKOV_DOWNLOAD={flag}" in (tmp_path / "run" / ".env").read_text()

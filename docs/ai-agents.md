@@ -30,7 +30,9 @@ they cannot see. A run gives it both halves:
    lists the scope and the **blind spots**: unscanned categories, unresolved
    manifests, cross-file data flow, authorization and business logic. Those
    are where a manual review starts.
-3. **Triage what gates** — `findings(path, gating_only=true)`, then
+3. **Triage what gates** — `components(path)` for dependencies (one upgrade
+   per package usually clears a whole component), `findings(path, gating_only=true)`
+   for code, secrets and IaC, then
    `finding(path, fingerprint)` for the flagged code in context. A real issue
    is fixed in code; a false positive or an accepted risk is recorded with
    `suppress(path, fingerprint, reason, expires)`.

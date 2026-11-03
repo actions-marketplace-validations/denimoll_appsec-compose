@@ -30,6 +30,7 @@
 # the exit code (scripts/scan-result.py; the contract is in README.md).
 set -Eeuo pipefail
 EXIT_PASS=0; EXIT_POLICY=1; EXIT_USAGE=2; EXIT_SCAN=3
+ASS_RUN_START="$(date +%s)"; export ASS_RUN_START   # provenance: total run time
 # set -e would exit with whatever the failing command returned — usually 1,
 # which reads as a policy failure. Docker being down is not a finding.
 trap 'echo "Error: scan aborted: \`$BASH_COMMAND\` failed (line $LINENO)" >&2; exit $EXIT_SCAN' ERR
@@ -348,10 +349,19 @@ compose down --remove-orphans >/dev/null 2>&1 || true
 # --abort-on-container-exit) waits for every listed service to finish.
 # A diff that touched nothing any engine reads starts none; the collector still
 # runs, so there is a findings.json that says so.
+scan_start="$(date +%s)"
 if [[ -n "${RUN_ENGINES// }" ]]; then
   # shellcheck disable=SC2086
   compose up --no-deps $RUN_ENGINES
 fi
+# How long each engine ran, from Docker's own start/finish times — read now,
+# before `compose down` removes the one-shot containers. The scanners run in
+# parallel, so the slowest one is what a scan costs.
+ASS_SCAN_SECONDS="$(( $(date +%s) - scan_start ))"
+# shellcheck disable=SC2046,SC2086
+ASS_ENGINE_TIMINGS="$(python3 scripts/engine-timings.py \
+  $(compose ps -a -q $RUN_ENGINES 2>/dev/null))" || ASS_ENGINE_TIMINGS="{}"
+export ASS_SCAN_SECONDS ASS_ENGINE_TIMINGS
 # DB dates as of now, for the engines that ran: a scan may have refreshed a DB,
 # and a skipped engine's DB says nothing about this report. The shell env
 # outranks --env-file in compose interpolation.

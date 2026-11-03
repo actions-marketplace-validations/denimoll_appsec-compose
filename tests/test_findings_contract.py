@@ -253,3 +253,14 @@ def test_sca_is_grouped_by_component(run):
     assert comp["findings"] == [f["fingerprint"] for f in sca]
     html = (Path(main.REPORTS_DIR) / "summary.html").read_text()
     assert "Vulnerable components" in html and "flask" in html
+
+
+def test_provenance_records_where_the_time_went(run, monkeypatch):
+    monkeypatch.setenv("ASS_ENGINE_TIMINGS", '{"semgrep": 18.4, "trivy": 5.0}')
+    monkeypatch.setenv("ASS_SCAN_SECONDS", "19")
+    _, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    t = doc["provenance"]["timings"]
+    assert t["engines"] == {"semgrep": 18.4, "trivy": 5.0} and t["scanners_s"] == 19
+    assert t["collector_s"] >= 0
+    assert "semgrep 18.4 s" in (Path(main.REPORTS_DIR) / "summary.md").read_text()
