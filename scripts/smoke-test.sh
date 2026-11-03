@@ -21,7 +21,7 @@ FIXTURE="$SCRIPT_DIR/tests/fixtures/vulnerable-repo"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# All nine engines, report-only: the point is coverage, not the verdict.
+# All ten engines, report-only: the point is coverage, not the verdict.
 # Only the scanners are switched on — enrichment stays off, so the smoke test
 # never depends on a CVE-PaaS instance being reachable.
 python3 - "$WORK/config.yml" <<'PYCFG'
@@ -36,7 +36,7 @@ PYCFG
 
 echo "==> Running the full pipeline over the fixture"
 ./run.sh "$FIXTURE" --config "$WORK/config.yml" --reports "$WORK/reports" \
-  --baseline "$WORK/baseline.json" --name smoke --fail-on none --strict
+  --baseline "$WORK/baseline.json" --name "${SMOKE_NAME:-smoke}" --fail-on none --strict
 
 echo "==> Asserting every engine reported"
 python3 - "$WORK/reports/findings.json" <<'PY'
@@ -55,8 +55,17 @@ check(not data["reports_errored"], f"unreadable reports: {data['reports_errored'
 # Each engine must find something in a fixture built to trip it. A silent zero
 # here means its command line broke, which is exactly what we are guarding.
 tools = data["tool_counts"]
-for engine in ("semgrep", "trivy", "gitleaks", "checkov", "hadolint", "osv"):
+for engine in ("semgrep", "trivy", "gitleaks", "checkov", "hadolint", "osv", "zizmor"):
     check(tools.get(engine, 0) > 0, f"{engine} reported nothing")
+
+# zizmor must read the planted workflow, not merely write an empty SARIF.
+rules = {f["rule_id"] for f in data["findings"] if f["tool"] == "zizmor"}
+check("zizmor/template-injection" in rules,
+      f"zizmor missed the PR-title injection in pr-greeter.yml (saw {sorted(rules)})")
+
+# Trivy's secret scanner reports under secrets and merges with Gitleaks.
+check(not any(f["category"] == "sca" and not f.get("package") and "trivy" in f["tools"]
+              for f in data["findings"]), "a Trivy result without a package landed in sca")
 
 categories = data["category_counts"]
 for category in ("sast", "sca", "secrets", "iac"):
@@ -88,7 +97,7 @@ PY
 echo "==> Asserting the policy gate still fails on a bad repo"
 set +e
 ./run.sh "$FIXTURE" --config "$WORK/config.yml" --reports "$WORK/reports" \
-  --baseline "$WORK/baseline.json" --name smoke --fail-on high >/dev/null 2>&1
+  --baseline "$WORK/baseline.json" --name "${SMOKE_NAME:-smoke}" --fail-on high >/dev/null 2>&1
 code=$?
 set -e
 [[ "$code" == "1" ]] || { echo "expected exit 1 from the gate, got $code" >&2; exit 1; }

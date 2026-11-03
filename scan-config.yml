@@ -40,13 +40,18 @@ scanners:
     enabled: false
     version: "3.97.0"
 
-  # -- IaC — Checkov and/or Hadolint ----------------------------------
+  # -- IaC — Checkov and/or Hadolint; zizmor for CI/CD workflows ------
   checkov:                 # IaC policy (deeper than Trivy config)
     enabled: true
     version: "3.3.13"
   hadolint:                # Dockerfile linter / best-practices
     enabled: false
     version: "v2.15.1-alpine"
+  zizmor:                  # CI/CD: GitHub Actions workflows + composite actions
+    enabled: true          # (template injection, pull_request_target, broad
+    version: "1.31.1"      # permissions, unpinned actions...) -> category iac.
+                           # Offline audits only, unless ZIZMOR_GITHUB_TOKEN is
+                           # exported on the host (never put a token here).
 
   # -- SBOM generator — Syft (Trivy also emits one via `sbom:` below) --
   syft:                    # CycloneDX SBOM (Anchore) -> reports/sbom.syft.cdx.json

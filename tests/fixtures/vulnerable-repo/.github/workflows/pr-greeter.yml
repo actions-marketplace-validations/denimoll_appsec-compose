@@ -1,0 +1,22 @@
+# Deliberately bad: exercises zizmor. GitHub only runs workflows from the
+# repository root's .github/workflows, so this file never executes here.
+#
+# pull_request_target runs with the base repo's secrets and a write token, then
+# checks out and builds the attacker's PR head, and interpolates the attacker's
+# PR title straight into a shell script.
+name: PR greeter
+
+on:
+  pull_request_target:
+
+permissions: write-all
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: echo "Thanks for '${{ github.event.pull_request.title }}'!"
+      - uses: tj-actions/changed-files@v45

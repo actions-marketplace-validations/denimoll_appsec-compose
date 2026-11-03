@@ -9,3 +9,4 @@ trufflesecurity/trufflehog:3.97.0 trufflesecurity/trufflehog@sha256:ff4c95e9df7d
 anchore/syft:v1.51.0 anchore/syft@sha256:678bfa565b60f747aac0f8e964fe5588a24445b8d0a480e91f6efd70020dfbb0
 hadolint/hadolint:v2.15.1-alpine hadolint/hadolint@sha256:a1d49ae1a4e83c1dbad26b8c1ad7588c8bd1e04f4866b34ad3cac50335198552
 ghcr.io/google/osv-scanner:v2.5.1 ghcr.io/google/osv-scanner@sha256:8108ae94eadea5a02c9bec6e646909d5b790b44bd62d7f5b7f0b1d6d0ffc7734
+ghcr.io/zizmorcore/zizmor:1.31.1 ghcr.io/zizmorcore/zizmor@sha256:42d409dbb851d4c5d35a058cf042b828bea1e3f2884378c526eb0974780e18d9

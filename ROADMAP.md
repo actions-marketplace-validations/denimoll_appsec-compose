@@ -59,6 +59,11 @@
   `findings.json` into GitLab's native sast / secret_detection /
   dependency_scanning formats (validated against schemas 15.0.7 and 15.2.4);
   the template no longer hands GitLab SARIF it cannot parse.
+- **CI/CD workflow scanning** — zizmor (on by default, category `iac`) audits
+  GitHub Actions workflows, composite actions and Dependabot config; GitHub's
+  own actions may be tag-pinned unless the repo brings a `zizmor.yml`; online
+  audits only with a host `ZIZMOR_GITHUB_TOKEN`. Trivy's secret results now
+  count as secrets and merge with Gitleaks instead of landing in SCA.
 
 ## Release: 1.2.0
 

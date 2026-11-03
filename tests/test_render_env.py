@@ -40,6 +40,7 @@ def test_every_engine_gets_an_exclusion(renv):
     assert flags["TRIVY_SKIP_DIRS"] == "--skip-dirs=**/node_modules"
     assert flags["OSV_EXCLUDES"] == "--experimental-exclude=node_modules"
     assert flags["HADOLINT_PRUNE"] == "-not -path */node_modules/*"
+    assert flags["ZIZMOR_PRUNE"] == "-not -path */node_modules/*"
     # grype/syft take a comma-separated list covering top level and nested.
     assert flags["SYFT_EXCLUDE"] == "./node_modules/**,./**/node_modules/**"
     assert flags["GRYPE_EXCLUDE"] == flags["SYFT_EXCLUDE"]
@@ -117,17 +118,61 @@ def test_tool_defaults_cover_every_scanner_in_the_shipped_config(renv):
 
 
 def test_shipped_defaults_keep_one_engine_per_category_enabled(renv):
-    """Out of the box the scan must stay light: alternates are opt-in."""
+    """Out of the box the scan must stay light: alternates are opt-in.
+
+    zizmor is not an alternate: it is the only engine that reads CI/CD
+    workflows, which no other default engine checks beyond a missing
+    `permissions:` block.
+    """
     import yaml
     cfg = yaml.safe_load((ROOT / "scan-config.yml").read_text())
     enabled = {n for n, c in cfg["scanners"].items() if (c or {}).get("enabled")}
-    assert enabled == {"semgrep", "trivy", "gitleaks", "checkov"}
+    assert enabled == {"semgrep", "trivy", "gitleaks", "checkov", "zizmor"}
+
+
+def test_zizmor_inputs_are_pruned_like_every_other_engine(renv):
+    flags = renv._exclude_flags(["node_modules", "docs/**"])
+    assert flags["ZIZMOR_PRUNE"] == "-not -path */node_modules/* -not -path */docs/**/*"
+
+
+def test_zizmor_fallback_policy_relaxes_only_github_owned_actions(renv, tmp_path):
+    import yaml
+    renv._write_exclude_files([], tmp_path / "excludes")
+    cfg = yaml.safe_load((tmp_path / "excludes" / "zizmor.yml").read_text())
+    policies = cfg["rules"]["unpinned-uses"]["config"]["policies"]
+    assert policies["*"] == "hash-pin"           # third parties stay hash-pinned
+    assert {policies[p] for p in ("actions/*", "github/*", "dependabot/*")} == {"ref-pin"}
+
+
+def _render(tmp_path, config_text, **env):
+    import os
+    import subprocess
+    import sys
+    config = tmp_path / "cfg.yml"
+    config.write_text(config_text)
+    clean = {k: v for k, v in os.environ.items() if k != "ZIZMOR_GITHUB_TOKEN"}
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "render-env.py"),
+                    "--out-dir", str(tmp_path / "run")],
+                   capture_output=True, text=True, check=True,
+                   env={**clean, "ASS_CONFIG_FILE": str(config), **env})
+    return (tmp_path / "run" / ".env").read_text()
+
+
+def test_zizmor_goes_online_only_with_a_host_token(tmp_path):
+    rendered = _render(tmp_path, "offline: false\n")
+    assert "ZIZMOR_FLAGS=''" in rendered and "ASS_ZIZMOR_ONLINE=''" in rendered
+    rendered = _render(tmp_path, "offline: false\n", ZIZMOR_GITHUB_TOKEN="t0ken")
+    assert "ASS_ZIZMOR_ONLINE='1'" in rendered
+    assert "t0ken" not in rendered                 # the token never lands in .env
+    rendered = _render(tmp_path, "offline: true\n", ZIZMOR_GITHUB_TOKEN="t0ken")
+    assert "ZIZMOR_FLAGS='--offline'" in rendered and "ASS_ZIZMOR_ONLINE=''" in rendered
 
 
 def test_smoke_test_fixture_exercises_every_category(renv):
     """The fixture must keep tripping each engine, or the smoke test proves nothing."""
     fixture = ROOT / "tests" / "fixtures" / "vulnerable-repo"
     present = {p.name for p in fixture.rglob("*")}
-    assert {"Dockerfile", "requirements.txt", "app.py", "config.env"} <= present
+    assert {"Dockerfile", "requirements.txt", "app.py", "config.env",
+            "pr-greeter.yml"} <= present
     reqs = (fixture / "requirements.txt").read_text()
     assert "==" in reqs, "dependencies must be pinned or SCA resolves nothing"

@@ -7,8 +7,9 @@
 #   - Semgrep ruleset (p/default) -> cache/semgrep/default.yaml
 #   - Trivy vulnerability DB        -> cache/trivy/
 #
-# Note: gitleaks and checkov ship their rules/policies inside the image, so
-# they need no preload. Trivy's Java DB downloads on demand; if you scan JVM
+# Note: gitleaks, checkov and zizmor ship their rules/policies inside the image,
+# so they need no preload (zizmor's online audits are simply skipped offline).
+# Trivy's Java DB downloads on demand; if you scan JVM
 # projects offline, also run a JVM scan once online to populate cache/trivy.
 set -euo pipefail
 
@@ -38,5 +39,5 @@ docker run --rm -e GRYPE_DB_CACHE_DIR=/cache/grype \
 
 echo
 echo "Preload complete. Set 'offline: true' in scan-config.yml to use it."
-echo "(gitleaks, checkov, semgrep[file], trufflehog, syft need no extra DB.)"
+echo "(gitleaks, checkov, zizmor, semgrep[file], trufflehog, syft need no extra DB.)"
 echo "Cache size: $(du -sh cache 2>/dev/null | cut -f1)"

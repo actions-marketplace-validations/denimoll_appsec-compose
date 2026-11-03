@@ -106,6 +106,24 @@ def test_review_brief_shows_the_flagged_code_and_the_blind_spots(run):
     assert "GATING" in brief
 
 
+def test_the_brief_says_when_workflows_went_unchecked_or_offline(run, monkeypatch):
+    (run.code / ".github" / "workflows").mkdir(parents=True)
+    (run.code / ".github" / "workflows" / "ci.yml").write_text("on: push\n")
+    run()                                          # zizmor not enabled
+    brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    assert "**CI/CD workflows:**" in brief and "zizmor is disabled" in brief
+
+    monkeypatch.setenv("ASS_ENABLED", "semgrep trivy gitleaks zizmor")
+    (Path(main.NATIVE_DIR) / "zizmor.sarif").write_text(json.dumps(_sarif([])))
+    run()
+    brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    assert "**CI/CD online audits:** zizmor ran offline" in brief
+
+    monkeypatch.setenv("ASS_ZIZMOR_ONLINE", "1")
+    run()
+    assert "CI/CD" not in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+
+
 def test_no_report_carries_the_secret_value(run):
     run()
     for name in ("review-brief.md", "findings.json", "summary.md", "summary.html"):

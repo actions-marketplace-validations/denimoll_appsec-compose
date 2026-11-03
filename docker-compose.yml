@@ -33,7 +33,8 @@ x-image-volumes: &image-volumes
   - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
   - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
-# Generated per-engine exclude configs (gitleaks TOML, trufflehog regex list).
+# Generated per-engine configs (gitleaks TOML, trufflehog regex list, zizmor
+# fallback policy).
 x-exclude-volumes: &exclude-volumes
   - *code-mount
   - ${ASS_REPORTS_DIR:-./reports}:/reports
@@ -226,6 +227,41 @@ services:
       OSV_EXCLUDES: ${OSV_EXCLUDES:-}
     volumes: *scan-volumes
 
+  # ---- CI/CD (GitHub Actions workflows, composite actions, Dependabot) ----
+  # zizmor has no exclusion flag, so its inputs are collected here with the
+  # same `exclude:` list as every other engine (ZIZMOR_PRUNE) and passed as
+  # files; NUL-separated, so a workflow name with a space survives. A repo with
+  # nothing to audit gets an empty SARIF rather than zizmor's "no inputs" exit 3.
+  # Policy: the repo's own zizmor.yml when it has one (zizmor finds it next to
+  # the inputs), else the fallback render-env generates (/excludes/zizmor.yml).
+  # --format sarif already keeps findings out of the exit code.
+  zizmor:
+    image: ${ZIZMOR_IMAGE:-ghcr.io/zizmorcore/zizmor:1.31.1}
+    <<: *sh
+    command:
+      - >-
+        set -f;
+        find /code -type f \( -path '*/.github/workflows/*.yml' -o -path '*/.github/workflows/*.yaml'
+        -o -name action.yml -o -name action.yaml
+        -o -path '*/.github/dependabot.yml' -o -path '*/.github/dependabot.yaml' \)
+        $$ZIZMOR_PRUNE -print0 2>/dev/null > /tmp/inputs;
+        cfg="--config /excludes/zizmor.yml";
+        for c in /code/zizmor.yml /code/zizmor.yaml /code/.github/zizmor.yml /code/.github/zizmor.yaml;
+        do [ -f "$$c" ] && cfg=""; done;
+        [ -n "$$ASS_ZIZMOR_TOKEN" ] && export ZIZMOR_GITHUB_TOKEN="$$ASS_ZIZMOR_TOKEN";
+        if [ -s /tmp/inputs ]; then
+        xargs -0 zizmor --quiet $$ZIZMOR_FLAGS $$cfg --format sarif < /tmp/inputs > /reports/native/zizmor.sarif || true;
+        else printf '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"zizmor"}},"results":[]}]}'
+        > /reports/native/zizmor.sarif; fi
+    environment:
+      ZIZMOR_FLAGS: ${ZIZMOR_FLAGS:-}
+      ZIZMOR_PRUNE: ${ZIZMOR_PRUNE:-}
+      # Opt-in online audits: export ZIZMOR_GITHUB_TOKEN on the host. Renamed
+      # on the way in because zizmor rejects the variable when it is set but
+      # empty, which is what an unset host variable becomes here.
+      ASS_ZIZMOR_TOKEN: ${ZIZMOR_GITHUB_TOKEN:-}
+    volumes: *exclude-volumes
+
   # ---- Collector / orchestrator ----------------------------------------
   # run.sh invokes this with `--no-deps` after the enabled scanners finish.
   # depends_on is kept so a raw `docker compose run collector` still works.
@@ -253,6 +289,7 @@ services:
       ASS_VERSION: ${ASS_VERSION:-}
       ASS_ENGINE_IMAGES: ${ASS_ENGINE_IMAGES:-}
       ASS_DB_DATES: ${ASS_DB_DATES:-}
+      ASS_ZIZMOR_ONLINE: ${ASS_ZIZMOR_ONLINE:-}
     # Lets `url: http://host.docker.internal:8000` reach a CVE-PaaS running on
     # the host from Linux too (a no-op on Docker Desktop, which already has it).
     extra_hosts:

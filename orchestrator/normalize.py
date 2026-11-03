@@ -23,6 +23,9 @@ SOURCES = [
     ("trufflehog.sarif", "trufflehog", "secrets", "sarif"),  # generated from json
     ("hadolint.sarif", "hadolint", "iac", "sarif"),
     ("osv.sarif", "osv", "sca", "sarif"),
+    # CI/CD workflows are infrastructure-as-code for the pipeline; the
+    # findings.json category enum is a published contract, so no new category.
+    ("zizmor.sarif", "zizmor", "iac", "sarif"),
 ]
 
 # Which report file(s) each configured scanner is expected to produce.
@@ -37,6 +40,7 @@ SCANNER_FILES = {
     "syft": [],
     "hadolint": ["hadolint.sarif"],
     "osv": ["osv.sarif"],
+    "zizmor": ["zizmor.sarif"],
 }
 
 
@@ -67,8 +71,18 @@ _SEVERITY_RANK = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 # the `unknown_severity` setting before anything ranks or compares it.
 _TOOL_SEVERITY_WORDS = {
     "CRITICAL": "critical", "HIGH": "high", "MEDIUM": "medium",
-    "LOW": "low", "INFO": "info", "NONE": "info", "UNKNOWN": "unknown",
+    "LOW": "low", "INFO": "info", "INFORMATIONAL": "info", "NONE": "info",
+    "UNKNOWN": "unknown",
 }
+
+# Tools that state severity per result rather than per rule. zizmor's rules are
+# audits (`template-injection`), and how serious one finding of an audit is
+# depends on what it found, so the verdict sits on the result. Its SARIF
+# `level` is only the coarse error/warning/note projection of that verdict.
+_RESULT_SEVERITY_KEY = "zizmor/severity"
+# zizmor also says how sure it is. Kept in the message for the reviewer rather
+# than folded into severity: the verdict stays the tool's own.
+_RESULT_CONFIDENCE_KEY = "zizmor/confidence"
 
 
 @dataclass
@@ -153,6 +167,12 @@ def _tool_severity(rule: dict) -> str | None:
     return None
 
 
+def _result_severity(res: dict) -> str | None:
+    """A severity the tool stated on the result itself (see _RESULT_SEVERITY_KEY)."""
+    word = (res.get("properties") or {}).get(_RESULT_SEVERITY_KEY)
+    return _TOOL_SEVERITY_WORDS.get(str(word).strip().upper()) if word else None
+
+
 def _security_severity(props: dict) -> str | None:
     """Read the SARIF `security-severity` (CVSS string) if present."""
     if not props:
@@ -216,6 +236,22 @@ def _clean_path(uri: str) -> str:
     return p
 
 
+def _result_category(tool: str, category: str, rule: dict) -> str:
+    """The category of one result, when a report mixes several.
+
+    trivy-fs.sarif carries Trivy's secret scanner next to its vulnerabilities.
+    Filed under the report's `sca` they had no package, escaped the secrets
+    floor and cross-tool merge, and were gated by the SCA threshold: one GitLab
+    token came out twice, as Trivy sca/critical and Gitleaks secrets/high.
+    Trivy tags each secret rule `secret` (vulnerabilities: `vulnerability`).
+    """
+    if tool == "trivy" and category == "sca":
+        tags = {str(t).lower() for t in (rule.get("properties") or {}).get("tags") or []}
+        if "secret" in tags:
+            return "secrets"
+    return category
+
+
 def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
     """Parse one SARIF file. Raises ValueError if the file is not valid SARIF."""
     try:
@@ -234,18 +270,19 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
         for res in run.get("results", []) or []:
             rule_id = res.get("ruleId") or res.get("ruleIndex") or "unknown"
             rule = rules.get(rule_id, {})
+            kind = _result_category(tool, category, rule)
 
             # Severity: the tool's own verdict first, then CVSS from the result
             # or the rule, then the coarse SARIF level. CVSS is a fallback, not
             # an override — see _tool_severity.
-            stated = _tool_severity(rule)
+            stated = _tool_severity(rule) or _result_severity(res)
             sev = (
                 stated
                 or _security_severity(res.get("properties") or {})
                 or _security_severity(rule.get("properties") or {})
                 or _LEVEL_TO_SEVERITY.get(res.get("level", "warning"), "medium")
             )
-            floor = _CATEGORY_FLOOR.get(category)
+            floor = _CATEGORY_FLOOR.get(kind)
             if floor:
                 # A secret whose severity the tool could not determine is still
                 # a secret, so the floor applies rather than the fallback level.
@@ -253,6 +290,9 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
                        else floor)
 
             msg = ((res.get("message") or {}).get("text") or "").strip()
+            confidence = str((res.get("properties") or {}).get(_RESULT_CONFIDENCE_KEY) or "")
+            if msg and confidence and confidence.lower() != "high":
+                msg += f" (confidence: {confidence.lower()})"
 
             # Description: rule's full text/help/short description (whichever first).
             description = (
@@ -271,14 +311,14 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
                 region = phys.get("region") or {}
 
             package, fixed = None, ""
-            if category == "sca" and tool in _SCA_PACKAGE:
+            if kind == "sca" and tool in _SCA_PACKAGE:
                 package = _SCA_PACKAGE[tool](msg)
-            if category == "sca" and tool == "trivy":
+            if kind == "sca" and tool == "trivy":
                 m = _TRIVY_FIX.search(msg)
                 fixed = m.group(1).strip() if m else ""
 
             findings.append(Finding(
-                tool=tool, category=category, rule_id=str(rule_id), severity=sev,
+                tool=tool, category=kind, rule_id=str(rule_id), severity=sev,
                 message=msg or str(rule_id), file=file_path,
                 line=region.get("startLine"),
                 package=package, description=description, url=url,

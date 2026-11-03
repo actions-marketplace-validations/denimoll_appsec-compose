@@ -24,6 +24,7 @@ tracked in [ROADMAP.md](ROADMAP.md).
 | IaC | [Trivy config](https://trivy.dev) | on | `trivy-config.sarif` |
 | IaC | [Checkov](https://www.checkov.io) | on | `checkov.sarif` |
 | IaC (alt) | [Hadolint](https://github.com/hadolint/hadolint) | off | `hadolint.sarif` (Dockerfiles) |
+| IaC — CI/CD | [zizmor](https://docs.zizmor.sh) | on | `zizmor.sarif` (GitHub Actions workflows) |
 | Secrets | [Gitleaks](https://github.com/gitleaks/gitleaks) | on | `gitleaks.sarif` |
 | Secrets (alt) | [TruffleHog](https://github.com/trufflesecurity/trufflehog) | off | `trufflehog.json` + `trufflehog.sarif`\* |
 | SBOM | [Trivy](https://trivy.dev) | on | `sbom.trivy.cdx.json` |
@@ -133,7 +134,8 @@ output while it is being written.
 ./run.sh /path/to/your/repo --require-pinned
 ```
 
-Out of the box one engine per category runs (Semgrep, Trivy, Gitleaks, Checkov)
+Out of the box one engine per category runs (Semgrep, Trivy, Gitleaks, Checkov),
+plus zizmor for the CI/CD workflows nothing else reads,
 and the gate fails on `high`+ — that is the recommended setup, not a minimum.
 The alternative engines and everything below are opt-in for when you want more.
 
@@ -207,8 +209,45 @@ exclude:
 
 An explicit empty list (`exclude: []`) scans everything. Entries are translated
 into each engine's own mechanism (`--exclude`, `--skip-dirs`, `--skip-path`, a
-generated Gitleaks allowlist, a TruffleHog regex file, …), so one list covers
-all nine.
+generated Gitleaks allowlist, a TruffleHog regex file, a pruned input list for
+zizmor, …), so one list covers all ten.
+
+## CI/CD workflows (zizmor)
+
+A workflow runs with the repository's secrets and a token that can push, so it
+is attack surface: `${{ github.event.pull_request.title }}` interpolated into a
+`run:` script, `pull_request_target` checking out a fork's code, write-all
+tokens, a third-party action pinned to a tag its owner can move.
+[zizmor](https://docs.zizmor.sh) audits `.github/workflows/*`, composite
+`action.yml` files and `dependabot.yml`; its findings land in the `iac`
+category (`rule_id` = `zizmor/<audit>`, e.g. `zizmor/template-injection`), with
+zizmor's own severity. When zizmor is unsure it says so, and the message ends in
+`(confidence: low)` — shown to the reviewer, never folded into the severity.
+
+On by default, because no other engine covers it: on DVWA's workflows Checkov's
+GitHub Actions checks find only the missing `permissions:` blocks, while zizmor
+also finds the shell injection via `github.ref`, a `toJSON(secrets)` dump and
+the unpinned third-party actions.
+
+**Pinning policy.** Since 1.20 zizmor wants every action pinned to a commit SHA
+and rates each tag reference high, so `actions/checkout@v5` alone would fail the
+default gate in practically every repository. Unless the repo brings its own
+`zizmor.yml` (or `.github/zizmor.yml`, which then wins entirely), the scan uses
+zizmor's pre-1.20 policy: GitHub's own `actions/*`, `github/*` and
+`dependabot/*` may be tag-pinned, everything else must be hash-pinned. To demand
+SHAs everywhere, commit a `zizmor.yml` with `"*": hash-pin`. Inline
+`# zizmor: ignore[audit]` comments are honoured as well.
+
+**Online audits.** Some audits ask the GitHub API (impostor commits,
+known-vulnerable or archived actions, ref confusion). They run only when a token
+is exported on the host — never put one in `scan-config.yml`:
+
+```bash
+ZIZMOR_GITHUB_TOKEN="$(gh auth token)" ./run.sh .
+```
+
+Without it (and always with `offline: true`) zizmor runs offline, and the review
+brief lists the skipped audits as a blind spot.
 
 ## Policy per category
 
@@ -328,8 +367,8 @@ Run once **with** network to snapshot DBs and rulesets into `./cache/`:
 
 Then set `offline: true` in `scan-config.yml`. Scans now run with no network
 access (Semgrep uses the cached ruleset; Trivy uses the cached DB with
-`--skip-db-update --offline-scan`). Gitleaks and Checkov bundle their rules in
-the image, so they need no preload.
+`--skip-db-update --offline-scan`). Gitleaks, Checkov and zizmor bundle their
+rules in the image, so they need no preload; zizmor runs with `--offline`.
 
 > JVM note: Trivy's Java DB downloads on demand. To scan JVM projects offline,
 > run one JVM scan online first to populate `cache/trivy`.
@@ -345,6 +384,7 @@ reports/
 │   ├── gitleaks.sarif
 │   ├── checkov.sarif
 │   ├── grype.sarif         # + grype.json (carries CVE/GHSA aliases for dedup)
+│   ├── zizmor.sarif        # GitHub Actions workflows / composite actions
 │   └── trufflehog.json     # + generated trufflehog.sarif
 ├── findings.json           # consolidated findings + counts (versioned contract)
 ├── review-brief.md         # hand-off for a human or AI-agent security review
@@ -591,7 +631,7 @@ Runs report `new` / `known` / `fixed` counts (in the console, summary and
 `./run.sh --image <ref>` scans a container image instead of a repo. Only the
 image-capable tools run — **Trivy** and **Grype** (OS + language package
 vulnerabilities) and **Syft** (SBOM); source-only scanners (Semgrep, Checkov,
-Gitleaks, Hadolint) are skipped. Dedup, suppressions, baseline, SBOM formats and
+Gitleaks, Hadolint, zizmor) are skipped. Dedup, suppressions, baseline, SBOM formats and
 the policy gate all work the same way.
 
 - **Private registries** — pass `--registry-user/--registry-pass` (or set
