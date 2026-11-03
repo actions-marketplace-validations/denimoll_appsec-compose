@@ -164,3 +164,20 @@ def test_merge_keeps_fix_cwe_and_borrows_the_secret_span():
 def test_norm_file_keeps_the_dot_of_a_hidden_directory():
     assert _norm_file("/code/.github/workflows/ci.yml") == ".github/workflows/ci.yml"
     assert _norm_file("./.env") == ".env"
+
+
+def test_grype_maven_packages_merge_with_trivy_by_group_and_artifact(tmp_path):
+    import json
+    from normalize import load_findings
+    (tmp_path / "grype.json").write_text(json.dumps({"matches": [{
+        "vulnerability": {"id": "GHSA-57j2-w4cx-62h2", "severity": "High"},
+        "relatedVulnerabilities": [{"id": "CVE-2020-36518"}],
+        "artifact": {"name": "jackson-databind", "version": "2.9.8",
+                     "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.9.8",
+                     "locations": [{"path": "/pom.xml"}]}}]}))
+    grype, = load_findings(str(tmp_path), expected={"grype.json"}).findings
+    assert grype.package == "com.fasterxml.jackson.core:jackson-databind@2.9.8"
+    trivy = sca("trivy", "CVE-2020-36518", "com.fasterxml.jackson.core:jackson-databind@2.9.8",
+                file="pom.xml")
+    merged, _ = merge([grype, trivy])
+    assert len(merged) == 1 and merged[0].tools == ["grype", "trivy"]

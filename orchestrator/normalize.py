@@ -395,6 +395,20 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
     return findings
 
 
+def _grype_name(artifact: dict) -> str:
+    """Grype names a Maven artifact by its artifactId alone; Trivy and OSV use
+    groupId:artifactId. The purl carries both, and without them the same
+    jackson-databind CVE never merges across engines and is reported twice."""
+    name = artifact.get("name", "")
+    purl = unquote(artifact.get("purl") or "")
+    if purl.startswith("pkg:maven/"):
+        coords = purl[len("pkg:maven/"):].split("@", 1)[0].split("?", 1)[0]
+        group, _, artifact_id = coords.rpartition("/")
+        if group and artifact_id:
+            return f"{group}:{artifact_id}"
+    return name
+
+
 def _parse_grype_json(path: Path, tool: str, category: str) -> list[Finding]:
     """Parse Grype native JSON, capturing package + alias (CVE) info."""
     try:
@@ -412,7 +426,7 @@ def _parse_grype_json(path: Path, tool: str, category: str) -> list[Finding]:
                    if r.get("id")]
 
         art = match.get("artifact") or {}
-        name, version = art.get("name", ""), art.get("version", "")
+        name, version = _grype_name(art), art.get("version", "")
         package = f"{name}@{version}" if name else None
         locs = art.get("locations") or []
         file_path = (locs[0].get("path", "") if locs else "").lstrip("/")
