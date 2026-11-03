@@ -73,11 +73,11 @@
 The product a person installs and runs on their own machine — by hand, or as
 the first step of an AI agent's security review. CI integrations come later.
 
-- [ ] **Run without cloning** — one installable entry point
-      (`appsec-compose scan <path>`) that works from any directory and keeps
-      its state in a user cache dir rather than the tool checkout.
-- [ ] **Prebuilt collector image** — compose pulls it (`image:`) instead of
-      building on first run.
+- [x] **Run without cloning** — `install.sh` + `appsec-compose scan <path>`
+      from any directory; project-local config/baseline conventions; DB cache
+      in `~/.cache/appsec-compose`; `--json` result object for agents.
+- [x] **Prebuilt collector image** — the GHCR image for `v.<VERSION>` when its
+      content label matches the checkout, else a local build (also offline).
 - [ ] **Diff mode** — scan only what a change touched (Semgrep
       `--baseline-commit`, Gitleaks commit range) for fast agent iterations.
 - [x] **MCP server / agent skill** — `scan`, `findings`, `finding`, `brief`,

@@ -12,6 +12,8 @@
 # run.sh renders a private .env per run and passes it with --env-file; it also
 # points ASS_EXCLUDES_DIR / ASS_ARCHIVE_DIR at that run's directory. Their
 # defaults (./excludes, ./.img-archive) are where a plain `render-env.py` writes.
+# ASS_CACHE_DIR (default ./cache) holds the vulnerability DBs; the
+# `appsec-compose` CLI moves it to the user's cache dir.
 
 name: appsec-compose
 
@@ -63,7 +65,7 @@ services:
     volumes:
       - *code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
-      - ./cache/semgrep:/cache/semgrep
+      - ${ASS_CACHE_DIR:-./cache}/semgrep:/cache/semgrep
       - ./semgrep-rules:/semgrep-rules:ro
 
   # ---- SCA + IaC + SBOM (Trivy covers all three) ------------------------
@@ -93,7 +95,7 @@ services:
     volumes:
       - *code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
-      - ./cache/trivy:/root/.cache/trivy
+      - ${ASS_CACHE_DIR:-./cache}/trivy:/root/.cache/trivy
       - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
       - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
@@ -156,7 +158,7 @@ services:
     volumes:
       - *code-mount
       - ${ASS_REPORTS_DIR:-./reports}:/reports
-      - ./cache/grype:/cache/grype
+      - ${ASS_CACHE_DIR:-./cache}/grype:/cache/grype
       - ${ASS_ARCHIVE_DIR:-./.img-archive}:/archive:ro
       - ${ASS_DOCKER_CONFIG:-./.img-empty}:/dockercfg:ro
 
@@ -230,6 +232,11 @@ services:
   # run.sh invokes this with `--no-deps` after the enabled scanners finish.
   # depends_on is kept so a raw `docker compose run collector` still works.
   collector:
+    # run.sh resolves ASS_COLLECTOR_IMAGE before the scan (scripts/collector-
+    # image.sh): the published GHCR image when it matches this checkout's
+    # orchestrator/, else a local build — so it never relies on compose to
+    # build or pull. `build:` is what a raw `docker compose run collector` uses.
+    image: ${ASS_COLLECTOR_IMAGE:-appsec-compose-collector:local}
     build: ./orchestrator
     # Non-root; run.sh supplies the host uid/gid so the bind-mounted reports/
     # and baseline file stay writable.

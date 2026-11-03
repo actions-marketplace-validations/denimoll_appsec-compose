@@ -23,6 +23,10 @@
 #      so there is no trustworthy verdict
 # 1 means exactly one thing: a verdict was reached and it is "fail". Anything
 # that goes wrong on the way maps to 3, never to 1.
+#
+# --json: every human-readable line (ours, compose's, the engines') goes to
+# stderr, and stdout carries exactly one JSON object, written on exit whatever
+# the exit code (scripts/scan-result.py; the contract is in README.md).
 set -Eeuo pipefail
 EXIT_PASS=0; EXIT_POLICY=1; EXIT_USAGE=2; EXIT_SCAN=3
 # set -e would exit with whatever the failing command returned — usually 1,
@@ -34,6 +38,7 @@ usage() {
   echo "       $0 <path-to-repo> [--config <file>] [--baseline <file>] [--reports <dir>] [--name <slug>]" >&2
   echo "       $0 --image <ref> [--registry-user U --registry-pass P] [--fail-on L]" >&2
   echo "       $0 --build <context> [--dockerfile <path>] [--fail-on L]" >&2
+  echo "       any of the above with --json: one JSON result on stdout, the rest on stderr" >&2
   exit $EXIT_USAGE
 }
 
@@ -42,6 +47,27 @@ IMAGE_TOOLS=" trivy grype syft "
 
 # Captured before anything changes directory: user paths are relative to it.
 CALLER_PWD="$PWD"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Decided before parsing, so even a bad flag gets its JSON answer.
+JSON=0
+for arg in "$@"; do if [[ "$arg" == "--json" ]]; then JSON=1; fi; done
+if [[ $JSON == 1 ]]; then exec 3>&1 1>&2; fi
+REPORTS_CLEARED=0
+on_exit() {
+  local rc=$?
+  trap - ERR
+  if [[ -n "${RUN_DIR:-}" ]]; then rm -rf "$RUN_DIR"; fi
+  if [[ $JSON == 1 ]]; then
+    local rdir="${REPORTS:-${REPORTS_DIR:-$SCRIPT_DIR/reports}}"
+    [[ "$rdir" = /* ]] || rdir="$CALLER_PWD/$rdir"
+    python3 "$SCRIPT_DIR/scripts/scan-result.py" "$rc" "$rdir" "$REPORTS_CLEARED" >&3 \
+      || printf '{"exit_code": %d, "verdict": "%s", "reports_dir": null, "findings_json": null, "review_brief": null, "severity_counts": null, "breaching": null, "baseline": null}\n' \
+           "$rc" "$(case $rc in 0) echo pass;; 1) echo fail;; 2) echo usage_error;; *) echo scan_error;; esac)" >&3
+  fi
+  exit $rc
+}
+trap on_exit EXIT
 
 TARGET=""; IMAGE_REF=""; BUILD_CTX=""; DOCKERFILE=""; FAIL_ON_OVERRIDE=""
 CONFIG_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""
@@ -61,8 +87,11 @@ while [[ $# -gt 0 ]]; do
     --strict) export ASS_STRICT=1; shift ;;
     --require-pinned) export ASS_REQUIRE_PINNED=1; shift ;;
     --update-baseline) export ASS_UPDATE_BASELINE=1; shift ;;
+    --json) shift ;;   # handled above
     -v|--version)
       here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      # --version answers in text even with --json: it is not a scan.
+      if [[ $JSON == 1 ]]; then exec 1>&3; JSON=0; fi
       echo "appsec-compose $(cat "$here/VERSION" 2>/dev/null || echo unknown)"
       # Re-render so the refs shown are the ones a scan would actually use —
       # into a throwaway dir, so --version never touches any run's state.
@@ -91,8 +120,6 @@ PYEOF
   esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # Resolve every user-supplied path against the caller's directory, then work
 # from the tool directory (compose resolves its ./cache etc. relative to it).
 abspath() { [[ "$1" = /* ]] && echo "$1" || echo "$CALLER_PWD/$1"; }
@@ -102,6 +129,9 @@ abspath() { [[ "$1" = /* ]] && echo "$1" || echo "$CALLER_PWD/$1"; }
 [[ -n "$CONFIG_FILE" ]] && CONFIG_FILE="$(abspath "$CONFIG_FILE")"
 [[ -n "$REPORTS_DIR" ]] && REPORTS_DIR="$(abspath "$REPORTS_DIR")"
 [[ -n "$BASELINE_FILE" ]] && BASELINE_FILE="$(abspath "$BASELINE_FILE")"
+# The vulnerability-DB cache: ./cache by default; the CLI points it at the
+# user's cache dir so an installed copy keeps no state of its own.
+ASS_CACHE_DIR="$(abspath "${ASS_CACHE_DIR:-$SCRIPT_DIR/cache}")"; export ASS_CACHE_DIR
 cd "$SCRIPT_DIR"
 
 # Resolve the per-project state paths (defaults keep the single-project layout).
@@ -130,8 +160,7 @@ fi
 # Docker must be able to bind-mount it: with a socket-mounted CI runner the
 # daemon sees the build dir on the same path, but not the job's /tmp.
 mkdir -p .run
-RUN_DIR="$(mktemp -d "$SCRIPT_DIR/.run/run.XXXXXX")"
-trap 'rm -rf "$RUN_DIR"' EXIT
+RUN_DIR="$(mktemp -d "$SCRIPT_DIR/.run/run.XXXXXX")"   # on_exit removes it
 ASS_EXCLUDES_DIR="$RUN_DIR/excludes"; ASS_ARCHIVE_DIR="$RUN_DIR/archive"
 export ASS_EXCLUDES_DIR ASS_ARCHIVE_DIR
 mkdir -p "$ASS_EXCLUDES_DIR" "$ASS_ARCHIVE_DIR"
@@ -196,6 +225,21 @@ else
 fi
 export SCAN_TARGET
 
+# Reports written inside the scanned tree would be read back by the scanners —
+# this run's while they are being written, and the next run's as findings.
+# Exclude the directory through the same `exclude:` machinery (by its path
+# relative to the target, so like any entry it matches that name anywhere).
+if [[ "$IMAGE_MODE" != "1" ]]; then
+  reports_real="$(mkdir -p "${REPORTS_DIR:-$SCRIPT_DIR/reports}" && cd "${REPORTS_DIR:-$SCRIPT_DIR/reports}" && pwd -P)"
+  target_real="$(cd "$SCAN_TARGET" && pwd -P)"
+  if [[ "$reports_real" == "$target_real" ]]; then
+    echo "Error: the reports directory must not be the scan target itself" >&2; exit $EXIT_USAGE
+  elif [[ "$reports_real" == "$target_real"/* ]]; then
+    ASS_EXTRA_EXCLUDES="${reports_real#"$target_real"/}"; export ASS_EXTRA_EXCLUDES
+    echo "Excluded : $ASS_EXTRA_EXCLUDES (the reports directory, inside the target)"
+  fi
+fi
+
 # Render scan-config.yml -> this run's .env + excludes/ (versions + flags) and
 # read the enabled list. render-env reads ASS_IMAGE to pick filesystem vs image
 # targets. Command substitution hides a non-zero exit, so capture first and
@@ -209,7 +253,8 @@ eval "$render_out"
 
 # Cache stays global: the vulnerability DBs are shared across every project.
 REPORTS="${ASS_REPORTS_DIR:-$SCRIPT_DIR/reports}"
-mkdir -p "$REPORTS/native" cache/semgrep cache/trivy cache/grype semgrep-rules
+mkdir -p "$REPORTS/native" "$ASS_CACHE_DIR/semgrep" "$ASS_CACHE_DIR/trivy" \
+         "$ASS_CACHE_DIR/grype" semgrep-rules
 
 # Clear last run's native reports. A scanner that is disabled (or that now
 # fails) would otherwise leave a stale SARIF behind, which CI's hashFiles()
@@ -220,6 +265,7 @@ rm -f "$REPORTS"/sbom.*.json
 # a collector that never ran is told apart from one that returned a verdict.
 rm -f "$REPORTS"/findings.json "$REPORTS"/summary.md "$REPORTS"/summary.html \
       "$REPORTS"/review-brief.md
+REPORTS_CLEARED=1   # from here on, a findings.json in $REPORTS is this run's
 # Ensure the baseline file exists so Docker can bind-mount it (empty = no baseline).
 BASELINE="${ASS_BASELINE_FILE:-$SCRIPT_DIR/appsec-baseline.json}"
 [[ -f "$BASELINE" ]] || echo '{"fingerprints": []}' > "$BASELINE"
@@ -237,10 +283,16 @@ if [[ -z "${ASS_ENABLED// }" ]]; then
 fi
 export ASS_ENABLED   # tell the collector which scanners actually ran
 
-if [[ "$ASS_OFFLINE" == "1" && "$IMAGE_MODE" != "1" && ! -s cache/semgrep/default.yaml ]]; then
-  echo "Error: offline=true but no cache found. Run ./preload.sh first (with network)." >&2
+if [[ "$ASS_OFFLINE" == "1" && "$IMAGE_MODE" != "1" && ! -s "$ASS_CACHE_DIR/semgrep/default.yaml" ]]; then
+  echo "Error: offline=true but no cache found in $ASS_CACHE_DIR. Run ./preload.sh first (with network)." >&2
   exit $EXIT_USAGE
 fi
+
+# The prebuilt collector when it matches this checkout, else a local build —
+# resolved here, before the scanners spend minutes, never by compose itself.
+offline_flag=""; [[ "$ASS_OFFLINE" == "1" ]] && offline_flag="--offline"
+ASS_COLLECTOR_IMAGE="$(scripts/collector-image.sh $offline_flag)" || exit $EXIT_SCAN
+export ASS_COLLECTOR_IMAGE
 
 [[ -n "${ASS_CONFIG_FILE:-}" ]] && echo "Config   : $ASS_CONFIG_FILE"
 [[ -n "${ASS_REPORTS_DIR:-}" ]] && echo "Reports  : $ASS_REPORTS_DIR"
@@ -259,11 +311,12 @@ compose down --remove-orphans >/dev/null 2>&1 || true
 compose up --no-deps $ASS_ENABLED
 
 # Collector reads the reports and returns the policy exit code. --no-deps so it
-# doesn't re-trigger the scanners via depends_on.
+# doesn't re-trigger the scanners via depends_on; no --build: the image was
+# resolved above.
 # `|| code=$?`, not set +e: the ERR trap fires regardless of set -e, and
 # would turn a "fail" verdict into a broken scan.
 code=0
-compose run --rm --no-deps --build collector || code=$?
+compose run --rm --no-deps collector || code=$?
 # Compose reports its own failures (an image that does not build, a daemon
 # that went away) as 1 too. A real verdict always leaves a findings.json,
 # except when only the baseline was being snapshotted.

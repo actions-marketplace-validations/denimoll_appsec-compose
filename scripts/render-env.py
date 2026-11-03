@@ -250,12 +250,14 @@ def _db_dates() -> dict[str, str]:
     was — a clean result from a three-week-old database is not a clean result.
     """
     dates: dict[str, str] = {}
-    trivy = ROOT / "cache" / "trivy" / "db" / "metadata.json"
+    # ASS_CACHE_DIR: run.sh's cache location (the CLI keeps it in ~/.cache).
+    cache = Path(os.environ.get("ASS_CACHE_DIR") or ROOT / "cache")
+    trivy = cache / "trivy" / "db" / "metadata.json"
     try:
         dates["trivy"] = json.loads(trivy.read_text())["UpdatedAt"]
     except (OSError, KeyError, ValueError):
         pass
-    for meta in sorted((ROOT / "cache" / "grype").glob("*/metadata.json")):
+    for meta in sorted((cache / "grype").glob("*/metadata.json")):
         try:
             built = json.loads(meta.read_text()).get("built")
             if built:
@@ -335,6 +337,10 @@ def main(argv: list[str] | None = None) -> int:
     # list replaces them entirely.
     raw_excludes = cfg.get("exclude", None)
     excludes = DEFAULT_EXCLUDES if raw_excludes is None else list(raw_excludes or [])
+    # Added by run.sh on top of either (one path per line): its own reports
+    # directory when that lies inside the target.
+    excludes = excludes + [e for e in os.environ.get("ASS_EXTRA_EXCLUDES", "").splitlines()
+                           if e.strip() and e not in excludes]
     _write_exclude_files(excludes, out_dir / EXCLUDES_DIR)
 
     # Gitleaks scans the working tree by default; `secrets_history` walks the
