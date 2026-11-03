@@ -2,7 +2,7 @@ name: appsec-compose scan
 
 # Tests the collector, smoke-tests the pipeline, then scans this repository with
 # the reusable action in ./action.yml — exactly what `uses:
-# denimoll/appsec-compose@v1` runs in another repo: per-tool SARIF upload to
+# denimoll/appsec-compose@v.X.Y.Z` runs in another repo: per-tool SARIF upload to
 # code scanning, a reports artifact, cached vuln DBs and the policy verdict in
 # the job summary.
 on:
@@ -13,7 +13,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write   # required to upload SARIF to code scanning
 
 jobs:
   # Collector unit tests — the scan is only as trustworthy as the code that
@@ -22,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with: { persist-credentials: false }   # no token left in .git for later steps
       - uses: actions/setup-python@v7
         with: { python-version: "3.14" }
       - run: pip install -r tests/requirements.txt
@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with: { persist-credentials: false }   # no token left in .git for later steps
       - name: Cache scanner DBs
         uses: actions/cache@v6
         with:
@@ -41,17 +42,22 @@ jobs:
           restore-keys: appsec-smoke-${{ runner.os }}-
       - run: ./scripts/smoke-test.sh
 
-  # Dogfoods the action. This repo ships a deliberately vulnerable fixture
-  # (tests/fixtures/vulnerable-repo), so the gate fails here by design; the step
-  # still shows the verdict, but continue-on-error keeps the job report-only.
-  # In your own repo drop continue-on-error to make the gate a hard one.
+  # Dogfoods the action on this repository, gate included: a finding at or
+  # above `high` fails the build. .github/appsec-compose.yml keeps the
+  # deliberately vulnerable fixture (tests/fixtures/vulnerable-repo) out of the
+  # scan and out of code scanning.
   scan:
     needs: [test, smoke]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # only this job uploads SARIF to code scanning
     steps:
       - uses: actions/checkout@v5
+        with: { persist-credentials: false }   # no token left in .git for later steps
 
       - name: Run appsec-compose
         id: appsec
-        continue-on-error: true
         uses: ./
+        with:
+          config: .github/appsec-compose.yml
