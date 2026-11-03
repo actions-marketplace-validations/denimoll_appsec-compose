@@ -1,7 +1,5 @@
 name: appsec-compose
-description: >-
-  One-command OSS AppSec scan (SAST, SCA, secrets, IaC, SBOM) with a policy
-  gate, per-tool SARIF upload to code scanning and a reports artifact.
+description: "One-command OSS security scan: SAST, SCA, secrets, IaC and CI/CD workflows, with a policy gate and SARIF upload."
 author: denimoll
 branding:
   icon: shield
