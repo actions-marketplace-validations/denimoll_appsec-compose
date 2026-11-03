@@ -171,10 +171,14 @@ services:
     <<: *sh
     # checkov prints an ASCII banner to stdout, so we can't redirect stdout to
     # the report. Write to a dir (clean `results_sarif.sarif`) and rename it.
+    # --skip-framework secrets: Gitleaks and Trivy own secrets. Checkov's own
+    # pass reads every file — 27 of a 44 s scan on juice-shop — and its hits
+    # landed as IaC findings, under the wrong gate and never merged; the ones
+    # only it found there were high-entropy words in translation files.
     command:
       - >-
         set -f;
-        checkov -d /code --soft-fail --compact $$CHECKOV_SKIP_PATHS -o sarif
+        checkov -d /code --soft-fail --compact --skip-framework secrets $$CHECKOV_SKIP_PATHS -o sarif
         --output-file-path /reports/native/_checkov >/dev/null 2>&1 || true ;
         mv /reports/native/_checkov/results_sarif.sarif /reports/native/checkov.sarif 2>/dev/null || true ;
         rm -rf /reports/native/_checkov
