@@ -1,4 +1,5 @@
+# The collector's own runtime deps: the end-to-end tests import main.py.
+-r ../orchestrator/requirements.txt
 pytest==9.0.3
-PyYAML==6.0.3
 jsonschema==4.26.0
 mcp==2.3.0
