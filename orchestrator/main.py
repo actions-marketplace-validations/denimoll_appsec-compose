@@ -20,6 +20,7 @@ import brief
 import coverage as cov
 import diffscope
 import enrich as enr
+import licenses as lic
 from config import load_config
 from converters import trufflehog_json_to_sarif
 from dedup import merge
@@ -100,6 +101,21 @@ def main() -> int:
     if scope:
         expected = scope.expected(expected)
     result = load_findings(NATIVE_DIR, expected=expected)
+
+    # Dependency license policy: Trivy's license pass, judged against
+    # `licenses:`. Its findings are plain SCA findings from here on.
+    license_stats = None
+    if cfg.licenses.active and "trivy" in enabled:
+        report = Path(NATIVE_DIR, lic.REPORT)
+        if report.exists() and report.stat().st_size > 0:
+            try:
+                found, license_stats = lic.evaluate(report, cfg.licenses)
+                result.findings.extend(found)
+                result.reports_found.append(lic.REPORT)
+            except ValueError as exc:
+                result.reports_errored.append(str(exc))
+        else:
+            result.reports_missing.append(lic.REPORT)
 
     # In image mode, a vuln scanner that ran but produced no report means the
     # image could not be pulled/loaded — fail loudly instead of "0 findings".
@@ -237,6 +253,11 @@ def main() -> int:
             "warnings": [{"kind": w.kind, "message": w.message, "advice": w.advice}
                          for w in coverage.warnings],
         },
+        "licenses": ({"packages": license_stats.packages,
+                      "unlicensed": license_stats.unlicensed,
+                      "unlicensed_ecosystems": license_stats.unlicensed_ecosystems,
+                      "denied": license_stats.denied, "warned": license_stats.warned}
+                     if license_stats else None),
         "severity_counts": policy.severity_counts,
         "category_counts": policy.category_counts,
         "tool_counts": policy.tool_counts,
@@ -259,7 +280,7 @@ def main() -> int:
            scope=scope)
     brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
                  CODE_DIR, excludes, image_mode, new_fps if delta else None,
-                 scope=scope)
+                 scope=scope, license_stats=license_stats)
 
     # Console summary.
     total = sum(policy.severity_counts.values())
@@ -289,6 +310,17 @@ def main() -> int:
     if unknown_count:
         print(f"  ({unknown_count} finding(s) of undetermined severity ranked as "
               f"{cfg.unknown_severity})")
+    malicious = [f for f in kept if f.malicious]
+    if malicious:
+        packages = sorted({f.package or f.rule_id for f in malicious})
+        print(f"  ! {len(packages)} MALICIOUS package(s) ({len(malicious)} advisories), "
+              f"ranked critical: {', '.join(packages)}")
+    if license_stats:
+        print(f"  licenses: {license_stats.denied} denied, {license_stats.warned} warned "
+              f"of {license_stats.packages} package(s)"
+              + (f"; {license_stats.unlicensed} carry no license data "
+                 f"({', '.join(license_stats.unlicensed_ecosystems)})"
+                 if license_stats.unlicensed else ""))
     if suppressed:
         print(f"  (suppressed by ignore rules: {len(suppressed)})")
     for entry in expired:

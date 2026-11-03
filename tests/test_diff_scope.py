@@ -116,8 +116,8 @@ def test_a_changed_terraform_file_brings_its_module(repo):
 
 
 def test_an_engine_diff_mode_does_not_know_runs_as_usual(repo):
-    scope = ds.compute(str(repo), "main", [], DEFAULT + ["zizmor"])
-    assert "zizmor" in scope.run_engines
+    scope = ds.compute(str(repo), "main", [], DEFAULT + ["future-engine"])
+    assert "future-engine" in scope.run_engines
 
 
 def test_nothing_changed_runs_nothing(repo):
@@ -226,3 +226,8 @@ def test_every_manifest_the_coverage_check_knows_triggers_sca():
 ])
 def test_iac_classification(path, iac):
     assert ds.is_iac(path) is iac
+
+
+def test_zizmor_is_skipped_unless_an_iac_or_workflow_file_changed(repo):
+    scope = ds.compute(str(repo), "main", [], DEFAULT + ["zizmor"])
+    assert scope.parts["iac"] == ("zizmor" in scope.run_engines)

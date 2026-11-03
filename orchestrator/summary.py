@@ -78,7 +78,7 @@ _Exploitability: {{ enrichment.resolved }}/{{ enrichment.requested }} CVE(s) res
 
 {% if top_findings %}| Severity | Exploit | Tools | Category | Rule | Location |
 |---|---|---|---|---|---|
-{% for f in top_findings %}| {{ f.severity }}{% if f.is_new %} 🆕{% endif %}{% if f.on_changed_line %} Δ{% endif %} | {% if f.kev %}KEV{% elif f.poc %}PoC{% elif f.nuclei %}nuclei{% elif f.epss is not none %}EPSS {{ "%.2f" | format(f.epss) }}{% else %}—{% endif %} | {{ f.tools | join(", ") }} | {{ f.category }} | `{{ f.rule_id }}`{% if f.url %} [↗]({{ f.url }}){% endif %} | {{ f.file }}{% if f.line %}:{{ f.line }}{% endif %} |
+{% for f in top_findings %}| {{ f.severity }}{% if f.is_new %} 🆕{% endif %}{% if f.on_changed_line %} Δ{% endif %} | {% if f.malicious %}**MALICIOUS**{% elif f.kev %}KEV{% elif f.poc %}PoC{% elif f.nuclei %}nuclei{% elif f.epss is not none %}EPSS {{ "%.2f" | format(f.epss) }}{% else %}—{% endif %} | {{ f.tools | join(", ") }} | {{ f.category }} | `{{ f.rule_id }}`{% if f.url %} [↗]({{ f.url }}){% endif %} | {{ f.file }}{% if f.line %}:{{ f.line }}{% endif %} |
 {% endfor %}{% else %}_No findings._
 {% endif %}
 ## Provenance
@@ -285,11 +285,12 @@ _HTML_TEMPLATE = """<!doctype html>
     <tr data-cat="{{ f.category }}"{% if f.is_new %} class="new"{% endif %}>
       <td><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span>{% if f.is_new %}<span class="badge-new">NEW</span>{% endif %}{% if f.on_changed_line %}<span class="badge-chg" title="on a line the change added or modified">&Delta; line</span>{% endif %}</td>
       <td>
+        {% if f.malicious %}<span class="expl kev" title="the advisory says this package is malware, not a vulnerable release">MALICIOUS</span>{% endif %}
         {% if f.kev %}<span class="expl kev" title="CISA Known Exploited Vulnerabilities">KEV</span>{% endif %}
         {% if f.poc %}<span class="expl poc" title="public proof of concept">PoC</span>{% endif %}
         {% if f.nuclei %}<span class="expl poc" title="Nuclei template exists">nuclei</span>{% endif %}
         {% if f.epss is not none %}<span class="expl epss" title="probability of exploitation in the wild">EPSS {{ "%.2f" | format(f.epss) }}</span>{% endif %}
-        {% if not f.kev and not f.poc and not f.nuclei and f.epss is none %}<span class="loc">&mdash;</span>{% endif %}
+        {% if not f.malicious and not f.kev and not f.poc and not f.nuclei and f.epss is none %}<span class="loc">&mdash;</span>{% endif %}
       </td>
       <td class="tool">{{ f.tools | join(", ") }}</td>
       <td>{{ f.category }}</td>

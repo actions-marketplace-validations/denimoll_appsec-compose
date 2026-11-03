@@ -447,9 +447,9 @@ def test_suppress_creates_config_from_tool_defaults(scanned, tool):
                               "reason": "cmd is a constant from the CLI table, never user input",
                               "expires": date.today() + timedelta(days=90)}]
     assert "# ---- Scanners" in text                        # the template's comments survive
-    from appsec_mcp._orchestrator import schema
-    assert schema.validate(raw, known_scanners={"semgrep", "trivy", "gitleaks", "checkov", "grype",
-                                                "trufflehog", "syft", "hadolint", "osv"}) == []
+    from appsec_mcp._orchestrator import normalize, schema
+    # known_scanners as the collector knows them, not a list to keep in step.
+    assert schema.validate(raw, known_scanners=set(normalize.SCANNER_FILES)) == []
 
 
 def test_suppress_preserves_existing_text_and_is_idempotent(scanned):

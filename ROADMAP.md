@@ -59,6 +59,20 @@
   `findings.json` into GitLab's native sast / secret_detection /
   dependency_scanning formats (validated against schemas 15.0.7 and 15.2.4);
   the template no longer hands GitLab SARIF it cannot parse.
+- **CI/CD workflow scanning** — zizmor (on by default, category `iac`) audits
+  GitHub Actions workflows, composite actions and Dependabot config; GitHub's
+  own actions may be tag-pinned unless the repo brings a `zizmor.yml`; online
+  audits only with a host `ZIZMOR_GITHUB_TOKEN`. Trivy's secret results now
+  count as secrets and merge with Gitleaks instead of landing in SCA.
+- **Malicious packages** — a MAL- id, CWE-506 or a GitHub malware advisory
+  makes an SCA finding `malicious`, critical whatever its score, and labelled
+  in every report. Trivy (default) knows only GitHub-reviewed malware (11/23
+  hijacked npm releases); `osv` (23/23, network) or `grype` (22/23,
+  offline) for real coverage — documented, not enabled by default.
+- **Dependency licenses** (opt-in) — `licenses: deny/warn/severity`; Trivy's
+  license pass, judged by our policy; denied packages are SCA findings
+  (`LICENSE:<id>`) under the usual gate, suppressions and baseline.
+  Dependencies whose manifests record no license are counted as unjudged.
 
 ## Release: 1.2.0
 
@@ -86,8 +100,10 @@ the first step of an AI agent's security review. CI integrations come later.
 - [x] **MCP server / agent skill** — `scan`, `findings`, `finding`, `brief`,
       `suppress` over the same CLI and `findings.json` contract
       ([`appsec_mcp/`](appsec_mcp/README.md)).
-- [ ] **Coverage gaps** — CI/CD workflow scanning (zizmor), dependency licenses,
-      malicious-package advisories on by default.
+- [x] **Coverage gaps** — zizmor audits GitHub Actions workflows (on by
+      default); malicious packages ranked critical and labelled; an opt-in
+      dependency license policy. Malicious-package *coverage* stays engine-bound
+      (Trivy 11/23 known hijacks, Grype 22/23, OSV 23/23).
 - [x] **Public benchmark** — precision/recall on known-vulnerable projects:
       [`benchmark/RESULTS.md`](benchmark/RESULTS.md), re-runnable with
       `python3 benchmark/bench.py`. SAST on OWASP Benchmark (Java), secrets on

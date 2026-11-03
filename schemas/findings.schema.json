@@ -95,6 +95,17 @@
         }
       }
     },
+    "licenses": {
+      "type": ["object", "null"],
+      "description": "Dependency license policy, when `licenses:` is configured (added in 1.1). Denied and warned packages are SCA findings with rule_id LICENSE:<license>.",
+      "properties": {
+        "packages": {"type": "integer", "minimum": 0},
+        "unlicensed": {"type": "integer", "minimum": 0, "description": "Packages whose manifest records no license, so the policy could not judge them."},
+        "unlicensed_ecosystems": {"type": "array", "items": {"type": "string"}},
+        "denied": {"type": "integer", "minimum": 0},
+        "warned": {"type": "integer", "minimum": 0}
+      }
+    },
     "severity_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
     "category_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
     "tool_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
@@ -155,7 +166,8 @@
         "severity": {"$ref": "#/$defs/severity"},
         "severity_stated": {"type": "boolean",
                             "description": "True when an engine stated the severity; false when derived from CVSS or the SARIF level."},
-        "scanner_severity": {"type": "string", "description": "The engines' severity before CVE-PaaS reprioritization, if any."},
+        "scanner_severity": {"type": "string", "description": "The engines' severity before it was raised (malicious package) or replaced (CVE-PaaS reprioritization), if either happened."},
+        "malicious": {"type": "boolean", "description": "SCA: the advisory says the package itself is malware (an OpenSSF MAL- id, CWE-506 or a GitHub malware advisory). Always severity critical. Added in 1.1."},
         "message": {"type": "string"},
         "description": {"type": "string"},
         "url": {"type": "string"},

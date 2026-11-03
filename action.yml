@@ -135,7 +135,7 @@ runs:
       env:
         REPORTS: ${{ steps.prep.outputs.reports-dir }}
       run: |
-        for tool in semgrep trivy-fs trivy-config gitleaks checkov grype trufflehog hadolint osv; do
+        for tool in semgrep trivy-fs trivy-config gitleaks checkov grype trufflehog hadolint osv zizmor; do
           if [[ -s "$REPORTS/native/$tool.sarif" ]]; then
             echo "$tool=true" >> "$GITHUB_OUTPUT"
           fi
@@ -178,6 +178,10 @@ runs:
       if: always() && steps.sarif.outputs.osv == 'true'
       uses: github/codeql-action/upload-sarif@v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/osv.sarif", category: osv }
+    - name: Upload zizmor SARIF
+      if: always() && steps.sarif.outputs.zizmor == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/zizmor.sarif", category: zizmor }
 
     - name: Upload reports artifact
       if: always() && inputs.artifact-name != ''

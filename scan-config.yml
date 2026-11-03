@@ -42,13 +42,18 @@ scanners:
     verify: false          # true => send each candidate secret to its issuer's
                            # API to check it is live (outbound; opt in knowingly)
 
-  # -- IaC — Checkov and/or Hadolint ----------------------------------
+  # -- IaC — Checkov and/or Hadolint; zizmor for CI/CD workflows ------
   checkov:                 # IaC policy (deeper than Trivy config)
     enabled: true
     version: "3.3.13"
   hadolint:                # Dockerfile linter / best-practices
     enabled: false
     version: "v2.15.1-alpine"
+  zizmor:                  # CI/CD: GitHub Actions workflows + composite actions
+    enabled: true          # (template injection, pull_request_target, broad
+    version: "1.31.1"      # permissions, unpinned actions...) -> category iac.
+                           # Offline audits only, unless ZIZMOR_GITHUB_TOKEN is
+                           # exported on the host (never put a token here).
 
   # -- SBOM generator — Syft (Trivy also emits one via `sbom:` below) --
   syft:                    # CycloneDX SBOM (Anchore) -> reports/sbom.syft.cdx.json
@@ -82,6 +87,19 @@ secrets_history_range: ""  # limit the history scan to a commit range, e.g.
 #   - .gradle
 #   - .tox
 #   - .mypy_cache
+
+# ---- Dependency licenses (opt-in) ------------------------------------
+# A dependency whose license the policy denies becomes an SCA finding with
+# rule_id LICENSE:<license>, so fail_on, ignore: and the baseline apply as for
+# any vulnerability. Entries are SPDX ids (a plain id also covers its -only /
+# -or-later spellings) or globs, case-insensitive. A package offered under
+# several licenses is denied only if every alternative is. Needs trivy.
+# Only some manifests record licenses (npm lockfiles, composer.lock, installed
+# packages; Maven poms online) — the rest are counted as unjudged.
+# licenses:
+#   deny: [AGPL-*, GPL-3.0, SSPL-1.0]
+#   warn: [LGPL-*]          # reported at severity info, never gates
+#   severity: high          # severity of a denied license
 
 # ---- Exploitability enrichment ---------------------------------------
 # CVSS says how bad a vulnerability would be; it does not say whether anyone is

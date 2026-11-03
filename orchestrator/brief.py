@@ -42,7 +42,7 @@ _CATEGORY_NAMES = {"sast": "SAST", "sca": "SCA", "secrets": "Secrets", "iac": "I
 _ENGINE_CATEGORIES = {
     "semgrep": {"sast"}, "trivy": {"sca", "iac"}, "grype": {"sca"}, "osv": {"sca"},
     "gitleaks": {"secrets"}, "trufflehog": {"secrets"},
-    "checkov": {"iac"}, "hadolint": {"iac"},
+    "checkov": {"iac"}, "hadolint": {"iac"}, "zizmor": {"iac"},
 }
 
 
@@ -92,8 +92,24 @@ def _diff_spots(scope) -> list[str]:
     return spots
 
 
+def _workflow_spots(enabled: set[str], code_dir: str) -> list[str]:
+    """CI/CD workflows are code that runs with the repo's secrets; say when
+    they went unchecked, or were checked without the audits that need GitHub."""
+    if not Path(code_dir, ".github", "workflows").is_dir():
+        return []
+    if "zizmor" not in enabled:
+        return ["**CI/CD workflows:** `.github/workflows` exists but zizmor is "
+                "disabled, so script injection, `pull_request_target` misuse and "
+                "over-broad tokens in the pipeline were not checked."]
+    if os.environ.get("ASS_ZIZMOR_ONLINE") != "1":
+        return ["**CI/CD online audits:** zizmor ran offline. Impostor commits, "
+                "known-vulnerable or archived actions and ref confusion need the "
+                "GitHub API (export `ZIZMOR_GITHUB_TOKEN` to enable them)."]
+    return []
+
+
 def _blind_spots(enabled: set[str], cfg, coverage, image_mode: bool,
-                 scope=None) -> list[str]:
+                 scope=None, code_dir: str = "") -> list[str]:
     covered = set().union(*(_ENGINE_CATEGORIES.get(e, set()) for e in enabled))
     spots = [f"**{_CATEGORY_NAMES[c]} was not run** — no engine for it is enabled."
              for c in ("sast", "sca", "secrets", "iac") if c not in covered]
@@ -117,6 +133,8 @@ def _blind_spots(enabled: set[str], cfg, coverage, image_mode: bool,
     if "sca" in covered:
         spots.append("**Reachability:** a vulnerable dependency is reported whether "
                      "or not the vulnerable code path is ever called.")
+    if code_dir:
+        spots += _workflow_spots(enabled, code_dir)
     spots.append("**Logic the tools cannot model:** authentication and "
                  "authorization (IDOR, missing checks, privilege boundaries), "
                  "business rules, race conditions, and how secrets and crypto "
@@ -159,6 +177,8 @@ def _labels(f: Finding, gating: bool, new: bool | None) -> str:
         tags.append("baseline")
     if getattr(f, "on_changed_line", None):
         tags.append("CHANGED LINE")
+    if f.malicious:
+        tags.append("MALICIOUS PACKAGE")
     if f.exploitable:
         tags.append("EXPLOITABLE")
     return " · ".join(tags)
@@ -187,7 +207,8 @@ def _finding(f: Finding, gating: bool, new: bool | None, source: _Source,
 
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
-           image_mode: bool, new_fps: set[str] | None, scope=None) -> None:
+           image_mode: bool, new_fps: set[str] | None, scope=None,
+           license_stats=None) -> None:
     source = _Source(None if image_mode else code_dir)
     secrets = {(_norm_file(f.file), f.line): f for f in findings
                if f.category == "secrets" and f.line}
@@ -248,7 +269,13 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
     lines += ["## Blind spots", "",
               "What this scan did not or could not check. Absence of findings here "
               "is not evidence of absence.", ""]
-    lines += [f"- {s}" for s in _blind_spots(enabled, cfg, coverage, image_mode, scope)]
+    spots = _blind_spots(enabled, cfg, coverage, image_mode, scope, code_dir)
+    if license_stats and license_stats.unlicensed:
+        spots.insert(0, f"**License policy:** {license_stats.unlicensed} of "
+                     f"{license_stats.packages} dependencies carry no license data "
+                     f"({', '.join(license_stats.unlicensed_ecosystems)} manifests do not "
+                     "record one), so the policy could not judge them.")
+    lines += [f"- {s}" for s in spots]
 
     counts = Counter(f.category for f in findings)
     lines += ["", f"## Findings ({len(findings)}, {gating} gating)", ""]

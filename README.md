@@ -24,6 +24,7 @@ tracked in [ROADMAP.md](ROADMAP.md).
 | IaC | [Trivy config](https://trivy.dev) | on | `trivy-config.sarif` |
 | IaC | [Checkov](https://www.checkov.io) | on | `checkov.sarif` |
 | IaC (alt) | [Hadolint](https://github.com/hadolint/hadolint) | off | `hadolint.sarif` (Dockerfiles) |
+| IaC — CI/CD | [zizmor](https://docs.zizmor.sh) | on | `zizmor.sarif` (GitHub Actions workflows) |
 | Secrets | [Gitleaks](https://github.com/gitleaks/gitleaks) | on | `gitleaks.sarif` |
 | Secrets (alt) | [TruffleHog](https://github.com/trufflesecurity/trufflehog) | off | `trufflehog.json` + `trufflehog.sarif`\* |
 | SBOM | [Trivy](https://trivy.dev) | on | `sbom.trivy.cdx.json` |
@@ -222,7 +223,8 @@ automatically, so the scanners never read their own output.
 ./run.sh /path/to/your/repo --diff origin/main
 ```
 
-Out of the box one engine per category runs (Semgrep, Trivy, Gitleaks, Checkov)
+Out of the box one engine per category runs (Semgrep, Trivy, Gitleaks, Checkov),
+plus zizmor for the CI/CD workflows nothing else reads,
 and the gate fails on `high`+ — that is the recommended setup, not a minimum.
 The alternative engines and everything below are opt-in for when you want more.
 
@@ -356,8 +358,45 @@ exclude:
 
 An explicit empty list (`exclude: []`) scans everything. Entries are translated
 into each engine's own mechanism (`--exclude`, `--skip-dirs`, `--skip-path`, a
-generated Gitleaks allowlist, a TruffleHog regex file, …), so one list covers
-all nine.
+generated Gitleaks allowlist, a TruffleHog regex file, a pruned input list for
+zizmor, …), so one list covers all ten.
+
+## CI/CD workflows (zizmor)
+
+A workflow runs with the repository's secrets and a token that can push, so it
+is attack surface: `${{ github.event.pull_request.title }}` interpolated into a
+`run:` script, `pull_request_target` checking out a fork's code, write-all
+tokens, a third-party action pinned to a tag its owner can move.
+[zizmor](https://docs.zizmor.sh) audits `.github/workflows/*`, composite
+`action.yml` files and `dependabot.yml`; its findings land in the `iac`
+category (`rule_id` = `zizmor/<audit>`, e.g. `zizmor/template-injection`), with
+zizmor's own severity. When zizmor is unsure it says so, and the message ends in
+`(confidence: low)` — shown to the reviewer, never folded into the severity.
+
+On by default, because no other engine covers it: on DVWA's workflows Checkov's
+GitHub Actions checks find only the missing `permissions:` blocks, while zizmor
+also finds the shell injection via `github.ref`, a `toJSON(secrets)` dump and
+the unpinned third-party actions.
+
+**Pinning policy.** Since 1.20 zizmor wants every action pinned to a commit SHA
+and rates each tag reference high, so `actions/checkout@v5` alone would fail the
+default gate in practically every repository. Unless the repo brings its own
+`zizmor.yml` (or `.github/zizmor.yml`, which then wins entirely), the scan uses
+zizmor's pre-1.20 policy: GitHub's own `actions/*`, `github/*` and
+`dependabot/*` may be tag-pinned, everything else must be hash-pinned. To demand
+SHAs everywhere, commit a `zizmor.yml` with `"*": hash-pin`. Inline
+`# zizmor: ignore[audit]` comments are honoured as well.
+
+**Online audits.** Some audits ask the GitHub API (impostor commits,
+known-vulnerable or archived actions, ref confusion). They run only when a token
+is exported on the host — never put one in `scan-config.yml`:
+
+```bash
+ZIZMOR_GITHUB_TOKEN="$(gh auth token)" ./run.sh .
+```
+
+Without it (and always with `offline: true`) zizmor runs offline, and the review
+brief lists the skipped audits as a blind spot.
 
 The reports directory, when it lies inside the target, is appended to the list
 for that run (even to `exclude: []`), so no engine reads earlier reports — which
@@ -448,6 +487,82 @@ The check is skipped in `offline` mode.
 > keep the scanners' severities, and a finding known only by a GHSA with no CVE
 > alias cannot be looked up.
 
+## Malicious packages
+
+A hijacked or typosquatted release is not a vulnerability waiting for an
+exploit — it is the exploit, and it runs at install time. The advisory
+databases still ship it as one more "vulnerability", scored like one: Trivy
+rates the September 2025 `debug@4.4.2` takeover **HIGH**. So the collector
+recognises a malicious-package advisory by what it is — an OpenSSF `MAL-` id,
+CWE-506 (Embedded Malicious Code), or GitHub's malware titles ("Malware in X",
+"Malicious code in X", "X contains malware…") — and then:
+
+- ranks it **critical** whatever its score (the engine's own level is kept in
+  `scanner_severity`), and CVE-PaaS `reprioritize` never lowers it;
+- sets `malicious: true` in `findings.json`, prefixes the message with
+  `MALICIOUS PACKAGE`, and labels it in both summaries, the review brief and the
+  console.
+
+How much each SCA engine knows, measured on 23 hijacked npm releases (the 2025
+chalk/debug takeover, Shai-Hulud's `@ctrl/tinycolor`, `nx` 21.5.0, and the
+older `flatmap-stream`, `eslint-scope`, `ua-parser-js`), from the lockfile alone:
+
+| Engine | Detected | Source |
+|---|---|---|
+| Trivy (default) | 11 / 23 | GitHub-*reviewed* malware advisories only |
+| Grype (offline DB) | 22 / 23 | all GitHub malware advisories |
+| OSV-Scanner (network) | 23 / 23 | the OpenSSF `MAL-` feed |
+
+Out of the box Trivy catches the reviewed ones (`flatmap-stream`, the CVE-
+numbered half of the 2025 takeover) and they are handled as above. For real
+coverage enable **`osv`** where the scan may reach the network, or **`grype`**
+offline (its database is ~3 GB on disk, so it stays opt-in):
+
+```yaml
+scanners:
+  osv:   { enabled: true }   # broadest: OpenSSF malicious-packages, needs network
+  grype: { enabled: true }   # offline alternative: GitHub malware advisories
+```
+
+Only a lockfile or exact pin can be matched: a range in `requirements.txt` says
+nothing about which release was installed.
+
+## Dependency licenses (opt-in)
+
+```yaml
+licenses:
+  deny: [AGPL-*, GPL-3.0, SSPL-1.0]   # SPDX ids or globs, case-insensitive
+  warn: [LGPL-*]                      # reported at severity info, never gates
+  severity: high                      # severity of a denied license (default)
+```
+
+With a `deny` or `warn` list, Trivy adds a license-only pass over the same
+target (no vulnerability DB lookup; ~2 s on the test repos), written to
+`native/trivy-license.json`. Each denied dependency becomes an SCA finding with
+`rule_id` `LICENSE:<license>` and its `package`, so `fail_on`, `ignore:`
+(`rule: "LICENSE:GPL-*"`) and the baseline treat it like any vulnerability.
+The decision is this policy's alone: Trivy's own forbidden/restricted
+classification is ignored.
+
+- A plain id covers its spellings: `GPL-3.0` also denies `GPL-3.0-only` and
+  `GPL-3.0-or-later` (which Trivy normalises `GPL-3.0` and `GPL-3.0+` to); a
+  glob (`GPL-*`) covers a family. `LGPL-3.0` is not matched by `GPL-3.0`.
+- A package offered under several licenses (`MIT OR GPL-3.0-only`, or
+  composer's license list) is denied only when every alternative is; `MIT AND
+  GPL-3.0-only` is denied as soon as one part is. `WITH` exceptions stay part
+  of the term: `GPL-2.0-only` does not deny `GPL-2.0-only WITH
+  Classpath-exception-2.0`, `GPL-2.0*` does.
+- Only application dependencies are judged; in image mode, OS packages are not.
+
+**Where license data exists.** Measured with Trivy 0.74: npm lockfiles (v2+),
+`composer.lock` and installed packages (`node_modules`, `site-packages`) carry
+licenses; Maven poms only online (Trivy reads the remote pom). Python
+`requirements.txt`, poetry/uv lockfiles, `go.mod` and `Cargo.lock` record none,
+so those dependencies cannot be judged. They are counted instead of silently
+passing — `licenses.unlicensed` in `findings.json`, the console line, and a
+blind spot in the review brief — and for those ecosystems this check is no
+substitute for a license audit of the installed tree.
+
 ## SCA coverage check
 
 The most dangerous result a dependency scanner can produce is *nothing*: an
@@ -485,8 +600,8 @@ appsec-compose preload # the same, for an installed copy
 
 Then set `offline: true` in `scan-config.yml`. Scans now run with no network
 access (Semgrep uses the cached ruleset; Trivy uses the cached DB with
-`--skip-db-update --offline-scan`). Gitleaks and Checkov bundle their rules in
-the image, so they need no preload.
+`--skip-db-update --offline-scan`). Gitleaks, Checkov and zizmor bundle their
+rules in the image, so they need no preload; zizmor runs with `--offline`.
 
 > JVM note: Trivy's Java DB downloads on demand. To scan JVM projects offline,
 > run one JVM scan online first to populate `cache/trivy`.
@@ -503,6 +618,7 @@ reports/
 │   ├── gitleaks-history.sarif  # diff mode: the branch's commits
 │   ├── checkov.sarif
 │   ├── grype.sarif         # + grype.json (carries CVE/GHSA aliases for dedup)
+│   ├── zizmor.sarif        # GitHub Actions workflows / composite actions
 │   └── trufflehog.json     # + generated trufflehog.sarif
 ├── findings.json           # consolidated findings + counts (versioned contract)
 ├── review-brief.md         # hand-off for a human or AI-agent security review
@@ -520,7 +636,7 @@ since the accepted snapshot. It is fully self-contained (no external assets).
 ### `findings.json` contract
 
 `findings.json` is the machine-readable interface for ASPM imports, CI scripts
-and AI agents, and it is versioned: `schema_version` (`1.0`) refers to
+and AI agents, and it is versioned: `schema_version` (`1.1`) refers to
 [`schemas/findings.schema.json`](schemas/findings.schema.json). The major only
 changes when a field is removed, renamed or changes meaning; additions bump the
 minor, so ignore fields you do not know.
@@ -766,7 +882,7 @@ Runs report `new` / `known` / `fixed` counts (in the console, summary and
 `./run.sh --image <ref>` scans a container image instead of a repo. Only the
 image-capable tools run — **Trivy** and **Grype** (OS + language package
 vulnerabilities) and **Syft** (SBOM); source-only scanners (Semgrep, Checkov,
-Gitleaks, Hadolint) are skipped. Dedup, suppressions, baseline, SBOM formats and
+Gitleaks, Hadolint, zizmor) are skipped. Dedup, suppressions, baseline, SBOM formats and
 the policy gate all work the same way.
 
 - **Private registries** — pass `--registry-user/--registry-pass` (or set

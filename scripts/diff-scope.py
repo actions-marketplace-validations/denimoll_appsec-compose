@@ -125,6 +125,10 @@ ENGINE_PARTS = {
     "syft": ("sca",),             # SBOM only — meaningless without SCA
     "checkov": ("iac",),
     "hadolint": ("iac",),
+    # Skipped unless an IaC/workflow file changed, but not narrowed: zizmor is
+    # quick and must see the repo's own zizmor.yml even when that is unchanged;
+    # the collector keeps only findings in changed files.
+    "zizmor": ("iac",),
 }
 # The reports each part of an engine writes (mirrors normalize.SCANNER_FILES;
 # tests/test_diff_scope.py keeps the two in step).
@@ -138,6 +142,7 @@ ENGINE_REPORTS = {
     "syft": {"sca": []},
     "checkov": {"iac": ["checkov.sarif"]},
     "hadolint": {"iac": ["hadolint.sarif"]},
+    "zizmor": {"iac": ["zizmor.sarif"]},
 }
 SKIP_REASONS = {
     "sast": "no file changed",

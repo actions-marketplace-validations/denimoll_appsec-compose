@@ -106,6 +106,67 @@ def test_review_brief_shows_the_flagged_code_and_the_blind_spots(run):
     assert "GATING" in brief
 
 
+def test_the_brief_says_when_workflows_went_unchecked_or_offline(run, monkeypatch):
+    (run.code / ".github" / "workflows").mkdir(parents=True)
+    (run.code / ".github" / "workflows" / "ci.yml").write_text("on: push\n")
+    run()                                          # zizmor not enabled
+    brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    assert "**CI/CD workflows:**" in brief and "zizmor is disabled" in brief
+
+    monkeypatch.setenv("ASS_ENABLED", "semgrep trivy gitleaks zizmor")
+    (Path(main.NATIVE_DIR) / "zizmor.sarif").write_text(json.dumps(_sarif([])))
+    run()
+    brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    assert "**CI/CD online audits:** zizmor ran offline" in brief
+
+    monkeypatch.setenv("ASS_ZIZMOR_ONLINE", "1")
+    run()
+    assert "CI/CD" not in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+
+
+def test_a_malicious_package_is_labelled_in_every_report(run):
+    (Path(main.NATIVE_DIR) / "trivy-fs.sarif").write_text(json.dumps(_sarif(
+        [{"ruleId": "GHSA-9x64-5r7x-2q53", "level": "error",
+          "message": {"text": "Package: flatmap-stream\nInstalled Version: 0.1.1\n"},
+          "locations": _loc("/code/package-lock.json")}],
+        [{"id": "GHSA-9x64-5r7x-2q53",
+          "shortDescription": {"text": "Malicious Package in flatmap-stream"},
+          "properties": {"tags": ["vulnerability", "security", "HIGH"]}}])))
+    _, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    mal = next(f for f in doc["findings"] if f["rule_id"] == "GHSA-9x64-5r7x-2q53")
+    assert mal["malicious"] and mal["severity"] == "critical" and mal["scanner_severity"] == "high"
+    reports = Path(main.REPORTS_DIR)
+    assert "MALICIOUS PACKAGE" in (reports / "review-brief.md").read_text()
+    assert "**MALICIOUS**" in (reports / "summary.md").read_text()
+    assert ">MALICIOUS</span>" in (reports / "summary.html").read_text()
+
+
+def test_a_denied_license_gates_like_any_sca_finding(run):
+    import shutil
+    shutil.copy(Path(__file__).parent / "fixtures" / "trivy" / "trivy-license.json",
+                Path(main.NATIVE_DIR) / "trivy-license.json")
+    run.config.write_text("licenses:\n  deny: [AGPL-*]\nfail_on:\n  sca: high\n"
+                          "  default: none\nignore:\n  - rule: CVE-2023-1\n    reason: r\n")
+    code, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    assert code == main.EXIT_POLICY                 # the AGPL dependency gates
+    assert [f["rule_id"] for f in doc["findings"] if f["rule_id"].startswith("LICENSE:")] \
+        == ["LICENSE:AGPL-3.0-only"]
+    assert doc["licenses"]["denied"] == 1 and doc["licenses"]["unlicensed"] >= 2
+    assert "trivy-license.json" in doc["reports_found"]
+    assert "**License policy:**" in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+
+    # ...and an ignore entry suppresses it like any other finding.
+    run.config.write_text(run.config.read_text() + "  - rule: 'LICENSE:AGPL-*'\n    reason: r\n")
+    assert run()[0] == main.EXIT_PASS
+
+
+def test_a_missing_license_report_under_strict_exits_3(run):
+    run.config.write_text("strict: true\nlicenses:\n  deny: [AGPL-*]\n")
+    assert run()[0] == main.EXIT_SCAN
+
+
 def test_no_report_carries_the_secret_value(run):
     run()
     for name in ("review-brief.md", "findings.json", "summary.md", "summary.html"):
