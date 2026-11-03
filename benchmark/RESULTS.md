@@ -326,7 +326,8 @@ categorised `sca`. So in the secrets run Trivy detected 15 of the 26 secrets
 `secrets:` gate threshold does not apply to them, they are not de-duplicated
 against Gitleaks (same secret, two findings), and they count as "SCA findings
 exist" for the coverage check. The secrets numbers above count only what the
-collector files as `secrets`.
+collector files as `secrets`. **Fixed** in 3c5890a: Trivy's secret results are filed
+under `secrets`, take the secrets floor and merge with Gitleaks.
 
 **Secrets: passwords inside URLs are invisible by default.**
 `amqp://user:pass@host` and `postgres://user:pass@host` were missed by Gitleaks
@@ -346,7 +347,7 @@ outside the truth are few: advisories newer or older than the snapshot's view
 without a lock file (Trivy resolves nothing — the coverage check warns), vendored
 or shaded jars, and reachability (every vulnerable package counts, used or not).
 
-**Grype names Maven packages without the groupId** (`jackson-databind@2.9.8`
+**Grype names Maven packages without the groupId** (**fixed** in 6b79790: the name now comes from the purl) (`jackson-databind@2.9.8`
 vs Trivy/OSV `com.fasterxml.jackson.core:jackson-databind@2.9.8`), so with
 Grype enabled every Maven vulnerability appears twice in `findings.json` —
 cross-tool de-duplication keys on the package name. Grype also upper-cases GHSA

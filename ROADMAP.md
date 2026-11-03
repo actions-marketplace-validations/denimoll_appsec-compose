@@ -114,6 +114,11 @@ the first step of an AI agent's security review. CI integrations come later.
         replaced by allowlisted provider examples.
   - [ ] More SAST languages (OWASP Benchmark for Python; a JS/TS corpus).
 
+- [ ] **Workflow findings across engines** — one template injection is
+      reported by zizmor, Checkov (`CKV_GHA_2`) and Semgrep separately. The
+      per-file IaC equivalence used for Dockerfiles would collapse distinct
+      injections in one workflow into one, so this needs a line-aware merge.
+
 ## CI integrations (later — current versions work)
 
 - [ ] Run the GitHub Action and the GitLab template in real pipelines.
