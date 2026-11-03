@@ -116,7 +116,15 @@ the first step of an AI agent's security review. CI integrations come later.
         (Checkov/Trivy ids → the corpus' answers); skipped until then.
   - [ ] **Secrets on real data** — CredData-style corpus whose values are not
         replaced by allowlisted provider examples.
-  - [ ] More SAST languages (OWASP Benchmark for Python; a JS/TS corpus).
+  - [x] **More SAST languages** — OWASP Benchmark for Python and the OpenSSF
+        CVE Benchmark (real JS/TS CVEs, vulnerable vs fixed file), each Semgrep
+        rule pack scored as its own profile. Python → `p/default` + `p/python`
+        (`auto`); JS/TS → `p/default`, `p/nodejsscan` the only pack that adds
+        detections (+1.4 points, 2× runtime). No pack closes the real gaps.
+  - [ ] **Semgrep crash = clean scan** — when semgrep-core is killed (OOM) its
+        SARIF says `executionSuccessful: true` with no results; the collector
+        ignores the error-level notification, so the run passes with 0 SAST
+        findings even under `strict`. Surface it as a report error.
 
 - [ ] **Workflow findings across engines** — one template injection is
       reported by zizmor, Checkov (`CKV_GHA_2`) and Semgrep separately. The

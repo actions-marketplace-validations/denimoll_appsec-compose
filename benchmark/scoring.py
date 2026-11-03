@@ -4,10 +4,14 @@ Pure functions only — no I/O beyond what the caller hands in — so the matchi
 rules that decide every number in RESULTS.md are unit-tested
 (tests/test_benchmark_scoring.py) rather than trusted.
 
-Three scorers, one per corpus kind:
+Four scorers, one per corpus kind:
 
 - `score_owasp_benchmark` — SAST, against OWASP Benchmark's
-  expectedresults-*.csv (per test case: category, real vulnerability, CWE).
+  expectedresults-*.csv (per test case: category, real vulnerability, CWE);
+  the Java and the Python Benchmark share the format and the scorer.
+- `score_cve_pairs`       — SAST, against real CVEs given as a vulnerable
+  (pre-patch) and a fixed (post-patch) version of the same file, with the
+  vulnerable line labelled (OpenSSF CVE Benchmark, JavaScript/TypeScript).
 - `score_secrets`         — secrets, against line-labelled true secrets and
   decoys.
 - `score_sca`             — SCA, against the advisories OSV lists for each
@@ -18,7 +22,7 @@ from __future__ import annotations
 import csv
 import io
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import PurePosixPath
 
 # ---------------------------------------------------------------------------
@@ -44,7 +48,18 @@ BENCHMARK_CWE_MAP = {
     643: 643,                               # XPath injection
 }
 
-_TEST_NAME = re.compile(r"^(BenchmarkTest\d+)\.java$")
+# NOT the official rule — a diagnostic for BenchmarkPython only. Semgrep's
+# Python rules tag `eval`/`exec` CWE-95 and weak hashes (md5/sha1) CWE-327, so
+# under the official table they can never score in the code-injection (94) or
+# weak-hash (328) categories, however right the finding is. Scoring once more
+# with these two equivalences separates "Semgrep did not see it" from "Semgrep
+# saw it under a neighbouring CWE". (327 -> 328 is safe here only because the
+# Python Benchmark has no weak-cipher category for it to steal from.)
+PYTHON_LENIENT_CWE_MAP = {**BENCHMARK_CWE_MAP, 95: 94, 327: 328}
+
+# BenchmarkJava names its test cases BenchmarkTestNNNNN.java, BenchmarkPython
+# BenchmarkTestNNNNN.py; both expected-results files key on the bare name.
+_TEST_NAME = re.compile(r"^(BenchmarkTest\d+)\.(?:java|py)$")
 
 
 def parse_expected_results(text: str) -> dict[str, dict]:
@@ -60,7 +75,7 @@ def parse_expected_results(text: str) -> dict[str, dict]:
 
 
 def benchmark_test_of(path: str) -> str | None:
-    """`.../testcode/BenchmarkTest00042.java` -> `BenchmarkTest00042`."""
+    """`.../testcode/BenchmarkTest00042.java` (or `.py`) -> `BenchmarkTest00042`."""
     m = _TEST_NAME.match(PurePosixPath(path or "").name)
     return m.group(1) if m else None
 
@@ -132,6 +147,119 @@ def score_owasp_benchmark(expected: dict[str, dict], findings: list[dict],
                    "precision": _ratio(totals["tp"], totals["tp"] + totals["fp"])},
         "test_cases": len(expected),
     }
+
+
+# ---------------------------------------------------------------------------
+# SAST — real CVEs as vulnerable/fixed pairs (OpenSSF CVE Benchmark)
+# ---------------------------------------------------------------------------
+
+# A CVE lists several CWEs (CWE-079 + CWE-116, CWE-400 + CWE-730, ...); the
+# category is the most specific class among them, tried in this order, so
+# every CVE lands in exactly one row of the per-category table.
+CVE_CATEGORIES = [
+    ("protopollution", {915, 1321}),
+    ("cmdi", {77, 78, 88}),
+    ("codeinj", {94, 95}),
+    ("sqli", {89}),
+    ("ssrf", {918}),
+    ("pathtraver", {22, 23, 35, 36, 73, 99}),
+    ("redirect", {601}),
+    ("xss", {79, 80, 116}),
+    ("redos", {400, 730, 1333}),
+]
+
+
+def cve_category(cwes) -> str:
+    nums = {n for n in (_cwe_number(c) if isinstance(c, str) else c for c in cwes)
+            if n is not None}
+    for name, members in CVE_CATEGORIES:
+        if nums & members:
+            return name
+    return "other"
+
+
+def _on_target(f: dict, targets: set[tuple[str, int]], match: str) -> bool:
+    line = f.get("line")
+    if line is None:
+        return False
+    if match == "line":
+        return (f.get("file"), line) in targets
+    end = f.get("end_line") or line
+    return any(f.get("file") == path and line <= t <= end for path, t in targets)
+
+
+def score_cve_pairs(cases: list[dict], findings: list[dict], match: str = "line") -> dict:
+    """Detection on the vulnerable version, recognition of the fix.
+
+    A case is one CVE: `{cve, category, cwes, pre, post, files, weaknesses}`.
+    `pre`/`post` are the corpus directories holding the pre-patch and the
+    post-patch copy of the same `files`; `weaknesses` are `{file, line}` in the
+    pre-patch copy. The rule is the OpenSSF CVE Benchmark's own:
+
+    - *detected*   — a SAST finding starts exactly on a weakness line
+      (`match="span"`: the weakness line lies inside the finding's span);
+      the rules of those findings are the case's *on-target rules*;
+    - *recognized* — at least one on-target rule fires fewer times on the
+      post-patch files than on the pre-patch ones.
+
+    As a confusion matrix, each CVE is one real case (the vulnerable version)
+    and one safe look-alike (its fix):
+
+        detected                 -> TP      missed               -> FN
+        detected, not recognized -> FP      otherwise            -> TN
+
+    so TPR = detected / CVEs, FPR = fixes still flagged / CVEs and the score
+    TPR - FPR = fixes recognized / CVEs. The CWE is *not* part of the rule
+    (it is not in OpenSSF's either); `cwe_matched` counts detections where an
+    on-target finding also names one of the CVE's CWEs.
+    """
+    sast = [f for f in findings if f.get("category") == "sast"]
+    by_file: dict[str, list[dict]] = defaultdict(list)
+    for f in sast:
+        by_file[f.get("file", "")].append(f)
+
+    per_cat: dict[str, dict] = {}
+    outcome: dict[str, str] = {}
+    for case in cases:
+        pre = [f"{case['pre']}/{p}" for p in case["files"]]
+        post = [f"{case['post']}/{p}" for p in case["files"]]
+        targets = {(f"{case['pre']}/{w['file']}", w["line"]) for w in case["weaknesses"]}
+        hits = [f for p in pre for f in by_file.get(p, []) if _on_target(f, targets, match)]
+        rules = {f.get("rule_id") for f in hits}
+        before = Counter(f.get("rule_id") for p in pre for f in by_file.get(p, []))
+        after = Counter(f.get("rule_id") for p in post for f in by_file.get(p, []))
+        detected = bool(rules)
+        recognized = detected and any(after[r] < before[r] for r in rules)
+        want = {cve_n for cve_n in (_cwe_number(c) for c in case["cwes"]) if cve_n}
+        cwe_hit = any(_cwe_number(c) in want for f in hits for c in (f.get("cwe") or []))
+
+        c = per_cat.setdefault(case["category"], {"cves": 0, "tp": 0, "fn": 0, "fp": 0,
+                                                  "tn": 0, "cwe_matched": 0,
+                                                  "fp_fix_elsewhere": 0, "file_flagged": 0})
+        c["cves"] += 1
+        # Diagnostic, not a detection: the vulnerable file has *some* finding,
+        # on any line, of any rule — the ceiling of a file-level rule.
+        c["file_flagged"] += int(any(by_file.get(p) for p in pre))
+        c["tp" if detected else "fn"] += 1
+        c["fp" if detected and not recognized else "tn"] += 1
+        c["cwe_matched"] += int(cwe_hit)
+        # An FP the corpus forces: the labelled file is byte-identical after the fix.
+        c["fp_fix_elsewhere"] += int(detected and not recognized and bool(case.get("fix_elsewhere")))
+        outcome[case["cve"]] = ("recognized" if recognized else
+                                "not-recognized" if detected else "missed")
+
+    def rates(c: dict) -> dict:
+        tpr, fpr = _ratio(c["tp"], c["cves"]), _ratio(c["fp"], c["cves"])
+        return {**c, "tpr": tpr, "fpr": fpr,
+                "score": round(tpr - fpr, 4) if tpr is not None else None,
+                "precision": _ratio(c["tp"], c["tp"] + c["fp"])}
+
+    cats = {k: rates(per_cat[k]) for k in sorted(per_cat)}
+    totals = rates({k: sum(c[k] for c in per_cat.values())
+                    for k in ("cves", "tp", "fn", "fp", "tn", "cwe_matched", "fp_fix_elsewhere",
+                              "file_flagged")})
+    return {"categories": cats, "totals": totals, "match": match,
+            "test_cases": len(cases), "outcome": dict(sorted(outcome.items()))}
 
 
 # ---------------------------------------------------------------------------
