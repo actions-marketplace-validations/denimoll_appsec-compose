@@ -54,7 +54,89 @@ python3 -m pip install pyyaml     # or: apt install python3-yaml / brew install 
 Nothing else is installed on the host — the scanners and the collector are all
 containers, and no `docker.sock` is mounted into them.
 
-## Use in your project
+## Install and run locally (no clone)
+
+The main way to use appsec-compose: install the `appsec-compose` command once,
+then scan any directory — by hand or as the first step of an AI agent's review.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
+# or, reading it first / pinning a version:
+curl -fsSLO https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh
+bash install.sh --ref v.1.3.0          # or APPSEC_COMPOSE_VERSION=v.1.3.0 bash install.sh
+```
+
+[`install.sh`](install.sh) checks the [requirements](#requirements) and names
+every missing one (nothing is installed until they are met), downloads the
+latest release (or `--ref` tag / branch / commit; `--from <dir>` installs a
+local checkout) into `${XDG_DATA_HOME:-~/.local/share}/appsec-compose/<version>`
+and links `~/.local/bin/appsec-compose`. No sudo; re-running is safe. It prints
+the uninstall commands at the end (remove the link, the data dir and,
+optionally, the cache dir).
+
+```bash
+appsec-compose scan                    # the current directory
+appsec-compose scan ~/src/api --fail-on critical
+appsec-compose scan --image nginx:1.27
+appsec-compose preload                 # once, with network, for offline use
+appsec-compose version                 # tool + engine versions, install and cache paths
+```
+
+`scan` takes every `run.sh` flag. Per-project conventions are picked up
+automatically; an explicit flag always wins:
+
+| Convention | Used as | When |
+|---|---|---|
+| `<target>/.appsec-compose.yml` | `--config` | present (same format as `scan-config.yml`) |
+| `<target>/.appsec-baseline.json` | `--baseline` | present, or created with `--update-baseline` |
+| `./appsec-reports` (current dir) | `--reports` | always; created with a `.gitignore` of `*` |
+| target directory name | `--name` | always, so scans of different projects can overlap |
+
+When the reports directory lies inside the scanned target (e.g. `scan .`), it
+is excluded from the scan — see [Scan scope](#scan-scope-exclude).
+
+State stays out of the install directory: the vulnerability databases live in
+`${XDG_CACHE_HOME:-~/.cache}/appsec-compose` (`ASS_CACHE_DIR`), shared by every
+project and kept across upgrades. Only the per-run `.run/` directory is created
+inside the install directory — Docker has to bind-mount it, and a path under
+`$HOME` is shared with Docker Desktop and Colima by default — and it is removed
+when the run exits.
+
+### Machine-readable result (`--json`)
+
+For agents and tools (the MCP server shells out to
+`appsec-compose scan <path> … --json`). With `--json` — on `run.sh` or the CLI —
+everything human-readable (progress, compose and engine output, the summary)
+goes to **stderr**, and **stdout carries exactly one JSON object**, on a single
+line, written on exit for **every** exit code, usage errors included:
+
+```json
+{"exit_code": 1, "verdict": "fail",
+ "reports_dir": "/home/me/src/api/appsec-reports",
+ "findings_json": "/home/me/src/api/appsec-reports/findings.json",
+ "review_brief": "/home/me/src/api/appsec-reports/review-brief.md",
+ "severity_counts": {"info": 0, "low": 2, "medium": 8, "high": 4, "critical": 1},
+ "breaching": 5, "baseline": null}
+```
+
+| Field | Type | Meaning |
+|---|---|---|
+| `exit_code` | int | the process exit code, `0`–`3` ([exit codes](#policy--exit-codes)) |
+| `verdict` | string | `pass` (0), `fail` (1), `usage_error` (2), `scan_error` (3) |
+| `reports_dir` | string \| null | absolute reports directory (where reports were, or would have been, written); `null` only if the launcher failed before resolving it |
+| `findings_json` | string \| null | absolute path to this run's `findings.json`, `null` if the run produced none |
+| `review_brief` | string \| null | absolute path to this run's `review-brief.md`, or `null` |
+| `severity_counts` | object \| null | `findings.json`'s `severity_counts` (gating view: after suppressions), or `null` |
+| `breaching` | int \| null | `findings.json`'s `policy.breaching`: findings at/above `fail_on` |
+| `baseline` | object \| null | `findings.json`'s `baseline` (`enabled`, `new`, `known`, `fixed`, `legacy_format`) when a baseline was in force, else `null` |
+
+A path is only ever this run's: reports left by an earlier run are never
+reported (an early usage error yields `null`s). Fields are only added, never
+renamed or removed; ignore ones you do not know. Everything else is in
+`findings.json` itself ([contract](#findingsjson-contract)). `--version` is not
+a scan and answers in text even with `--json`.
+
+## Use in your project's CI
 
 No need to vendor or clone anything into your repository.
 
@@ -110,8 +192,8 @@ git clone --depth 1 --branch v.1.2.0 https://github.com/denimoll/appsec-compose 
 cd /path/to/your/repo && ~/appsec-compose/run.sh . --config scan-config.yml --reports /tmp/appsec-reports
 ```
 
-Keep `--reports` outside the scanned tree, or the scanners read each other's
-output while it is being written.
+A `--reports` directory inside the scanned tree is excluded from the scan
+automatically, so the scanners never read their own output.
 
 ## Usage
 
@@ -136,6 +218,18 @@ output while it is being written.
 Out of the box one engine per category runs (Semgrep, Trivy, Gitleaks, Checkov)
 and the gate fails on `high`+ — that is the recommended setup, not a minimum.
 The alternative engines and everything below are opt-in for when you want more.
+
+**Collector image.** Releases publish the collector to GHCR as
+`ghcr.io/denimoll/appsec-compose-collector:v.<VERSION>`, labelled with a hash of
+`orchestrator/`. Before scanning, `run.sh` picks the image deterministically
+([`scripts/collector-image.sh`](scripts/collector-image.sh)): a local build of
+this exact `orchestrator/` content if one exists, else the published image if
+it is present or pullable (never pulled when `offline: true`) **and** its label
+matches this checkout, else a local build tagged
+`appsec-compose-collector:local-<hash>`. An installed release therefore skips
+the build; a development checkout — unreleased `VERSION`, or edits on top of a
+released one — always runs its own code. Set `ASS_COLLECTOR_IMAGE` to force an
+image (e.g. a registry mirror).
 
 ## Configuration — one file
 
@@ -209,6 +303,12 @@ An explicit empty list (`exclude: []`) scans everything. Entries are translated
 into each engine's own mechanism (`--exclude`, `--skip-dirs`, `--skip-path`, a
 generated Gitleaks allowlist, a TruffleHog regex file, …), so one list covers
 all nine.
+
+The reports directory, when it lies inside the target, is appended to the list
+for that run (even to `exclude: []`), so no engine reads earlier reports — which
+quote the code they flag — as findings. Like any entry it is matched by its path
+relative to the target (`appsec-reports` matches a directory of that name at
+any depth). `--reports` equal to the target itself is a usage error.
 
 ## Policy per category
 
@@ -320,10 +420,12 @@ fail the build on its own; with `strict: true` it does.
 
 ## Offline / air-gapped
 
-Run once **with** network to snapshot DBs and rulesets into `./cache/`:
+Run once **with** network to snapshot DBs and rulesets into `./cache/` (the
+CLI: `~/.cache/appsec-compose`; any location via `ASS_CACHE_DIR`):
 
 ```bash
-./preload.sh           # Semgrep ruleset + Trivy vulnerability DB
+./preload.sh           # Semgrep ruleset, Trivy + Grype DBs, the collector image
+appsec-compose preload # the same, for an installed copy
 ```
 
 Then set `offline: true` in `scan-config.yml`. Scans now run with no network
@@ -428,7 +530,7 @@ collector actually wrote a verdict and maps everything else to `3`.
 
 ## CI/CD
 
-For other repositories, see [Use in your project](#use-in-your-project):
+For other repositories, see [Use in your project's CI](#use-in-your-projects-ci):
 
 - **GitHub Action** — [`action.yml`](action.yml) (`uses: denimoll/appsec-compose@v.1.2.0`)
   runs the scan, uploads every SARIF to **code scanning**, keeps the reports as
@@ -638,8 +740,12 @@ No `docker.sock`, no docker-in-docker.
 ## Layout
 
 ```
+bin/appsec-compose      # installed CLI: project conventions over run.sh
+install.sh              # no-clone installer (~/.local/share + ~/.local/bin)
 docker-compose.yml      # scanners + collector (versions/flags from .env)
 run.sh                  # entrypoint: render config, run scanners + collector
+scripts/collector-image.sh  # prebuilt-vs-local collector image choice
+scripts/scan-result.py  # the --json result object
 preload.sh              # offline cache populator
 scan-config.yml         # the single file you edit
 scripts/render-env.py   # scan-config.yml -> .env
