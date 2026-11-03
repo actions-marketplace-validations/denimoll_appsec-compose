@@ -74,13 +74,17 @@
   (`LICENSE:<id>`) under the usual gate, suppressions and baseline.
   Dependencies whose manifests record no license are counted as unjudged.
 
-## Release: 1.2.0
+## Release: 1.3.0
 
-- [ ] **Re-validate on a real production project** (gate — must pass before
-      tagging). Baseline fingerprints changed format (v1 baselines are still
-      read, but should be re-snapshotted), and `findings.json` gained a contract.
-- [ ] Merge `develop` → `main`.
-- [ ] Tag `v.1.2.0` + GitHub Release (triggers the collector image publish to GHCR).
+1.2.0 shipped. 1.3.0 adds, with no breaking change (`findings.json` 1.3 is
+additions only): dependencies grouped per vulnerable component with the
+version to upgrade to; per-engine timings in every report; the MCP
+`components` tool; Checkov limited to the frameworks a repository has files
+for and run without its guideline download (django full scan 58.7 s ->
+34.6 s, identical findings); AGENTS.md for AI agents; the speed benchmark.
+
+- [ ] Merge `develop` -> `main`.
+- [ ] Tag `v.1.3.0` + GitHub Release (triggers the collector image publish to GHCR).
 
 ## Primary direction: local and AI-assisted review
 

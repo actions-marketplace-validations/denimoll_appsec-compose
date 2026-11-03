@@ -22,7 +22,7 @@ Needs Docker with Compose v2, Python 3.9+ with PyYAML, and bash.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
-# or pin a release:  bash install.sh --ref v.1.2.0
+# or pin a release:  bash install.sh --ref v.1.3.0
 ```
 
 ```bash
@@ -106,7 +106,7 @@ a human to review with the code. [AI agents](docs/ai-agents.md) ·
 
 ## In CI
 
-`uses: denimoll/appsec-compose@v.1.2.0` in GitHub Actions, or an `include:` of
+`uses: denimoll/appsec-compose@v.1.3.0` in GitHub Actions, or an `include:` of
 the GitLab template: [CI/CD](docs/ci.md).
 
 ## Documentation

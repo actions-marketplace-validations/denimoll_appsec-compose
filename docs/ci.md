@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest        # needs Docker on the runner
     steps:
       - uses: actions/checkout@v5
-      - uses: denimoll/appsec-compose@v.1.2.0
+      - uses: denimoll/appsec-compose@v.1.3.0
         with:
           config: .github/scan-config.yml   # optional; default = shipped config
           # fail-on: critical                # override the config's fail_on
@@ -37,11 +37,11 @@ scans `$CI_PROJECT_DIR`:
 
 ```yaml
 include:
-  - remote: https://raw.githubusercontent.com/denimoll/appsec-compose/v.1.2.0/templates/gitlab/appsec-compose.yml
+  - remote: https://raw.githubusercontent.com/denimoll/appsec-compose/v.1.3.0/templates/gitlab/appsec-compose.yml
 
 appsec-compose:
   variables:
-    APPSEC_COMPOSE_REF: v.1.2.0                     # tag or commit SHA
+    APPSEC_COMPOSE_REF: v.1.3.0                     # tag or commit SHA
     APPSEC_COMPOSE_CONFIG: .gitlab/scan-config.yml  # optional
     APPSEC_COMPOSE_ARGS: "--fail-on critical"       # optional run.sh flags
 ```
@@ -54,7 +54,7 @@ verdict. The runner needs the host Docker socket, not dind — see the header of
 relative paths are resolved against your current directory:
 
 ```bash
-git clone --depth 1 --branch v.1.2.0 https://github.com/denimoll/appsec-compose ~/appsec-compose
+git clone --depth 1 --branch v.1.3.0 https://github.com/denimoll/appsec-compose ~/appsec-compose
 cd /path/to/your/repo && ~/appsec-compose/run.sh . --config scan-config.yml --reports /tmp/appsec-reports
 ```
 
@@ -65,7 +65,7 @@ automatically, so the scanners never read their own output.
 
 For other repositories, see [Use in your project's CI](#use-in-your-projects-ci):
 
-- **GitHub Action** — [`action.yml`](../action.yml) (`uses: denimoll/appsec-compose@v.1.2.0`)
+- **GitHub Action** — [`action.yml`](../action.yml) (`uses: denimoll/appsec-compose@v.1.3.0`)
   runs the scan, uploads every SARIF to **code scanning**, keeps the reports as
   an artifact, caches the vuln DBs, and fails the step on a policy breach. This
   repo's own [`.github/workflows/appsec-scan.yml`](../.github/workflows/appsec-scan.yml)
