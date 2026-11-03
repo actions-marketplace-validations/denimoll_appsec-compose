@@ -78,8 +78,11 @@ the first step of an AI agent's security review. CI integrations come later.
       in `~/.cache/appsec-compose`; `--json` result object for agents.
 - [x] **Prebuilt collector image** — the GHCR image for `v.<VERSION>` when its
       content label matches the checkout, else a local build (also offline).
-- [ ] **Diff mode** — scan only what a change touched (Semgrep
-      `--baseline-commit`, Gitleaks commit range) for fast agent iterations.
+- [x] **Diff mode** — `./run.sh <path> --diff <base-ref>` scans only the files
+      changed since the merge-base (committed, uncommitted and untracked),
+      walks the branch's commits for secrets, skips SCA/IaC engines the change
+      did not touch, and gates per changed file (`on_changed_line` marks the
+      lines the change wrote). `findings.json` 1.1 records the scope.
 - [x] **MCP server / agent skill** — `scan`, `findings`, `finding`, `brief`,
       `suppress` over the same CLI and `findings.json` contract
       ([`appsec_mcp/`](appsec_mcp/README.md)).

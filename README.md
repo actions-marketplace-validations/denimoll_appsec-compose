@@ -213,6 +213,8 @@ automatically, so the scanners never read their own output.
 ./run.sh /path/to/your/repo --strict
 # refuse to run unless every scanner is pinned by digest:
 ./run.sh /path/to/your/repo --require-pinned
+# scan only what the current branch changed (see "Diff mode"):
+./run.sh /path/to/your/repo --diff origin/main
 ```
 
 Out of the box one engine per category runs (Semgrep, Trivy, Gitleaks, Checkov)
@@ -230,6 +232,54 @@ matches this checkout, else a local build tagged
 the build; a development checkout — unreleased `VERSION`, or edits on top of a
 released one — always runs its own code. Set `ASS_COLLECTOR_IMAGE` to force an
 image (e.g. a registry mirror).
+
+## Diff mode (scan only what a change touched)
+
+A developer or an AI agent iterating on a branch wants the verdict on *their
+change*, quickly — not a full scan on every edit:
+
+```bash
+./run.sh /path/to/repo --diff origin/main
+```
+
+The changed set is every file that differs between `merge-base(origin/main,
+HEAD)` and the **working tree** — committed, uncommitted and untracked (but not
+git-ignored) files alike, since an agent's edits are usually uncommitted.
+Deleted files are not scanned; `exclude:` still applies. It is computed on the
+host with git, so the target must be a git repository and the ref must exist
+locally (fetch it first); otherwise the run exits `2`.
+
+Each engine gets only its part of the change:
+
+| | in diff mode |
+|---|---|
+| SAST (Semgrep) | the changed files only |
+| Secrets (Gitleaks, TruffleHog) | the changed files, plus Gitleaks walks the commits `merge-base..HEAD` (`gitleaks-history.sarif`), so a secret committed and removed again on the branch is still reported |
+| IaC (Checkov, Trivy config, Hadolint) | the changed IaC files, plus the Terraform files beside a changed one (a module is evaluated as a whole); not run if no IaC file changed |
+| SCA (Trivy, Grype, OSV, Syft) | only if a dependency manifest or lock file changed — then over the whole repo; otherwise not run, and the run says so |
+
+Findings are reported and gated for the changed files only. **The gate is per
+changed file, not per changed line**: a change is often dangerous through a line
+it did not touch — new input reaching an existing sink, a removed check above
+an unchanged call — and Semgrep reports the sink, so a line-level gate would pass
+exactly those. Instead every finding carries `on_changed_line` (marked `Δ` in
+the summaries, `CHANGED LINE` in the brief) so a reviewer can start with the
+lines the change wrote. Combine with [baseline mode](#baseline-gate-on-new-findings)
+to stop pre-existing findings in a touched file from gating.
+
+The scope is recorded in `findings.json` (`provenance.scope`: base, merge-base,
+files, skipped engines), printed on the console and shown in both summaries;
+`review-brief.md` lists as blind spots that unchanged code was not scanned and
+that the change's effects on unchanged code are not covered.
+
+- `strict` does not count a skipped engine's report as missing, and the [SCA
+  coverage check](#sca-coverage-check) is not run when SCA was skipped.
+- In baseline mode `fixed` is not reported (findings outside the change were
+  not looked for), and `--update-baseline` refuses `--diff`: a snapshot of a
+  partial scan would forget everything outside it.
+- `--diff` with `--image`/`--build` is a usage error.
+- Branch commits are only walked when the target is the repository root (not a
+  subdirectory, not a linked worktree); otherwise the run says so.
 
 ## Configuration — one file
 
@@ -445,6 +495,7 @@ reports/
 │   ├── trivy-fs.sarif
 │   ├── trivy-config.sarif
 │   ├── gitleaks.sarif
+│   ├── gitleaks-history.sarif  # diff mode: the branch's commits
 │   ├── checkov.sarif
 │   ├── grype.sarif         # + grype.json (carries CVE/GHSA aliases for dedup)
 │   └── trufflehog.json     # + generated trufflehog.sarif
@@ -766,6 +817,7 @@ scripts/scan-result.py  # the --json result object
 preload.sh              # offline cache populator
 scan-config.yml         # the single file you edit
 scripts/render-env.py   # scan-config.yml -> .env
+scripts/diff-scope.py   # --diff: the changed set, narrowed per engine
 orchestrator/           # Python collector (config, normalize, policy, summary)
 appsec_mcp/             # MCP server for AI agents (scan, triage, suppress)
 tests/                  # collector unit tests (pytest)

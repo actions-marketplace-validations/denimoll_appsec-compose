@@ -3,6 +3,7 @@
 #
 #   ./run.sh <path-to-repo>  [--fail-on L] [--strict] [--update-baseline]
 #   ./run.sh --image <ref>   [--fail-on L]        # scan a container image
+#   ./run.sh <path-to-repo>  --diff <base-ref>    # scan only what a change touched
 #
 # State can be moved out of this directory, so one clone can scan several
 # projects: --config, --baseline and --reports. Each run renders its .env and
@@ -35,6 +36,7 @@ trap 'echo "Error: scan aborted: \`$BASH_COMMAND\` failed (line $LINENO)" >&2; e
 
 usage() {
   echo "Usage: $0 <path-to-repo> [--fail-on L] [--strict] [--require-pinned] [--update-baseline]" >&2
+  echo "       $0 <path-to-repo> --diff <base-ref> [--fail-on L] [--strict]" >&2
   echo "       $0 <path-to-repo> [--config <file>] [--baseline <file>] [--reports <dir>] [--name <slug>]" >&2
   echo "       $0 --image <ref> [--registry-user U --registry-pass P] [--fail-on L]" >&2
   echo "       $0 --build <context> [--dockerfile <path>] [--fail-on L]" >&2
@@ -70,7 +72,7 @@ on_exit() {
 trap on_exit EXIT
 
 TARGET=""; IMAGE_REF=""; BUILD_CTX=""; DOCKERFILE=""; FAIL_ON_OVERRIDE=""
-CONFIG_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""
+CONFIG_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""; DIFF_BASE=""
 REG_USER="${REGISTRY_USER:-}"; REG_PASS="${REGISTRY_PASS:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -88,6 +90,10 @@ while [[ $# -gt 0 ]]; do
     --require-pinned) export ASS_REQUIRE_PINNED=1; shift ;;
     --update-baseline) export ASS_UPDATE_BASELINE=1; shift ;;
     --json) shift ;;   # handled above
+    --diff)
+      [[ $# -ge 2 && -n "$2" && "$2" != -* ]] || {
+        echo "Error: --diff needs a base ref, e.g. --diff origin/main" >&2; exit $EXIT_USAGE; }
+      DIFF_BASE="$2"; shift 2 ;;
     -v|--version)
       here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
       # --version answers in text even with --json: it is not a scan.
@@ -240,6 +246,17 @@ if [[ "$IMAGE_MODE" != "1" ]]; then
   fi
 fi
 
+# Diff mode scans the files a change touched, so it needs a repository, and
+# a baseline snapshot of a partial scan would forget every finding outside it.
+if [[ -n "$DIFF_BASE" ]]; then
+  [[ "$IMAGE_MODE" == "1" ]] && {
+    echo "Error: --diff scans a repository's changes; it cannot be combined with --image/--build" >&2
+    exit $EXIT_USAGE; }
+  [[ "${ASS_UPDATE_BASELINE:-}" == "1" ]] && {
+    echo "Error: --update-baseline needs a full scan; drop --diff to snapshot the baseline" >&2
+    exit $EXIT_USAGE; }
+fi
+
 # Render scan-config.yml -> this run's .env + excludes/ (versions + flags) and
 # read the enabled list. render-env reads ASS_IMAGE to pick filesystem vs image
 # targets. Command substitution hides a non-zero exit, so capture first and
@@ -281,7 +298,19 @@ fi
 if [[ -z "${ASS_ENABLED// }" ]]; then
   echo "Error: no scanners enabled in scan-config.yml" >&2; exit $EXIT_USAGE
 fi
-export ASS_ENABLED   # tell the collector which scanners actually ran
+export ASS_ENABLED   # tell the collector which scanners are configured to run
+
+# Diff mode: work out the changed set on the host and narrow the engines to it
+# (scripts/diff-scope.py). Engines with nothing in scope are not started; the
+# collector learns which, and why, from the run's diff/scope.json.
+RUN_ENGINES="$ASS_ENABLED"; DIFF_SUMMARY=""
+if [[ -n "$DIFF_BASE" ]]; then
+  diff_out="$(python3 scripts/diff-scope.py --target "$SCAN_TARGET" --base "$DIFF_BASE" \
+      --enabled "$ASS_ENABLED" --env-file "$RUN_DIR/.env" --out-dir "$RUN_DIR/diff")" || {
+    rc=$?; [[ $rc == "$EXIT_USAGE" ]] || rc=$EXIT_SCAN; exit $rc; }
+  eval "$diff_out"
+  RUN_ENGINES="$DIFF_RUN_ENGINES"
+fi
 
 if [[ "$ASS_OFFLINE" == "1" && "$IMAGE_MODE" != "1" && ! -s "$ASS_CACHE_DIR/semgrep/default.yaml" ]]; then
   echo "Error: offline=true but no cache found in $ASS_CACHE_DIR. Run ./preload.sh first (with network)." >&2
@@ -297,7 +326,8 @@ export ASS_COLLECTOR_IMAGE
 [[ -n "${ASS_CONFIG_FILE:-}" ]] && echo "Config   : $ASS_CONFIG_FILE"
 [[ -n "${ASS_REPORTS_DIR:-}" ]] && echo "Reports  : $ASS_REPORTS_DIR"
 echo "Target   : $TARGET_LABEL"
-echo "Scanners : $ASS_ENABLED"
+echo "Scanners : ${RUN_ENGINES:-none}"
+[[ -n "$DIFF_SUMMARY" ]] && echo "$DIFF_SUMMARY"
 echo "Mode     : $([[ "$ASS_OFFLINE" == "1" ]] && echo offline || echo online)"
 [[ -n "${FAIL_ON_OVERRIDE}" ]] && echo "fail_on  : $FAIL_ON_OVERRIDE (override)"
 [[ "${ASS_STRICT:-}" == "1" ]] && echo "strict   : a missing scanner report fails the run"
@@ -307,8 +337,12 @@ compose down --remove-orphans >/dev/null 2>&1 || true
 
 # Run the enabled scanners in parallel (one-shot). Plain `up` (no
 # --abort-on-container-exit) waits for every listed service to finish.
-# shellcheck disable=SC2086
-compose up --no-deps $ASS_ENABLED
+# A diff that touched nothing any engine reads starts none; the collector still
+# runs, so there is a findings.json that says so.
+if [[ -n "${RUN_ENGINES// }" ]]; then
+  # shellcheck disable=SC2086
+  compose up --no-deps $RUN_ENGINES
+fi
 
 # Collector reads the reports and returns the policy exit code. --no-deps so it
 # doesn't re-trigger the scanners via depends_on; no --build: the image was

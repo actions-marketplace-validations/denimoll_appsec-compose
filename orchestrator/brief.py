@@ -46,8 +46,13 @@ _ENGINE_CATEGORIES = {
 }
 
 
-def _languages(code_dir: str, excludes: set[str]) -> list[tuple[str, int]]:
+def _languages(code_dir: str, excludes: set[str],
+               paths: list[str] | None = None) -> list[tuple[str, int]]:
     counts: Counter = Counter()
+    if paths is not None:                  # diff mode: the changed files only
+        counts.update(l for l in (_LANGUAGES.get(Path(p).suffix.lower())
+                                  for p in paths) if l)
+        return counts.most_common()
     walked = 0
     for root, dirs, files in os.walk(code_dir):
         dirs[:] = [d for d in dirs if d not in excludes and not d.startswith(".")]
@@ -61,10 +66,42 @@ def _languages(code_dir: str, excludes: set[str]) -> list[tuple[str, int]]:
     return counts.most_common()
 
 
-def _blind_spots(enabled: set[str], cfg, coverage, image_mode: bool) -> list[str]:
+def _diff_spots(scope) -> list[str]:
+    """What a diff scan leaves out — first, because it is the biggest gap."""
+    spots = [
+        f"**Unchanged code was not scanned:** this is a diff scan of the "
+        f"{len(scope.files)} file(s) changed since `{scope.base}` (merge-base "
+        f"`{scope.merge_base[:12]}`). Findings anywhere else in the codebase, "
+        f"old or new, are not in this report; a full scan covers them.",
+        "**Cross-file effects of the change are not covered:** a change can make "
+        "code it did not touch exploitable — a new call into an existing unsafe "
+        "function, a removed check that a caller relied on, a changed signature, "
+        "config value or data format consumed elsewhere. Only the changed files "
+        "were analysed, so review the callers and dependents of what changed.",
+    ]
+    if scope.skipped("sca"):
+        spots.append("**Dependencies (SCA) were not checked:** no dependency "
+                     "manifest or lock file changed, so the SCA engines did not run.")
+    if scope.skipped("iac") and scope.files:
+        spots.append("**IaC was not checked:** no IaC file changed.")
+    if scope.commits and not scope.history_scanned:
+        note = f" ({scope.history_note})" if scope.history_note else ""
+        spots.append(f"**Branch commits:** the {scope.commits} commit(s) since the "
+                     f"merge-base were not searched for secrets{note}; a secret "
+                     f"committed on the branch and removed again is not covered.")
+    return spots
+
+
+def _blind_spots(enabled: set[str], cfg, coverage, image_mode: bool,
+                 scope=None) -> list[str]:
     covered = set().union(*(_ENGINE_CATEGORIES.get(e, set()) for e in enabled))
     spots = [f"**{_CATEGORY_NAMES[c]} was not run** — no engine for it is enabled."
              for c in ("sast", "sca", "secrets", "iac") if c not in covered]
+    if scope:
+        spots = _diff_spots(scope) + spots
+        # A category skipped because the change did not touch it is reported
+        # above; it was not run, so its run-time caveats do not apply.
+        covered = {c for c in covered if not scope.skipped(c)}
     spots += [f"**SCA coverage:** {w.message} {w.advice}" for w in coverage.warnings]
     if image_mode:
         spots.append("**Image scan:** only the image's packages were checked; "
@@ -74,7 +111,7 @@ def _blind_spots(enabled: set[str], cfg, coverage, image_mode: bool) -> list[str
         spots.append("**Cross-file data flow:** Semgrep CE follows taint within one "
                      "file. Input that crosses a module boundary before reaching "
                      "a sink was not traced.")
-    if "secrets" in covered and not cfg.secrets_history:
+    if "secrets" in covered and not cfg.secrets_history and not scope:
         spots.append("**Git history:** secrets were searched in the working tree "
                      "only; a credential committed and later deleted is not covered.")
     if "sca" in covered:
@@ -120,6 +157,8 @@ def _labels(f: Finding, gating: bool, new: bool | None) -> str:
         tags.append("NEW")
     elif new is False:
         tags.append("baseline")
+    if getattr(f, "on_changed_line", None):
+        tags.append("CHANGED LINE")
     if f.exploitable:
         tags.append("EXPLOITABLE")
     return " · ".join(tags)
@@ -148,7 +187,7 @@ def _finding(f: Finding, gating: bool, new: bool | None, source: _Source,
 
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
-           image_mode: bool, new_fps: set[str] | None) -> None:
+           image_mode: bool, new_fps: set[str] | None, scope=None) -> None:
     source = _Source(None if image_mode else code_dir)
     secrets = {(_norm_file(f.file), f.line): f for f in findings
                if f.category == "secrets" and f.line}
@@ -160,7 +199,8 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
         return breaches(f, cfg) and is_new(f) is not False
 
     ordered = sorted(findings, key=lambda f: (
-        not gates(f), not is_new(f), -_SEVERITY_RANK.get(f.severity, 0),
+        not gates(f), not is_new(f), not getattr(f, "on_changed_line", None),
+        -_SEVERITY_RANK.get(f.severity, 0),
         f.category, _norm_file(f.file), f.line or 0))
     shown, rest = ordered[:MAX_DETAILED], ordered[MAX_DETAILED:]
     gating = sum(1 for f in findings if gates(f))
@@ -170,7 +210,8 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
         "# Security review brief", "",
         f"appsec-compose {provenance.get('appsec_compose', 'unknown')} · "
         f"{provenance.get('generated', '')} · target: {provenance.get('target', '')}"
-        + (" · offline" if provenance.get("offline") else ""), "",
+        + (" · offline" if provenance.get("offline") else "")
+        + (f" · **{scope.label()}**" if scope else ""), "",
         "Scanner results for this codebase, prepared for a reviewer — a person or "
         "an AI agent. The tools have done the pattern matching; use this to "
         "verify their findings and to spend the review on what they cannot see.",
@@ -178,12 +219,24 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
         "## Scope", "",
         f"- Engines: {', '.join(sorted(enabled)) or 'none'}",
     ]
+    if scope:
+        lines[-1] = f"- Engines: {', '.join(sorted(enabled - set(scope.skipped_engines))) or 'none'}"
+        lines += [f"  - {name} not run: {reason}"
+                  for name, reason in sorted(scope.skipped_engines.items())]
     lines += [f"  - {name}: `{ref}`" for name, ref in sorted(engines.items())]
     if provenance.get("databases"):
         lines.append("- Databases: " + ", ".join(
             f"{k} {v}" for k, v in sorted(provenance["databases"].items())))
+    if scope:
+        shown_paths = ", ".join(f"`{p}`" for p in scope.files[:20])
+        more = f" and {len(scope.files) - 20} more" if len(scope.files) > 20 else ""
+        lines.append(f"- Diff: {len(scope.files)} file(s) changed since `{scope.base}` "
+                     f"(merge-base `{scope.merge_base[:12]}`, {scope.commits} "
+                     f"commit(s)), including uncommitted and untracked files. "
+                     f"Only these were scanned and gated"
+                     + (f": {shown_paths}{more}" if scope.files else "") + ".")
     if not image_mode:
-        langs = _languages(code_dir, excludes)
+        langs = _languages(code_dir, excludes, scope.files if scope else None)
         if langs:
             lines.append("- Languages (files): " + ", ".join(f"{l} ({n})" for l, n in langs))
         if excludes:
@@ -195,7 +248,7 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
     lines += ["## Blind spots", "",
               "What this scan did not or could not check. Absence of findings here "
               "is not evidence of absence.", ""]
-    lines += [f"- {s}" for s in _blind_spots(enabled, cfg, coverage, image_mode)]
+    lines += [f"- {s}" for s in _blind_spots(enabled, cfg, coverage, image_mode, scope)]
 
     counts = Counter(f.category for f in findings)
     lines += ["", f"## Findings ({len(findings)}, {gating} gating)", ""]
@@ -206,6 +259,13 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
     lines.append("Ordered gating first, then new, then by severity. For each one, "
                  "decide whether it is real in this codebase; code shown is the "
                  "flagged region (`>`) with context.")
+    if scope:
+        lines.append("")
+        lines.append("Diff scan: a finding in a changed file gates whether or not "
+                     "its own line changed — a change often makes an unchanged "
+                     "line exploitable (e.g. new input reaching an old sink). "
+                     "`CHANGED LINE` marks the ones on a line the change wrote; "
+                     "start there.")
     lines.append("")
     for f in shown:
         lines += _finding(f, gates(f), is_new(f), source, secrets)
