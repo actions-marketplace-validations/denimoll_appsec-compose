@@ -97,7 +97,7 @@ def build(seed: int = SEED) -> tuple[dict[str, str], list[dict]]:
     # The AWS documentation's example key pair: published, inert, everywhere.
     f.add('EXAMPLE_KEY_ID = "AKIA' + 'IOSFODNN7EXAMPLE"  # from the AWS docs',
           "decoy", "aws-docs-example")
-    f.add('EXAMPLE_SECRET = "wJalrXUtnFEMI/K7MDENG/' + 'bPxRfiCYEXAMPLEKEY"  # from the AWS docs',
+    f.add('EXAMPLE_SECRET = "wJalr' + 'XUtnFEMI/' + 'K7MDENG/' + 'bPxRfiCY' + 'EXAMPLEKEY"  # from the AWS docs',
           "decoy", "aws-docs-example")
     f.add('API_KEY = "YOUR_API_KEY_HERE"', "decoy", "placeholder")
     f.add('ADMIN_PASSWORD = "changeme"  # overridden in production', "decoy", "low-entropy-password")
@@ -160,7 +160,8 @@ def build(seed: int = SEED) -> tuple[dict[str, str], list[dict]]:
     # line has found the same secret as one pointing at `private_key`.
     f.add("\n".join([
         "{",
-        '  "type": "service_account",',
+        # Split so this generator is not itself a service-account key to Trivy.
+        '  "type": "service_' 'account",',
         '  "project_id": "acme-prod",',
         f'  "private_key_id": "{_r(rng, HEX, 40)}",',
         f'  "private_key": "{pk}",',

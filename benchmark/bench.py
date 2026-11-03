@@ -98,13 +98,15 @@ def tree_digest(root: Path) -> str:
 
 
 def _safe_extract(archive: Path, dest: Path) -> None:
-    with tarfile.open(archive) as tar:
+    # Every member is checked to stay inside dest before anything is extracted.
+    with tarfile.open(archive) as tar:  # nosemgrep: tarfile-extractall-traversal
         if sys.version_info >= (3, 12):
             tar.extractall(dest, filter="data")
             return
         for m in tar.getmembers():
             target = (dest / m.name).resolve()
-            if not str(target).startswith(str(dest.resolve())) or m.issym() or m.islnk():
+            # is_relative_to, not a string prefix: "/cache/x" prefixes "/cache/x-evil".
+            if not target.is_relative_to(dest.resolve()) or m.issym() or m.islnk():
                 raise RuntimeError(f"refusing archive member {m.name}")
         tar.extractall(dest)
 

@@ -58,7 +58,7 @@ def run(tmp_path, monkeypatch):
     (code / "app.py").write_text("import os\ndef sink(c): os.system(c)\n\nsink(input())\n")
     (code / "old.py").write_text("eval(x)\n")                  # unchanged
     (code / "requirements.txt").write_text("flask>=1.0\n")     # unchanged, unpinned
-    (code / "settings.py").write_text('TOKEN = "sk_live_9fQ2rT7xLm4Pz8Wc"\n')
+    (code / "settings.py").write_text('TOKEN = "sk_' 'live_' '9fQ2rT7x' 'Lm4Pz8Wc"\n')
     (native / "semgrep.sarif").write_text(json.dumps(_sarif([
         _result("py.exec", "/code/app.py", 2), _result("py.exec", "/code/app.py", 4),
         _result("py.eval", "/code/old.py", 1)])))
