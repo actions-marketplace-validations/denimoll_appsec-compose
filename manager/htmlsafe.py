@@ -40,6 +40,11 @@ button.danger { background: #c62828; border-color: #c62828; }
 .pass { background: #1a7f37; } .fail { background: #c62828; }
 .scan_error, .usage_error { background: #b45309; } .none { background: #777; }
 .running, .queued { background: #1f6feb; }
+.warn { background: #b45309; margin-left: .35rem; }
+.attention { border-left: 3px solid #b45309; padding: .5rem .9rem; margin-bottom: 1rem; }
+.attention ul { margin: 0; padding-left: 1.1rem; }
+.attention li { font-size: .9rem; margin: .2rem 0; list-style: disc; }
+details.spots li { font-size: .9rem; list-style: disc; }
 """
 
 

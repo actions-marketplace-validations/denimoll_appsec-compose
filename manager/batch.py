@@ -39,6 +39,10 @@ def run_batch(extra: list[str] | None = None, jobs: int = 1, on_begin=None) -> d
             "index_html": str(index_file()), "projects": results}
 
 
+def _warned(notes: list[str]) -> Safe:
+    return h(' <small title="{}">{} to check</small>', " ".join(notes), len(notes)) if notes else Safe("")
+
+
 def _row(project: store.Project) -> Safe:
     run = runs.latest(project.name)
     link: Safe | str = "—"
@@ -46,7 +50,9 @@ def _row(project: store.Project) -> Safe:
         link = h('<a href="projects/{}/reports/summary.html">summary</a>', url(project.name))
     return h("<tr><td>{name}</td><td>{verdict}</td><td>{counts}</td><td>{top}</td>"
              "<td>{when}</td><td>{link}</td></tr>",
-             name=project.name, verdict=badge((run or {}).get("verdict")),
+             name=project.name,
+             verdict=join([badge((run or {}).get("verdict")),
+                           _warned(runs.attention_of(project.name, run))]),
              counts=counts_text((run or {}).get("severity_counts")),
              top=(run or {}).get("top_component") or "—",
              when=(run or {}).get("finished") or "never", link=link)

@@ -18,7 +18,7 @@ import json
 import os
 import time
 
-from .paths import private_dir, project_state, write_atomic
+from .paths import private_dir, project_state, reports_dir, write_atomic
 
 DEFAULT_KEEP = 20
 _LOCK_TRIES = 3
@@ -114,7 +114,7 @@ def _top_component(components: object) -> str | None:
 
 def summarize(findings_json: object) -> dict:
     """What a run's history entry keeps from findings.json. Tolerates any shape."""
-    empty = {"severity_counts": None, "breaching": None, "top_component": None}
+    empty = {"severity_counts": None, "breaching": None, "top_component": None, "attention": []}
     if not findings_json:
         return empty
     try:
@@ -132,7 +132,57 @@ def summarize(findings_json: object) -> dict:
                             for s in SEVERITIES} if isinstance(counts, dict) else None,
         "breaching": breaching if isinstance(breaching, int) else None,
         "top_component": _top_component(data.get("components")),
+        "attention": _attention(data),
     }
+
+
+def _attention(data: dict) -> list[str]:
+    """What makes this result less than it looks: a count of findings says
+    nothing about dependencies no engine resolved or a report that came back
+    incomplete, and "no findings there" is easy to read as clean."""
+    out: list[str] = []
+    coverage = data.get("coverage") if isinstance(data.get("coverage"), dict) else {}
+    for warning in coverage.get("warnings") or []:
+        if isinstance(warning, dict):
+            out.append(f"{warning.get('message', '')} {warning.get('advice', '')}".strip())
+    out += [f"Incomplete or unreadable report: {e}" for e in data.get("reports_errored") or []]
+    out += [f"No report from: {r}" for r in data.get("reports_missing") or []]
+    prov = data.get("provenance") if isinstance(data.get("provenance"), dict) else {}
+    repo = prov.get("repo_config")
+    if isinstance(repo, dict):
+        out.append(f"The scanned repository's own {repo.get('file', 'config')} set: "
+                   f"{', '.join(map(str, repo.get('applied') or [])) or 'nothing'}.")
+    return [str(x)[:400] for x in out[:8]]
+
+
+def attention_of(name: str, run: dict | None) -> list[str]:
+    """A run's warnings. Runs recorded before the field: from the latest report."""
+    if not run:
+        return []
+    if isinstance(run.get("attention"), list):
+        return [str(x) for x in run["attention"]]
+    if not run.get("has_reports"):
+        return []
+    return summarize(reports_dir(name) / "findings.json")["attention"]
+
+
+_SPOT_MARKUP = str.maketrans("", "", "*`")
+
+
+def blind_spots(name: str) -> list[str]:
+    """The review brief's blind-spot bullets, as plain text."""
+    try:
+        with open(reports_dir(name) / "review-brief.md", encoding="utf-8") as fh:
+            text = fh.read(256 * 1024)
+    except OSError:
+        return []
+    _, found, rest = text.partition("## Blind spots")
+    if not found:
+        return []
+    section = rest.split("\n## ", 1)[0]
+    # These two are already in `attention`, above them on the page.
+    return [line[2:].translate(_SPOT_MARKUP) for line in section.splitlines()
+            if line.startswith("- ") and not line.startswith(("- **SCA coverage:", "- **Incomplete report:"))]
 
 
 def total(run: dict | None) -> int | None:

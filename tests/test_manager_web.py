@@ -653,3 +653,42 @@ def test_the_stylesheet_is_local_and_nothing_loads_from_elsewhere(box, client):
     assert 'href="/pico.css"' in page.text and "http://" not in page.text.split("</head>")[0]
     csp = page.getheader("Content-Security-Policy")
     assert "img-src data:" in csp and "script-src" not in csp and "default-src 'none'" in csp
+
+
+def _seed_report(box, name, findings, brief=""):
+    from manager import runs
+    from manager.paths import reports_dir
+    box.add(name)
+    base = reports_dir(name)
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "findings.json").write_text(json.dumps(findings))
+    (base / "review-brief.md").write_text(brief)
+    return base, runs
+
+
+def test_a_result_with_holes_says_so_on_the_ui(box, client):
+    """266 findings and no word that no dependency was checked reads as complete."""
+    evil = '<script>alert(1)</script>/requirements.txt'
+    findings = {"severity_counts": {"high": 1}, "policy": {"breaching": 1},
+                "coverage": {"warnings": [{"kind": "k", "message": f"{evil} specifies ranges.",
+                                           "advice": "Pin the versions."}]},
+                "reports_errored": ["semgrep.sarif: incomplete — engine was killed"],
+                "provenance": {"repo_config": {"file": ".appsec-compose.yml", "applied": ["fail_on"]}}}
+    brief = "## Blind spots\n\n- **Reachability:** not checked.\n\n## Findings (0)\n- not a spot\n"
+    _, runs = _seed_report(box, "holes", findings, brief)
+    # A run recorded before the field existed still shows them, from the report.
+    runs.record("holes", {"finished": "t", "verdict": "fail", "has_reports": True})
+    page = client.get("/projects/holes").text
+    assert "Check before trusting this result" in page and "Pin the versions." in page
+    assert "engine was killed" in page and "set: fail_on" in page
+    assert "Reachability: not checked." in page and "not a spot" not in page
+    assert "<script>alert(1)" not in page and "&lt;script&gt;" in page
+    board = client.get("/").text
+    assert "3 to check" in board and "<script>alert(1)" not in board
+
+
+def test_a_clean_result_shows_no_warning(box, client):
+    _, runs = _seed_report(box, "clean", {"severity_counts": {}, "coverage": {"warnings": []}})
+    runs.record("clean", {"finished": "t", "verdict": "pass", "has_reports": True, "attention": []})
+    assert "Check before trusting" not in client.get("/projects/clean").text
+    assert "to check" not in client.get("/").text

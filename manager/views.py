@@ -52,6 +52,28 @@ def _status_badge(state: str, run: dict | None) -> Safe:
     return badge(state) if state != "idle" else badge((run or {}).get("verdict"))
 
 
+def _warn_badge(notes: list[str]) -> Safe:
+    if not notes:
+        return Safe("")
+    return h('<span class="badge warn" title="{}">{} to check</span>', " ".join(notes), len(notes))
+
+
+def _attention_block(notes: list[str]) -> Safe:
+    if not notes:
+        return Safe("")
+    items = join(h("<li>{}</li>", note) for note in notes)
+    return h('<section class="attention"><strong>Check before trusting this result</strong>'
+             "<ul>{}</ul></section>", items)
+
+
+def _blind_spots_block(spots: list[str]) -> Safe:
+    if not spots:
+        return Safe("")
+    items = join(h("<li>{}</li>", spot) for spot in spots)
+    return h('<details class="spots"><summary>What this scan did not check</summary>'
+             "<ul>{}</ul></details>", items)
+
+
 def dashboard(scans, token: str, error: str | None = None) -> bytes:
     projects, broken = store.list_projects()
     rows = []
@@ -66,7 +88,9 @@ def dashboard(scans, token: str, error: str | None = None) -> bytes:
             '<tr><td><a href="{link}">{name}</a></td><td>{status}</td><td>{counts}</td>'
             '<td>{trend}</td><td>{top}</td><td>{when}</td><td><code>{schedule}</code></td>'
             '<td>{report}</td><td>{scan}</td></tr>',
-            link=link, name=project.name, status=_status_badge(scans.state(project.name), run),
+            link=link, name=project.name,
+            status=join([_status_badge(scans.state(project.name), run),
+                         _warn_badge(runs.attention_of(project.name, run))]),
             counts=counts_text((run or {}).get("severity_counts")), trend=_trend(history),
             top=(run or {}).get("top_component") or "—", when=(run or {}).get("finished") or "never",
             schedule=project.schedule or "—", report=report,
@@ -141,6 +165,7 @@ def project_page(project: store.Project, scans, token: str, error: str | None = 
     body = h("""<h1>{name} {status}</h1>{error}
 <p>{scan} <a href="{link}/status.json">status.json</a></p>
 <p>Trend: {trend}</p>
+{attention}{spots}
 <h2>Latest reports</h2><p>{reports}</p>
 <h2>Runs</h2><div class="tablewrap"><table><thead><tr><th>Finished</th><th>Verdict</th><th>Severity</th><th>Trigger</th>
 <th>Took</th><th>Error</th></tr></thead><tbody>{rows}</tbody></table></div>
@@ -150,6 +175,8 @@ def project_page(project: store.Project, scans, token: str, error: str | None = 
 clone and history. A local target is not touched.</label>
 <p><button class="danger">Delete</button></p></form>""",
              name=name, status=_status_badge(state, run), error=_error(error),
+             attention=_attention_block(runs.attention_of(name, run)),
+             spots=_blind_spots_block(runs.blind_spots(name)),
              scan=_action(h("{}/scan", link), "Scan now", token), link=link,
              trend=_trend(history), reports=report_links or "None yet.", rows=rows,
              csrf=_csrf(token), fields=_project_fields(project.to_dict()))
