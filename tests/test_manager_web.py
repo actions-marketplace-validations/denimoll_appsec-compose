@@ -633,3 +633,14 @@ def test_the_scan_log_is_never_rendered(box, client):
     (state / "scan.log").write_text("ENGINE-OUTPUT")
     for path in ("/", "/projects/p", "/projects/p/status.json"):
         assert "ENGINE-OUTPUT" not in client.get(path).text
+
+
+def test_browsers_get_a_real_origin_on_the_uis_own_forms(box, client):
+    """With Referrer-Policy: no-referrer a browser sends "Origin: null" on a
+    same-origin form post, and the Origin check refuses the UI's own forms."""
+    assert client.get("/").headers["Referrer-Policy"] == "same-origin"
+
+
+def test_the_add_form_explains_its_fields(box, client):
+    page = client.get("/projects/new").text
+    assert 'class="hint"' in page and "owner=team-payments" in page

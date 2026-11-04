@@ -90,13 +90,24 @@ def _profile_options(selected: str | None) -> Safe:
 def _project_fields(values: dict) -> Safe:
     meta = "\n".join(f"{k}={v}" for k, v in (values.get("meta") or {}).items()) \
         if isinstance(values.get("meta"), dict) else values.get("meta") or ""
-    return h("""<label for="target">Target: an absolute path, or an https / ssh git URL</label>
+    return h("""<label for="target">Target</label>
 <input type="text" id="target" name="target" value="{target}" required>
+<p class="hint">A folder on this machine (<code>/Users/me/src/api</code>) or a git URL
+(<code>https://github.com/org/repo.git</code>, ssh too). A repository is cloned, and
+refreshed before each scan.</p>
 <label for="profile">Profile</label><select id="profile" name="profile">{options}</select>
-<label for="meta">Metadata: key=value, one per line</label>
-<textarea id="meta" name="meta" rows="4">{meta}</textarea>
-<label for="schedule">Schedule: 5-field cron, empty for none</label>
-<input type="text" id="schedule" name="schedule" value="{schedule}">""",
+<p class="hint">Scan settings shared between projects: engines, the gate, exclusions.
+Without one the shipped defaults apply. Create them under Profiles.</p>
+<label for="meta">Metadata (optional)</label>
+<textarea id="meta" name="meta" class="short" rows="3">{meta}</textarea>
+<p class="hint">Your own notes about the project, one <code>key=value</code> per line, such as
+<code>owner=team-payments</code> or <code>env=prod</code>. Kept with the project; the scan
+does not use them.</p>
+<label for="schedule">Schedule (optional)</label>
+<input type="text" id="schedule" name="schedule" value="{schedule}">
+<p class="hint">Cron: minute hour day month weekday. <code>0 3 * * 1</code> is Mondays at
+03:00. Runs while <code>appsec-compose serve</code> is up; to run without it, install the
+lines from <code>appsec-compose project cron</code>.</p>""",
              target=values.get("target"), options=_profile_options(values.get("profile")),
              meta=meta, schedule=values.get("schedule"))
 
@@ -106,6 +117,7 @@ def new_project(token: str, values: dict | None = None, error: str | None = None
     body = h("""<h1>Add a project</h1>{error}<form method="post" action="/projects">{csrf}
 <label for="name">Name</label>
 <input type="text" id="name" name="name" value="{name}" required>
+<p class="hint">Lowercase letters, digits and hyphens, such as <code>payments-api</code>.</p>
 {fields}<p><button>Add</button></p></form>""",
              error=_error(error), csrf=_csrf(token), name=values.get("name"),
              fields=_project_fields(values))
@@ -150,8 +162,13 @@ is laid over the profile, so its suppressions keep working.</p>
 <ul>{items}</ul><h2>New profile</h2>
 <form method="post" action="/profiles">{csrf}<label for="name">Name</label>
 <input type="text" id="name" name="name" required>
-<label for="yaml">YAML, same format as a project config</label>
-<textarea id="yaml" name="yaml"></textarea><p><button>Create</button></p></form>""",
+<p class="hint">Lowercase letters, digits and hyphens.</p>
+<label for="yaml">Settings (YAML)</label>
+<textarea id="yaml" name="yaml"></textarea>
+<p class="hint">Only what differs from the defaults, for example:<br>
+<code>fail_on: critical</code><br><code>exclude: [vendor, fixtures]</code><br>
+<code>scanners: {{zizmor: {{enabled: false}}}}</code></p>
+<p><button>Create</button></p></form>""",
              items=items, csrf=_csrf(token))
     return page("Profiles", body)
 

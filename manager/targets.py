@@ -95,6 +95,10 @@ def check_stored(target: object) -> str:
 
 def normalize(raw: str) -> str:
     """A target given by the user: a URL as it is, a path absolute and existing."""
+    raw = (raw or "").strip()
+    # A path copied from a terminal or dragged from a file manager comes quoted.
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "'\"":
+        raw = raw[1:-1].strip()
     if not raw:
         raise UsageError("a target is required: a directory, or an https/ssh git URL")
     if is_git_url(raw):

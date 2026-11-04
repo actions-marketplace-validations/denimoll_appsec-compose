@@ -770,3 +770,13 @@ def test_no_repo_config_is_stored_and_survives_an_update(tmp_path, monkeypatch):
     assert store.load_project("third").repo_config is False
     store.add_project("mine", str(target))
     assert store.load_project("mine").repo_config is True
+
+
+def test_a_quoted_path_from_a_terminal_is_accepted(tmp_path):
+    from manager import targets
+    folder = tmp_path / "my project"
+    folder.mkdir()
+    expected = str(folder.resolve())
+    assert targets.normalize(f"'{folder}'") == expected
+    assert targets.normalize(f'"{folder}"') == expected
+    assert targets.normalize(f"  {folder}  ") == expected

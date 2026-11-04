@@ -28,6 +28,8 @@ code, pre, textarea { font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 input[type=text], textarea, select { width: 100%; max-width: 640px; padding: 6px; }
 textarea { min-height: 200px; }
+textarea.short { min-height: 70px; }
+.hint { margin: 2px 0 6px; max-width: 640px; font-size: 13px; opacity: .75; }
 label { display: block; margin: 12px 0 4px; font-weight: 600; }
 button { padding: 4px 10px; cursor: pointer; }
 form.inline { display: inline; }

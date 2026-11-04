@@ -101,7 +101,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Security-Policy", self._csp)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Referrer-Policy", "no-referrer")
+        # Not no-referrer: browsers then send "Origin: null" on this UI's own form
+        # posts, which the Origin check rightly refuses. same-origin still sends
+        # nothing to other sites.
+        self.send_header("Referrer-Policy", "same-origin")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
