@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """appsec-compose public benchmark — one command, reproducible numbers.
 
-    python3 benchmark/bench.py                    # everything (~10 min warm)
-    python3 benchmark/bench.py --suite sast       # one suite
+    python3 benchmark/bench.py                    # everything (~40 min warm)
+    python3 benchmark/bench.py --suite sast       # one suite (Java; sast-python, sast-js)
     python3 benchmark/bench.py --profile default  # only the shipped defaults
     python3 benchmark/bench.py --rescore          # re-score the last run's reports
 
@@ -12,9 +12,11 @@ derived from the shipped scan-config.yml, (3) scores reports/findings.json
 against the corpus' ground truth and (4) writes benchmark/results.json and the
 generated section of benchmark/RESULTS.md.
 
-Corpora are pinned: OWASP Benchmark by commit SHA (downloaded as that commit's
-archive, so no git is needed), the secrets and SCA corpora by the generator
-code in this directory plus a recorded tree digest.
+Corpora are pinned: OWASP Benchmark (Java, Python) and the OpenSSF CVE
+Benchmark metadata by commit SHA (downloaded as that commit's archive, so no
+git is needed) — the CVE files themselves by the commit SHAs the metadata
+names — the secrets and SCA corpora by the generator code in this directory;
+every corpus also by a recorded tree digest.
 
 Needs what run.sh needs (Docker, Python 3.9+, PyYAML) and network access.
 """
@@ -39,6 +41,7 @@ ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
 import net                      # noqa: E402
+import ossf_cve                 # noqa: E402
 import report                   # noqa: E402
 import sca_corpus               # noqa: E402
 import scoring                  # noqa: E402
@@ -61,6 +64,56 @@ SUITES = {
                     "label": "Semgrep, p/default (shipped default)"},
         "auto": {"enable": ["semgrep"], "semgrep_rules": ["default", "auto"],
                  "label": "Semgrep, p/default + `auto` stack packs (opt-in)"},
+    },
+    # Per language, the question is which registry packs are worth running on
+    # top of (or instead of) p/default. A pack *alone* shows what its rules
+    # find; `default + X` is what adding it would change. Each is a separate
+    # run, so every row is a real scan, not arithmetic over another one.
+    "sast-python": {
+        "default": {"enable": ["semgrep"],
+                    "label": "Semgrep, p/default (shipped default)"},
+        "auto": {"enable": ["semgrep"], "semgrep_rules": ["default", "auto"],
+                 "label": "Semgrep, p/default + `auto` stack packs (opt-in)"},
+        "python": {"enable": ["semgrep"], "semgrep_rules": ["p/python"],
+                   "label": "Semgrep, p/python alone"},
+        "flask": {"enable": ["semgrep"], "semgrep_rules": ["p/flask"],
+                  "label": "Semgrep, p/flask alone"},
+        "django": {"enable": ["semgrep"], "semgrep_rules": ["p/django"],
+                   "label": "Semgrep, p/django alone (control: not a Django app)"},
+        "security-audit": {"enable": ["semgrep"], "semgrep_rules": ["p/security-audit"],
+                           "label": "Semgrep, p/security-audit alone"},
+        "owasp-top-ten": {"enable": ["semgrep"], "semgrep_rules": ["p/owasp-top-ten"],
+                          "label": "Semgrep, p/owasp-top-ten alone"},
+        "all": {"enable": ["semgrep"],
+                "semgrep_rules": ["default", "p/python", "p/flask", "p/django",
+                                  "p/security-audit", "p/owasp-top-ten"],
+                "label": "Semgrep, p/default + every pack above (ceiling)"},
+    },
+    "sast-js": {
+        "default": {"enable": ["semgrep"],
+                    "label": "Semgrep, p/default (shipped default)"},
+        "auto": {"enable": ["semgrep"], "semgrep_rules": ["default", "auto"],
+                 "label": "Semgrep, p/default + `auto` stack packs (opt-in)"},
+        # p/typescript is the same rule set as p/javascript (checked: identical
+        # rule ids), so it is not measured twice; `auto` picks both up anyway.
+        "javascript": {"enable": ["semgrep"], "semgrep_rules": ["p/javascript"],
+                       "label": "Semgrep, p/javascript alone (= p/typescript)"},
+        "nodejs": {"enable": ["semgrep"], "semgrep_rules": ["p/nodejs"],
+                   "label": "Semgrep, p/nodejs alone"},
+        "expressjs": {"enable": ["semgrep"], "semgrep_rules": ["p/expressjs"],
+                      "label": "Semgrep, p/expressjs alone"},
+        "react": {"enable": ["semgrep"], "semgrep_rules": ["p/react"],
+                  "label": "Semgrep, p/react alone"},
+        "nodejsscan": {"enable": ["semgrep"], "semgrep_rules": ["p/nodejsscan"],
+                       "label": "Semgrep, p/nodejsscan alone"},
+        "security-audit": {"enable": ["semgrep"], "semgrep_rules": ["p/security-audit"],
+                           "label": "Semgrep, p/security-audit alone"},
+        "default-nodejsscan": {"enable": ["semgrep"], "semgrep_rules": ["default", "p/nodejsscan"],
+                               "label": "Semgrep, p/default + p/nodejsscan"},
+        "all": {"enable": ["semgrep"],
+                "semgrep_rules": ["default", "p/javascript", "p/typescript", "p/nodejs",
+                                  "p/expressjs", "p/react", "p/nodejsscan", "p/security-audit"],
+                "label": "Semgrep, p/default + every pack above (ceiling)"},
     },
     "secrets": {
         # Trivy runs `--scanners vuln,secret` by default, so it is part of the
@@ -139,12 +192,15 @@ def fetch_github_commit(repo_url: str, commit: str, cache: Path, name: str) -> P
     return dest
 
 
-def write_tree(dest: Path, files: dict[str, str]) -> Path:
+def write_tree(dest: Path, files: dict[str, str | bytes]) -> Path:
     shutil.rmtree(dest, ignore_errors=True)
     for rel, content in files.items():
         p = dest / rel
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content)
+        if isinstance(content, bytes):
+            p.write_bytes(content)
+        else:
+            p.write_text(content)
     return dest
 
 
@@ -155,6 +211,21 @@ def prepare(suite: str, cache: Path) -> tuple[Path, dict, object]:
         path = fetch_github_commit(meta["repo"], meta["commit"], cache, "benchmarkjava")
         truth = scoring.parse_expected_results((path / meta["expected_results"]).read_text())
         return path, {**meta, "tree_sha256": tree_digest(path)}, truth
+    if suite == "sast-python":
+        meta = CORPORA["owasp_benchmark_python"]
+        path = fetch_github_commit(meta["repo"], meta["commit"], cache, "benchmarkpython")
+        truth = scoring.parse_expected_results((path / meta["expected_results"]).read_text())
+        return path, {**meta, "tree_sha256": tree_digest(path)}, truth
+    if suite == "sast-js":
+        meta = CORPORA["ossf_cve_benchmark"]
+        src = fetch_github_commit(meta["repo"], meta["commit"], cache, "ossf-cve-benchmark")
+        files, cases, excluded = ossf_cve.build(src / meta["cves_dir"],
+                                                cache / "downloads" / "ossf-cve-files", net.fetch)
+        path = write_tree(cache / "corpora" / f"ossf-cve-files-{meta['commit'][:12]}", files)
+        meta = {**meta, "cves_listed": len(cases) + len(excluded), "cves_scored": len(cases),
+                "cves_fix_elsewhere": sum(c["fix_elsewhere"] for c in cases),
+                "excluded": excluded, "files": len(files), "tree_sha256": tree_digest(path)}
+        return path, meta, cases
     if suite == "secrets":
         files, labels = synthetic_secrets.build()
         path = write_tree(cache / "corpora" / f"secrets-synthetic-v{synthetic_secrets.GENERATOR_VERSION}", files)
@@ -225,8 +296,62 @@ def _db_dates_on_disk() -> dict[str, str]:
     return dates
 
 
+SEMGREP_KILLED = "engine was killed"
+
+
+def semgrep_crash(reports: Path) -> str | None:
+    """Semgrep's own account of a crashed scan, or None.
+
+    When semgrep-core dies (typically out of memory) Semgrep still writes a
+    valid SARIF — `executionSuccessful: true`, zero results — and says so only
+    in an error-level tool notification. The collector reads that SARIF as a
+    clean scan, so without this check a crashed run would score as "found
+    nothing".
+    """
+    try:
+        inv = json.loads((reports / "native/semgrep.sarif").read_text())["runs"][0]["invocations"][0]
+    except (OSError, KeyError, IndexError, ValueError):
+        return None
+    for n in inv.get("toolExecutionNotifications") or []:
+        text = (n.get("message") or {}).get("text", "")
+        if n.get("level") == "error" and SEMGREP_KILLED in text:
+            return next(line.strip() for line in text.splitlines() if SEMGREP_KILLED in line)
+    return None
+
+
+def semgrep_notifications(reports: Path) -> dict:
+    """Counts of Semgrep's per-file problems: rule timeouts, parse errors, other."""
+    try:
+        inv = json.loads((reports / "native/semgrep.sarif").read_text())["runs"][0]["invocations"][0]
+    except (OSError, KeyError, IndexError, ValueError):
+        return {}
+    out = {"timeouts": 0, "syntax_errors": 0, "other": 0}
+    for n in inv.get("toolExecutionNotifications") or []:
+        text = (n.get("message") or {}).get("text", "")
+        key = ("timeouts" if text.startswith("Timeout") else
+               "syntax_errors" if "Syntax error" in text or "syntax error" in text else "other")
+        out[key] += 1
+    return out
+
+
 def run_scan(suite: str, name: str, profile: dict, corpus: Path, corpus_digest: str,
-             cache: Path, keep_images: bool) -> dict:
+             cache: Path, keep_images: bool, attempts: int = 3) -> dict:
+    """One scan; retried when Semgrep reports its engine was killed (see
+    semgrep_crash), because that is a resource accident of this host, not a
+    property of the rules — and a crashed run must never be scored."""
+    for attempt in range(1, attempts + 1):
+        meta = _run_scan_once(suite, name, profile, corpus, corpus_digest, cache, keep_images)
+        crash = semgrep_crash(cache / "runs" / f"{suite}-{name}" / "reports")
+        if crash is None:
+            meta["attempts"] = attempt
+            (cache / "runs" / f"{suite}-{name}" / "meta.json").write_text(json.dumps(meta, indent=2))
+            return meta
+        log(f"{suite}/{name}: Semgrep crashed ({crash}); attempt {attempt}/{attempts}")
+    raise RuntimeError(f"{suite}/{name}: Semgrep crashed on every attempt: {crash}")
+
+
+def _run_scan_once(suite: str, name: str, profile: dict, corpus: Path, corpus_digest: str,
+                   cache: Path, keep_images: bool) -> dict:
     run_dir = cache / "runs" / f"{suite}-{name}"
     reports = run_dir / "reports"
     shutil.rmtree(run_dir, ignore_errors=True)
@@ -272,9 +397,23 @@ def _semgrep_rules_loaded(reports: Path) -> dict:
 
 def score(suite: str, truth, findings_doc: dict, reports: Path) -> dict:
     findings = findings_doc["findings"]
-    if suite == "sast":
-        result = scoring.score_owasp_benchmark(truth, findings)
+    if suite in ("sast", "sast-python", "sast-js"):
+        if suite == "sast-js":
+            result = scoring.score_cve_pairs(truth, findings)
+            # The official rule wants the finding to *start* on the labelled
+            # line; a multi-line match that covers it is reported alongside.
+            span = scoring.score_cve_pairs(truth, findings, match="span")
+            result["span_match"] = {"totals": span["totals"]}
+        else:
+            result = scoring.score_owasp_benchmark(truth, findings)
+        if suite == "sast-python":
+            lenient = scoring.score_owasp_benchmark(truth, findings, scoring.PYTHON_LENIENT_CWE_MAP)
+            result["lenient_cwe"] = {"average": lenient["average"], "totals": lenient["totals"],
+                                     "categories": {k: lenient["categories"][k]
+                                                    for k in ("codeinj", "hash")
+                                                    if k in lenient["categories"]}}
         result.update(_semgrep_rules_loaded(reports))
+        result["semgrep_notifications"] = semgrep_notifications(reports)
         sast = [f for f in findings if f["category"] == "sast"]
         result["sast_findings"] = len(sast)
         result["sast_findings_by_severity"] = _count(f["severity"] for f in sast)
@@ -367,6 +506,14 @@ def main(argv: list[str] | None = None) -> int:
                  "docker": _cmd(["docker", "version", "--format", "{{.Server.Version}}"])},
         "suites": dict(previous.get("suites", {})),
     }
+    # Suites not re-run keep the numbers of an older run; each suite says which
+    # run (date, version, commit) measured it, so a partial re-run cannot pass
+    # old numbers off as new. Suites from before this was recorded inherit the
+    # previous file's top-level stamp, which is the run that measured them.
+    for kept in results["suites"].values():
+        kept.setdefault("measured", {k: previous.get(k) for k in
+                                     ("generated", "appsec_compose", "appsec_compose_commit")})
+    stamp = {k: results[k] for k in ("generated", "appsec_compose", "appsec_compose_commit")}
 
     for suite in args.suite or list(SUITES):
         corpus, meta, truth = prepare(suite, cache)
@@ -389,10 +536,16 @@ def main(argv: list[str] | None = None) -> int:
             if doc.get("reports_missing") or doc.get("reports_errored"):
                 raise RuntimeError(f"{suite}/{name}: engines failed to report: "
                                    f"{doc.get('reports_missing')} {doc.get('reports_errored')}")
+            crash = semgrep_crash(run_dir / "reports")
+            if crash:   # only reachable with --rescore: run_scan retries or raises
+                raise RuntimeError(f"{suite}/{name}: Semgrep crashed in this run: {crash}")
             runs[name] = {**run_meta, "provenance": doc["provenance"],
                           "score": score(suite, truth, doc, run_dir / "reports")}
             log(f"{suite}/{name}: {report.headline(suite, runs[name]['score'])}")
-        results["suites"][suite] = {"corpus": meta, "runs": runs}
+        # --rescore re-reads an old scan: it keeps the stamp of the run that made it.
+        measured = ((results["suites"].get(suite) or {}).get("measured")
+                    if args.rescore else None) or stamp
+        results["suites"][suite] = {"corpus": meta, "runs": runs, "measured": measured}
 
     text = json.dumps(results, indent=2) + "\n"
     if args.no_write:

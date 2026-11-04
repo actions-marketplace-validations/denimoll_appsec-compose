@@ -28,7 +28,7 @@ then scan any directory — by hand or as the first step of an AI agent's review
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
 # or, reading it first / pinning a version:
 curl -fsSLO https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh
-bash install.sh --ref v.1.3.0          # or APPSEC_COMPOSE_VERSION=v.1.3.0 bash install.sh
+bash install.sh --ref v.1.4.0          # or APPSEC_COMPOSE_VERSION=v.1.4.0 bash install.sh
 ```
 
 [`install.sh`](../install.sh) checks the [requirements](#requirements) and names
@@ -139,6 +139,33 @@ matches this checkout, else a local build tagged
 the build; a development checkout — unreleased `VERSION`, or edits on top of a
 released one — always runs its own code. Set `ASS_COLLECTOR_IMAGE` to force an
 image (e.g. a registry mirror).
+
+## Project profile
+
+```bash
+appsec-compose profile ~/src/api            # instant: one walk, no containers
+appsec-compose profile ~/src/api --write    # create .appsec-compose.yml from it
+```
+
+Reports the languages, the frameworks the manifests declare (Django, Flask,
+FastAPI, Express, React, Spring, Rails, Laravel, Gin, ASP.NET Core, …), the IaC
+and CI files, and each dependency manifest with its lock file — then the few
+config changes that fit, each with its reason:
+
+- Python is a main language → `semgrep.rules: [default, auto]`, which adds
+  `p/python` — the one pack the [benchmark](../benchmark/RESULTS.md) found
+  worth adding; framework packs added nothing measurable, so none is proposed.
+- dependencies without a lock file, or `requirements.txt` with ranges →
+  enable OSV-Scanner, which resolves ranges (it sends dependency names and
+  versions to osv.dev; committing a lock file is the better fix).
+- no GitHub workflows, actions or dependabot config → zizmor off.
+- generated or vendored directories the default `exclude:` misses
+  (`.next`, `coverage`, `third_party`, …) → named for you to review.
+
+`--write` creates `.appsec-compose.yml` with only those changes and their
+reasons as comments; an existing file is never overwritten. `--json` gives the
+same as one object. The scan uses the same detection: it picks Checkov's
+frameworks, and the review brief names the languages and frameworks.
 
 ## Diff mode (scan only what a change touched)
 
@@ -255,6 +282,9 @@ projects:
 ./run.sh /src/front --name front --config profiles/front.yml \
                     --reports /var/appsec/front --baseline /var/appsec/front/baseline.json
 ```
+
+Or let appsec-compose keep the list: [projects](projects.md) gives each one a name,
+a profile, a run history, batch runs and schedules.
 
 `--name` namespaces the containers (`COMPOSE_PROJECT_NAME`), and `cache/` stays
 shared on purpose — the vulnerability databases are the same for every project.

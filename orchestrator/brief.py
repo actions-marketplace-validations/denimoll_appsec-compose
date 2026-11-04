@@ -16,6 +16,7 @@ import os
 from collections import Counter
 from pathlib import Path
 
+import projectprofile
 from baseline import _Source, _mask_secret
 from components import group
 from dedup import _norm_file
@@ -32,15 +33,7 @@ _CONTEXT = 2           # lines of code either side of a SAST/IaC finding
 _MAX_FLAGGED = 8
 _MAX_LINE = 240        # minified code makes for useless context
 
-_LANGUAGES = {
-    ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript", ".mjs": "JavaScript",
-    ".ts": "TypeScript", ".tsx": "TypeScript", ".go": "Go", ".java": "Java",
-    ".kt": "Kotlin", ".scala": "Scala", ".rb": "Ruby", ".php": "PHP", ".cs": "C#",
-    ".c": "C", ".h": "C", ".cpp": "C++", ".cc": "C++", ".hpp": "C++",
-    ".rs": "Rust", ".swift": "Swift", ".m": "Objective-C", ".sh": "Shell",
-    ".tf": "Terraform", ".sql": "SQL", ".ex": "Elixir", ".exs": "Elixir",
-    ".dart": "Dart", ".lua": "Lua", ".pl": "Perl", ".vue": "Vue",
-}
+_LANGUAGES = projectprofile.LANGUAGES     # one table for every reader of the repo
 _MAX_WALK = 20_000
 
 _CATEGORY_NAMES = {"sast": "SAST", "sca": "SCA", "secrets": "Secrets", "iac": "IaC"}
@@ -266,7 +259,7 @@ def _components(comps, gates, is_new) -> list[str]:
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
            image_mode: bool, new_fps: set[str] | None, scope=None,
-           license_stats=None) -> None:
+           license_stats=None, incomplete=None, suppressed_by_repo=0) -> None:
     source = _Source(None if image_mode else code_dir)
     secrets = {(_norm_file(f.file), f.line): f for f in findings
                if f.category == "secrets" and f.line}
@@ -316,9 +309,16 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
                      f"Only these were scanned and gated"
                      + (f": {shown_paths}{more}" if scope.files else "") + ".")
     if not image_mode:
-        langs = _languages(code_dir, excludes, scope.files if scope else None)
+        if scope:                          # diff mode: the changed files only
+            langs, frameworks = _languages(code_dir, excludes, scope.files), []
+        else:                              # one walk: languages and frameworks
+            prof = projectprofile.scan(code_dir, sorted(excludes))
+            langs, frameworks = prof.languages, prof.frameworks
         if langs:
             lines.append("- Languages (files): " + ", ".join(f"{l} ({n})" for l, n in langs))
+        if frameworks:
+            lines.append("- Frameworks (from the manifests): " + ", ".join(frameworks)
+                         + " — review framework-specific risks the generic rules miss")
         if excludes:
             lines.append("- Not scanned (excluded): " + ", ".join(f"`{e}`" for e in sorted(excludes)))
     fws = provenance.get("checkov_frameworks")
@@ -333,6 +333,25 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
               "What this scan did not or could not check. Absence of findings here "
               "is not evidence of absence.", ""]
     spots = _blind_spots(enabled, cfg, coverage, image_mode, scope, code_dir)
+    repo_config = provenance.get("repo_config")
+    if repo_config or suppressed_by_repo:
+        # A repository can shape its own report. Fine for your own code; for
+        # anyone else's, the reader has to know before believing a clean result.
+        said = [f"**Set by the scanned repository itself:** "]
+        if repo_config:
+            said.append(f"`{repo_config['file']}` applied "
+                        + (", ".join(f"`{k}`" for k in repo_config.get("applied", [])) or "nothing"))
+            if repo_config.get("dropped"):
+                said.append(" (ignored: " + ", ".join(f"`{k}`" for k in repo_config["dropped"]) + ")")
+            said.append("; ")
+        said.append(f"{suppressed_by_repo} finding(s) are suppressed by it (in-code comments"
+                    + (" or `ignore:`" if repo_config else "") + "). If this is not your own "
+                    "code, rescan with `--no-repo-config` before trusting a clean result.")
+        spots.insert(0, "".join(said))
+    for what in incomplete or []:
+        # First: an engine that failed mid-run makes its zero meaningless.
+        spots.insert(0, f"**Incomplete report:** {what}. Its findings are "
+                        "partial; treat an absence of findings there as unknown.")
     if license_stats and license_stats.unlicensed:
         spots.insert(0, f"**License policy:** {license_stats.unlicensed} of "
                      f"{license_stats.packages} dependencies carry no license data "

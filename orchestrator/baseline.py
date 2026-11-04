@@ -48,7 +48,9 @@ def legacy_fingerprint(f: Finding) -> str:
     """The v1 fingerprint, kept to read baselines written before v2."""
     parts = [f.category, f.rule_id, _legacy_norm_file(f.file), f.package or "",
              str(f.line) if f.line is not None else ""]
-    return hashlib.sha1("|".join(parts).encode()).hexdigest()
+    # An identity from old baseline files, not a security control; v1 is sha1.
+    return hashlib.sha1(  # nosemgrep: insecure-hash-algorithm-sha1
+        "|".join(parts).encode(), usedforsecurity=False).hexdigest()
 
 
 def _vuln_key(f: Finding) -> str:

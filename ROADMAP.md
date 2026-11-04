@@ -74,17 +74,17 @@
   (`LICENSE:<id>`) under the usual gate, suppressions and baseline.
   Dependencies whose manifests record no license are counted as unjudged.
 
-## Release: 1.3.0
+## Release: 1.4.0
 
-1.2.0 shipped. 1.3.0 adds, with no breaking change (`findings.json` 1.3 is
-additions only): dependencies grouped per vulnerable component with the
-version to upgrade to; per-engine timings in every report; the MCP
-`components` tool; Checkov limited to the frameworks a repository has files
-for and run without its guideline download (django full scan 58.7 s ->
-34.6 s, identical findings); AGENTS.md for AI agents; the speed benchmark.
+1.3.0 shipped. 1.4.0 adds the project profile, optional projects with batch
+runs, schedules and a local UI, cross-engine merging of CI workflow findings,
+and repo-relative native SARIF; it detects engines that fail mid-run and stops
+trusting a scanned repository's own config. Breaking: `enrich`, image versions
+and similar in a repo's `.appsec-compose.yml` now need an explicit `--config`.
 
 - [ ] Merge `develop` -> `main`.
-- [ ] Tag `v.1.3.0` + GitHub Release (triggers the collector image publish to GHCR).
+- [ ] Tag `v.1.4.0` + GitHub Release (triggers the collector image publish to GHCR).
+- [ ] Cold start on a colleague's machine: empty cache and no engine images.
 
 ## Primary direction: local and AI-assisted review
 
@@ -116,33 +116,57 @@ the first step of an AI agent's security review. CI integrations come later.
         (Checkov/Trivy ids → the corpus' answers); skipped until then.
   - [ ] **Secrets on real data** — CredData-style corpus whose values are not
         replaced by allowlisted provider examples.
-  - [ ] More SAST languages (OWASP Benchmark for Python; a JS/TS corpus).
+  - [x] **More SAST languages** — OWASP Benchmark for Python and the OpenSSF
+        CVE Benchmark (real JS/TS CVEs, vulnerable vs fixed file), each Semgrep
+        rule pack scored as its own profile. Python → `p/default` + `p/python`
+        (`auto`); JS/TS → `p/default`, `p/nodejsscan` the only pack that adds
+        detections (+1.4 points, 2× runtime). No pack closes the real gaps.
+  - [x] **Semgrep crash = clean scan** — a SARIF whose run is unsuccessful or
+        carries an error-level notification (semgrep-core killed by OOM) is
+        now an incomplete report: strict fails (exit 3), otherwise it is
+        flagged on the console and as a blind spot in the brief.
 
-- [ ] **Workflow findings across engines** — one template injection is
-      reported by zizmor, Checkov (`CKV_GHA_2`) and Semgrep separately. The
-      per-file IaC equivalence used for Dockerfiles would collapse distinct
-      injections in one workflow into one, so this needs a line-aware merge.
+- [x] **Project profile** — `appsec-compose profile <path>` (and the MCP
+      `profile` tool): languages, frameworks, IaC/CI, dependencies with lock
+      files, and the config that fits, each with a reason; `--write` creates
+      `.appsec-compose.yml`. One detection shared with Checkov's framework
+      choice and the review brief.
+- [x] **Semgrep rules by language: measured, not worth it** — filtering
+      p/default to the project's languages (541 of 1,074 rules on django) gave
+      identical findings and saved 2-4 s of 30; a local rules file also costs
+      more to load than the registry pack, so diff scans would not gain.
+- [x] **Workflow findings across engines** — template injection and unpinned
+      actions from zizmor, Semgrep and Checkov merge where their regions
+      overlap; distinct steps stay distinct, baselines keep working.
 
 ## CI integrations (later — current versions work)
 
-- [ ] Run the GitHub Action and the GitLab template in real pipelines.
+- [x] Run the GitHub Action in a real pipeline (`uses: ./`, gate included) and
+      the GitLab template's job scripts in `docker:29` with the host socket.
+- [ ] A real GitLab runner, including how GitLab takes the reports, and the
+      action from another repository (`uses: denimoll/appsec-compose@v.X.Y.Z`).
 - [ ] Optional moving tag (e.g. `v.1`) for the Action, moved by the release
       workflow; until then, pin an exact `v.X.Y.Z` tag or a commit SHA.
 
-## Multi-project & UI (later)
+## Multi-project & UI
 
-A "project" = a named **profile** (a scan-config) applied to a target entity.
-The enabling primitives are done (`--config`/`--baseline`/`--reports`/`--name`,
-per-run state, shared `cache/`).
+An optional layer over the CLI (`manager/`, [docs/projects.md](docs/projects.md));
+a plain `scan` stays stateless and never touches it. A "project" = a name + a target
++ a **profile** + metadata.
 
-- [ ] **Profiles** — one main profile or several reusable profiles (which
-      practices/engines, SBOM formats, policy, etc.).
-- [ ] **Projects** — entities with their own name, path/address (repo URL or
-      local path) and metadata, each referencing a profile.
-- [ ] **Scheduling** — run a project's scan on a **cron** schedule.
-- [ ] **Batch** — run many projects; aggregated `reports/index.html` across them.
-- [ ] **Minimal UI** — thin backend (e.g. FastAPI/Flask) over `run.sh` to CRUD
-      profiles/projects, browse reports, and manage schedules.
+- [x] **Profiles** — named overlays in the project-config format; shipped defaults
+      < profile < the repo's own `.appsec-compose.yml`, so its suppressions hold.
+- [x] **Projects** — `project add/list/show/rm/scan`: a local path or an https/ssh
+      git URL (shallow clone, argv only), metadata, reports and the last N runs'
+      summaries for a trend under the XDG state directory.
+- [x] **Scheduling** — a cron expression per project; `project cron` prints crontab
+      lines, nothing is installed; `serve` runs what is due; a per-project lock
+      stops two scans of one project from anywhere.
+- [x] **Batch** — `project scan --all`: sequential by default, an aggregated
+      `index.html`, exit with the worst outcome.
+- [x] **Minimal UI** — `serve`: stdlib `http.server`, server-rendered, loopback only
+      by default, Host/CSRF/Origin checks, reports from an allowlist under a strict
+      CSP. No login, so a non-loopback bind needs a flag and warns.
 
 ## Integrations & extras (backlog)
 

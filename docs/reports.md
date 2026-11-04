@@ -29,6 +29,10 @@ table with **category filters**, expandable **details** (description + advisory
 link per finding), and — in baseline mode — a **NEW** flag on findings added
 since the accepted snapshot. It is fully self-contained (no external assets).
 
+Native SARIF is the engine's own output with one change: locations are made
+repo-relative. Engines run with the repository mounted at `/code` and report
+that path, which GitHub code scanning and ASPMs cannot place on a file.
+
 ### Vulnerable components
 
 SCA results are shown per **component** — one row per package@version with

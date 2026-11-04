@@ -10,7 +10,7 @@ import json
 import re
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 # Each source: (filename, tool label, category, parser format).
 SOURCES = [
@@ -484,6 +484,68 @@ class ScanResult:
     reports_errored: list[str]
 
 
+def relativize_sarif(native_dir: str) -> None:
+    """Make the locations in the native SARIF reports repo-relative.
+
+    The engines run with the repository mounted at /code and report that
+    ("/code/app.py", "code/app.py"), a path that exists nowhere else: GitHub
+    code scanning and ASPMs cannot place such a result on a file in the repo.
+    Only artifact locations change; results, rules and levels stay the engine's.
+    """
+    def fix(node) -> bool:
+        changed = False
+        if isinstance(node, dict):
+            loc = node.get("artifactLocation")
+            if isinstance(loc, dict) and isinstance(loc.get("uri"), str):
+                new = quote(_clean_path(loc["uri"]), safe="/:@")
+                if new and new != loc["uri"]:
+                    loc["uri"] = new
+                    changed = True
+            for value in node.values():
+                changed = fix(value) or changed
+        elif isinstance(node, list):
+            for value in node:
+                changed = fix(value) or changed
+        return changed
+
+    for path in Path(native_dir).glob("*.sarif"):
+        try:
+            data = json.loads(path.read_text())
+            if fix(data.get("runs")):
+                path.write_text(json.dumps(data))
+        except (OSError, ValueError, AttributeError):
+            continue            # load_findings reports an unreadable one
+
+
+def _engine_failures(path: Path) -> list[str]:
+    """What a SARIF report admits about its own run going wrong.
+
+    An engine can fail and still write a valid report: Semgrep killed by the
+    out-of-memory killer writes `executionSuccessful: true`, no results, and
+    an error-level notification ("engine was killed"). Reading only the
+    results, that is a clean "0 findings". A run marked unsuccessful, or any
+    error-level notification, makes the report incomplete; warnings (a file
+    that did not parse, a rule that timed out) do not.
+    """
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return []
+    failures = []
+    for run in data.get("runs", []) or []:
+        for inv in run.get("invocations", []) or []:
+            errors = [n for n in inv.get("toolExecutionNotifications", []) or []
+                      if n.get("level") == "error"]
+            if inv.get("executionSuccessful") is False and not errors:
+                failures.append("the engine reported an unsuccessful run")
+            for n in errors[:3]:
+                text = " ".join(str((n.get("message") or {}).get("text", "")).split())
+                failures.append(text[:200] or "error-level notification")
+            if len(errors) > 3:
+                failures.append(f"and {len(errors) - 3} more error(s)")
+    return failures
+
+
 def load_findings(native_dir: str = "/reports/native",
                   expected: set[str] | None = None) -> ScanResult:
     base = Path(native_dir)
@@ -500,6 +562,12 @@ def load_findings(native_dir: str = "/reports/native",
                 found.append(filename)
             except ValueError as exc:
                 errored.append(str(exc))
+                continue
+            # Read, but the engine says its run went wrong: keep what it found
+            # and flag the report as incomplete (strict fails on it).
+            failures = _engine_failures(path) if fmt == "sarif" else []
+            if failures:
+                errored.append(f"{filename}: incomplete — {'; '.join(failures)}")
         else:
             missing.append(filename)
 

@@ -23,7 +23,7 @@ from types import ModuleType
 ORCHESTRATOR_DIR = Path(__file__).resolve().parent.parent / "orchestrator"
 
 # Dependency order: each only imports names earlier in the list.
-_MODULES = ("normalize", "dedup", "baseline", "schema", "suppress")
+_MODULES = ("normalize", "dedup", "baseline", "schema", "suppress", "projectprofile")
 
 
 def _load() -> dict[str, ModuleType]:
@@ -33,6 +33,7 @@ def _load() -> dict[str, ModuleType]:
     saved = {n: sys.modules.pop(n) for n in _MODULES if n in sys.modules}
     sys.path.insert(0, str(ORCHESTRATOR_DIR))
     try:
+        # nosemgrep: non-literal-import -- _MODULES is the constant above
         return {n: importlib.import_module(n) for n in _MODULES}
     finally:
         sys.path.remove(str(ORCHESTRATOR_DIR))
@@ -47,3 +48,4 @@ dedup: ModuleType = _mods["dedup"]
 baseline: ModuleType = _mods["baseline"]
 schema: ModuleType = _mods["schema"]
 suppress: ModuleType = _mods["suppress"]
+projectprofile: ModuleType = _mods["projectprofile"]

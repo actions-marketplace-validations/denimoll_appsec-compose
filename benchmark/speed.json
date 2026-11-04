@@ -1,13 +1,13 @@
 {
-  "version": "1.2.0",
-  "generated": "2026-11-03T18:00:51Z",
+  "version": "1.4.0",
+  "generated": "2026-11-04T19:58:37Z",
   "machine": {
     "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
     "cpus": 11,
     "load_average_at_start": [
-      3.22,
-      3.74,
-      4.73
+      2.29,
+      2.32,
+      2.48
     ],
     "docker_cpus": 11,
     "docker_mem_gb": 7.7
@@ -19,32 +19,32 @@
       "files": 1468,
       "full": {
         "runs": 3,
-        "wall_s": 13.7,
-        "scanners_s": 12,
+        "wall_s": 14.7,
+        "scanners_s": 13,
         "wall_s_range": [
-          13.6,
-          13.7
+          13.9,
+          15.1
         ],
         "engines": {
-          "semgrep": 11.8,
-          "trivy": 5.9,
-          "checkov": 5.6,
+          "semgrep": 12.6,
+          "checkov": 8.0,
+          "trivy": 4.9,
           "gitleaks": 4.2,
-          "zizmor": 3.6
+          "zizmor": 2.5
         },
-        "findings": 436,
+        "findings": 428,
         "files_in_scope": null
       },
       "diff": {
         "runs": 3,
-        "wall_s": 4.7,
+        "wall_s": 5.2,
         "scanners_s": 4,
         "wall_s_range": [
-          4.7,
-          4.9
+          5.1,
+          5.2
         ],
         "engines": {
-          "semgrep": 2.9,
+          "semgrep": 3.2,
           "gitleaks": 0.1
         },
         "findings": 3,
@@ -52,85 +52,85 @@
       },
       "alone": {
         "semgrep": 9.9,
-        "trivy": 2.5,
-        "gitleaks": 3.1,
-        "checkov": 4.1,
+        "trivy": 2.6,
+        "gitleaks": 3.3,
+        "checkov": 3.6,
         "zizmor": 0.6
       },
       "raw": {
         "full": [
           {
-            "wall_s": 13.7,
-            "total_s": 13,
+            "wall_s": 15.1,
+            "total_s": 14,
+            "scanners_s": 13,
+            "engines": {
+              "semgrep": 13.1,
+              "checkov": 8.8,
+              "trivy": 4.9,
+              "gitleaks": 4.1,
+              "zizmor": 3.1
+            },
+            "findings": 428,
+            "files_in_scope": null
+          },
+          {
+            "wall_s": 14.7,
+            "total_s": 14,
+            "scanners_s": 13,
+            "engines": {
+              "semgrep": 12.6,
+              "checkov": 8.0,
+              "trivy": 4.8,
+              "gitleaks": 4.2,
+              "zizmor": 2.5
+            },
+            "findings": 428,
+            "files_in_scope": null
+          },
+          {
+            "wall_s": 13.9,
+            "total_s": 14,
             "scanners_s": 12,
             "engines": {
               "semgrep": 11.9,
-              "trivy": 6.4,
-              "checkov": 5.6,
-              "gitleaks": 4.2,
-              "zizmor": 4.2
+              "trivy": 6.2,
+              "checkov": 5.7,
+              "gitleaks": 4.5,
+              "zizmor": 2.4
             },
-            "findings": 436,
-            "files_in_scope": null
-          },
-          {
-            "wall_s": 13.7,
-            "total_s": 13,
-            "scanners_s": 12,
-            "engines": {
-              "semgrep": 11.8,
-              "trivy": 5.9,
-              "checkov": 5.6,
-              "gitleaks": 4.2,
-              "zizmor": 3.6
-            },
-            "findings": 436,
-            "files_in_scope": null
-          },
-          {
-            "wall_s": 13.6,
-            "total_s": 13,
-            "scanners_s": 12,
-            "engines": {
-              "semgrep": 11.7,
-              "trivy": 5.8,
-              "checkov": 5.3,
-              "gitleaks": 4.6,
-              "zizmor": 3.1
-            },
-            "findings": 436,
+            "findings": 428,
             "files_in_scope": null
           }
         ],
         "diff": [
           {
-            "wall_s": 4.7,
+            "wall_s": 5.2,
             "total_s": 4,
-            "scanners_s": 3,
+            "scanners_s": 4,
             "engines": {
-              "semgrep": 2.9,
+              "semgrep": 3.2,
               "gitleaks": 0.1
             },
             "findings": 3,
             "files_in_scope": 2
           },
           {
-            "wall_s": 4.9,
+            "wall_s": 5.2,
             "total_s": 4,
             "scanners_s": 4,
             "engines": {
-              "semgrep": 3.1,
+              "semgrep": 3.2,
               "gitleaks": 0.1
             },
             "findings": 3,
             "files_in_scope": 2
           },
           {
-            "wall_s": 4.7,
+            "wall_s": 5.1,
             "total_s": 4,
             "scanners_s": 4,
             "engines": {
-              "semgrep": 2.9,
+              "semgrep": 3.2,
               "gitleaks": 0.1
             },
             "findings": 3,
@@ -145,82 +145,82 @@
       "files": 7097,
       "full": {
         "runs": 3,
-        "wall_s": 34.6,
-        "scanners_s": 32,
+        "wall_s": 34.3,
+        "scanners_s": 31,
         "wall_s_range": [
-          31.9,
-          34.9
+          33.4,
+          38.0
         ],
         "engines": {
-          "semgrep": 31.7,
-          "trivy": 19.2,
-          "checkov": 12.6,
-          "gitleaks": 6.7,
-          "zizmor": 3.5
+          "semgrep": 31.2,
+          "trivy": 18.5,
+          "checkov": 13.6,
+          "gitleaks": 6.4,
+          "zizmor": 3.2
         },
         "findings": 707,
         "files_in_scope": null
       },
       "diff": {
         "runs": 3,
-        "wall_s": 4.9,
-        "scanners_s": 4,
+        "wall_s": 5.4,
+        "scanners_s": 3,
         "wall_s_range": [
-          4.8,
-          5.1
+          5.3,
+          5.7
         ],
         "engines": {
-          "semgrep": 3.0,
+          "semgrep": 3.2,
           "gitleaks": 0.1
         },
         "findings": 1,
         "files_in_scope": 2
       },
       "alone": {
-        "semgrep": 24.3,
-        "trivy": 8.9,
-        "gitleaks": 5.3,
-        "checkov": 9.2,
-        "zizmor": 1.1
+        "semgrep": 26.0,
+        "trivy": 9.3,
+        "gitleaks": 5.5,
+        "checkov": 9.4,
+        "zizmor": 1.2
       },
       "raw": {
         "full": [
           {
-            "wall_s": 34.6,
-            "total_s": 34,
-            "scanners_s": 32,
+            "wall_s": 38.0,
+            "total_s": 37,
+            "scanners_s": 35,
             "engines": {
-              "semgrep": 31.7,
-              "trivy": 19.8,
+              "semgrep": 34.9,
+              "checkov": 31.2,
+              "trivy": 13.9,
+              "gitleaks": 5.9,
+              "zizmor": 2.8
+            },
+            "findings": 707,
+            "files_in_scope": null
+          },
+          {
+            "wall_s": 34.3,
+            "total_s": 33,
+            "scanners_s": 31,
+            "engines": {
+              "semgrep": 31.2,
+              "trivy": 18.5,
               "checkov": 13.6,
-              "gitleaks": 7.0,
-              "zizmor": 4.0
-            },
-            "findings": 707,
-            "files_in_scope": null
-          },
-          {
-            "wall_s": 34.9,
-            "total_s": 34,
-            "scanners_s": 33,
-            "engines": {
-              "semgrep": 32.1,
-              "trivy": 18.6,
-              "checkov": 12.6,
               "gitleaks": 6.7,
-              "zizmor": 3.5
+              "zizmor": 4.1
             },
             "findings": 707,
             "files_in_scope": null
           },
           {
-            "wall_s": 31.9,
-            "total_s": 30,
-            "scanners_s": 29,
+            "wall_s": 33.4,
+            "total_s": 32,
+            "scanners_s": 31,
             "engines": {
-              "semgrep": 29.1,
-              "trivy": 19.2,
-              "checkov": 12.6,
+              "semgrep": 30.3,
+              "trivy": 20.6,
+              "checkov": 13.0,
               "gitleaks": 6.4,
               "zizmor": 3.2
             },
@@ -230,33 +230,33 @@
         ],
         "diff": [
           {
-            "wall_s": 4.9,
-            "total_s": 4,
-            "scanners_s": 4,
-            "engines": {
-              "semgrep": 3.0,
-              "gitleaks": 0.1
-            },
-            "findings": 1,
-            "files_in_scope": 2
-          },
-          {
-            "wall_s": 4.8,
-            "total_s": 4,
+            "wall_s": 5.4,
+            "total_s": 5,
             "scanners_s": 3,
             "engines": {
-              "semgrep": 2.9,
+              "semgrep": 3.2,
               "gitleaks": 0.1
             },
             "findings": 1,
             "files_in_scope": 2
           },
           {
-            "wall_s": 5.1,
-            "total_s": 5,
+            "wall_s": 5.3,
+            "total_s": 4,
             "scanners_s": 4,
             "engines": {
-              "semgrep": 3.3,
+              "semgrep": 3.2,
+              "gitleaks": 0.1
+            },
+            "findings": 1,
+            "files_in_scope": 2
+          },
+          {
+            "wall_s": 5.7,
+            "total_s": 5,
+            "scanners_s": 3,
+            "engines": {
+              "semgrep": 3.2,
               "gitleaks": 0.1
             },
             "findings": 1,

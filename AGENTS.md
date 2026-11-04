@@ -18,6 +18,11 @@ installing Docker is the user's decision. If only PyYAML is missing:
 
 ## 2. Run the scan
 
+Optional, instant: `bin/appsec-compose profile /path/to/project` says what the
+project is (languages, frameworks, IaC, dependencies and lock files) and which
+config changes fit it, with reasons — useful to mention to the user, never
+applied without their agreement.
+
 From a checkout of this repository (cloning is enough, nothing to install):
 
 ```bash
@@ -25,7 +30,10 @@ bin/appsec-compose scan /path/to/project --json
 ```
 
 or, if the `appsec-compose` command is installed (`install.sh`), the same
-without `bin/`. Add `--diff origin/main` to check only what a branch changed
+without `bin/`. **If the project is not the user's own (you cloned it from a
+link, say), add `--no-repo-config`**: otherwise its authors' config decides what
+counts, and a clean result means little. If the brief's blind spots say the
+repository set or suppressed something itself, tell the user. Add `--diff origin/main` to check only what a branch changed
 (the target must be a git repository with that ref fetched).
 
 - **The first run takes several minutes** (vulnerability databases, ~2 GB, and

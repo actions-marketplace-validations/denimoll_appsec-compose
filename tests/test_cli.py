@@ -251,3 +251,18 @@ def test_a_new_build_drops_superseded_local_images(pick, tmp_path):
     code, image, calls = pick(build=0)
     assert code == 0 and image == LOCAL
     assert "images --format" in calls          # pruning ran without failing the pick
+
+
+def test_a_repos_config_is_passed_as_untrusted_and_can_be_refused(cli):
+    (cli.target / ".appsec-compose.yml").write_text(
+        'fail_on: none\nscanners: {semgrep: {version: "evil"}}\n')
+    (cli.target / ".appsec-baseline.json").write_text('{"fingerprints": []}')
+    proc = cli("scan", str(cli.target), "--json", run=0, findings=1)
+    assert proc.returncode == 0 and "the repository's own; project policy only" in proc.stderr
+    assert "scanners.semgrep.version" in proc.stderr
+    assert '"scanners.semgrep.version"' in environ(cli.dump)["ASS_REPO_CONFIG"]
+    proc = cli("scan", str(cli.target), "--no-repo-config", "--json", run=0, findings=1)
+    env = environ(cli.dump)
+    assert proc.returncode == 0 and "the repository's own" not in proc.stderr
+    assert "ASS_REPO_CONFIG" not in env or not env["ASS_REPO_CONFIG"]
+    assert str(cli.target) not in env.get("ASS_BASELINE_FILE", "")

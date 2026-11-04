@@ -2,8 +2,11 @@
 # appsec-compose — command-line entry point, callable from any directory.
 #
 #   appsec-compose scan [<path>] [run.sh flags...]   # <path> defaults to .
+#   appsec-compose profile [<path>] [--json] [--write]   # what the repo is; config that fits
 #   appsec-compose preload                           # offline cache + collector image
 #   appsec-compose mcp [--setup]                     # MCP server (stdio) for AI agents
+#   appsec-compose project <subcommand>              # named projects, batch, cron (manager/)
+#   appsec-compose serve [--port 8787]               # local web UI over projects (manager/)
 #   appsec-compose version
 #   appsec-compose help
 #
@@ -50,8 +53,14 @@ usage() {
 Usage: appsec-compose <command> [args]
 
   scan [<path>] [flags]   scan a directory (default: .) and gate on the policy
+  profile [<path>] [--json] [--write]
+                          languages, frameworks, IaC, dependencies, and the
+                          config that fits them; --write creates .appsec-compose.yml
   preload                 snapshot DBs/rules and the collector for offline use
   mcp [--setup]           MCP server (stdio) for AI agents; --setup installs it
+  project <subcommand>    optional: named projects with profiles, history, batch
+                          and schedules (add, list, show, rm, scan, schedule, cron)
+  serve [--port 8787]     optional: local web UI over projects (loopback only)
   version                 tool and engine versions, install and cache paths
   help                    this text
 
@@ -61,7 +70,7 @@ Project conventions (explicit flags win):
   ./appsec-reports               reports dir    (--reports)
 
 Scan flags are run.sh's: --fail-on L, --strict, --require-pinned,
---update-baseline, --config F, --baseline F, --reports D, --name N, --json,
+--update-baseline, --config F, --profile F, --baseline F, --reports D, --name N, --json,
 --image REF, --build CTX [--dockerfile F]. For an image, omit <path>.
 
 --json: stdout is one JSON object (exit_code, verdict, reports_dir,
@@ -110,10 +119,16 @@ case "$cmd" in
     if [[ -n "$target" ]]; then
       [[ -d "$target" ]] || fail "target '$target' is not a directory"
       abs="$(cd "$target" && pwd)"
-      if ! has --config "$@" && [[ -f "$abs/.appsec-compose.yml" ]]; then
-        args+=(--config "$abs/.appsec-compose.yml")
+      # The repo's own config is not trusted like an explicit --config: only
+      # project policy applies from it. --no-repo-config (for code that isn't
+      # yours) ignores it and the repo's baseline, so a scanned repo cannot
+      # suppress or baseline away its own findings.
+      if ! has --config "$@" && ! has --repo-config "$@" && ! has --no-repo-config "$@" \
+         && [[ -f "$abs/.appsec-compose.yml" ]]; then
+        args+=(--repo-config "$abs/.appsec-compose.yml")
       fi
-      if ! has --baseline "$@" && { [[ -f "$abs/.appsec-baseline.json" ]] || has --update-baseline "$@"; }; then
+      if ! has --baseline "$@" && ! has --no-repo-config "$@" \
+         && { [[ -f "$abs/.appsec-baseline.json" ]] || has --update-baseline "$@"; }; then
         args+=(--baseline "$abs/.appsec-baseline.json")
       fi
       if ! has --name "$@"; then
@@ -134,6 +149,10 @@ case "$cmd" in
     ;;
   preload)
     exec "$ROOT/preload.sh" "$@"
+    ;;
+  profile)
+    # Host-side and instant: one walk of the tree, no containers.
+    exec python3 "$ROOT/orchestrator/projectprofile.py" "$@"
     ;;
   mcp)
     # The MCP SDK is the server's only dependency beyond the host's python3.
@@ -159,6 +178,10 @@ case "$cmd" in
       exit 2
     fi
     exec "$venv/bin/python" "$ROOT/appsec_mcp"
+    ;;
+  project|serve)
+    # An optional layer over `scan`, kept in its own package: stdlib + PyYAML.
+    exec python3 "$ROOT/manager" "$cmd" "$@"
     ;;
   version|--version|-v)
     "$ROOT/run.sh" --version

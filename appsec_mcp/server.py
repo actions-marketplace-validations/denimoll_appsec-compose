@@ -77,6 +77,10 @@ async def scan(
         description="Git ref to diff against (e.g. origin/main, HEAD~1) to scan only "
                     "what changed since it — much faster; use it to re-check your own "
                     "fix. Omit for a full scan.")] = None,
+    no_repo_config: Annotated[bool, Field(
+        description="Ignore the repository's own .appsec-compose.yml and baseline. Set "
+                    "it when the code is not the user's: otherwise its authors decide "
+                    "what counts.")] = False,
     fail_on: Annotated[Threshold | None, Field(
         description="Override the gate threshold for this run (default: the project "
                     "config, normally `high`). `none` reports without gating.")] = None,
@@ -120,6 +124,7 @@ async def scan(
         await ctx.report_progress(0, None, f"scanning {target}")
         try:
             result = await core.scan(target, diff_base=diff_base, fail_on=fail_on,
+                                     no_repo_config=no_repo_config,
                                      on_line=on_line)
         except core.UserError as exc:
             raise ToolError(str(exc)) from None
@@ -159,6 +164,25 @@ def findings(
             include_suppressed=include_suppressed, limit=limit, offset=offset))
     except core.UserError as exc:
         raise ToolError(str(exc)) from None
+
+
+@mcp.tool(annotations=ToolAnnotations(title="Profile a repository", read_only_hint=True),
+          structured_output=False)
+def profile(path: PathArg) -> str:
+    """What a repository is made of — languages, frameworks from its manifests,
+    IaC and CI files, dependency manifests and whether they have lock files —
+    and the few config changes that fit it, each with its reason (e.g. enable
+    OSV-Scanner when dependencies have no lock file). Instant, no containers.
+    Use it before the first scan to plan the review, or to explain a gap;
+    record a recommendation only with the user's agreement."""
+    from dataclasses import asdict
+    from ._orchestrator import projectprofile as pp
+    target = _target(path)
+    prof = pp.scan(str(target), pp.DEFAULT_EXCLUDES)
+    recs = pp.recommend(prof)
+    return _json({"profile": {**asdict(prof), "ci": prof.ci},
+                  "recommendations": [asdict(r) for r in recs],
+                  "config": pp.overlay(recs) if recs else None})
 
 
 @mcp.tool(annotations=ToolAnnotations(title="List vulnerable components", read_only_hint=True),

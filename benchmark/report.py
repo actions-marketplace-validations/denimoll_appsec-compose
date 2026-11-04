@@ -17,6 +17,11 @@ SAST_NAMES = {
     "securecookie": "Insecure cookie", "sqli": "SQL injection",
     "trustbound": "Trust boundary", "weakrand": "Weak randomness",
     "xpathi": "XPath injection", "xss": "Cross-site scripting",
+    # BenchmarkPython adds these; the OpenSSF CVE categories are scoring.CVE_CATEGORIES.
+    "codeinj": "Code injection", "deserialization": "Insecure deserialization",
+    "redirect": "Open redirect", "xxe": "XML external entities",
+    "protopollution": "Prototype pollution", "redos": "ReDoS", "ssrf": "SSRF",
+    "other": "Other",
 }
 
 
@@ -29,9 +34,13 @@ def signed(v) -> str:
 
 
 def headline(suite: str, s: dict) -> str:
-    if suite == "sast":
+    if suite in ("sast", "sast-python"):
         a = s["average"]
         return f"avg TPR {pct(a['tpr'])}, FPR {pct(a['fpr'])}, score {signed(a['score'])}"
+    if suite == "sast-js":
+        t = s["totals"]
+        return (f"detected {t['tp']}/{t['cves']} (TPR {pct(t['tpr'])}), fix still flagged "
+                f"{t['fp']} (FPR {pct(t['fpr'])}), score {signed(t['score'])}")
     if suite == "secrets":
         m = s["merged"]
         return f"recall {pct(m['recall'])} ({m['tp']}/{m['tp'] + m['fn']}), precision {pct(m['precision'])}"
@@ -47,21 +56,42 @@ def _table(header: list[str], rows: list[list]) -> list[str]:
     return out
 
 
-def _sast(suite: dict) -> list[str]:
+def _corpus_line(c: dict, cases: int) -> str:
+    return (f"Corpus: [{c['repo'].removeprefix('https://github.com/')}]({c['repo']}) at "
+            f"`{c['commit']}` (tree sha256 `{c['tree_sha256'][:16]}…`), {cases} test cases.")
+
+
+def _sast(suite: dict, title: str = "SAST — OWASP Benchmark for Java 1.2",
+          detail: tuple[str, ...] | None = None) -> list[str]:
+    """OWASP Benchmark (Java or Python). `detail` names the profiles that get a
+    full per-category table (None: all); the others appear in a score matrix."""
     c, runs = suite["corpus"], suite["runs"]
-    out = ["### SAST — OWASP Benchmark for Java 1.2", "",
-           f"Corpus: [{c['repo'].removeprefix('https://github.com/')}]({c['repo']}) at "
-           f"`{c['commit']}` (tree sha256 `{c['tree_sha256'][:16]}…`), "
-           f"{next(iter(runs.values()))['score']['test_cases']} test cases.", ""]
+    out = [f"### {title}", "",
+           _corpus_line(c, next(iter(runs.values()))["score"]["test_cases"]), ""]
+    lenient = any("lenient_cwe" in r["score"] for r in runs.values())
     rows = []
     for name, r in runs.items():
         s = r["score"]
         rows.append([r["label"], s.get("rules", "?"), pct(s["average"]["tpr"]),
                      pct(s["average"]["fpr"]), f"**{signed(s['average']['score'])}**",
-                     pct(s["totals"]["precision"]), f"{r['runtime_seconds']:.0f} s"])
+                     pct(s["totals"]["precision"]),
+                     *([signed(s["lenient_cwe"]["average"]["score"])] if lenient else []),
+                     s.get("sast_findings", "?"), f"{r['runtime_seconds']:.0f} s"])
     out += _table(["Profile", "Rules loaded", "Avg TPR", "Avg FPR", "Benchmark score",
-                   "Precision (all cases)", "Runtime"], rows)
+                   "Precision (all cases)",
+                   *(["Score if CWE-95→94, 327→328 (not official)"] if lenient else []),
+                   "SAST findings", "Runtime"], rows)
+    if detail is not None and len(runs) > 1:
+        names = list(runs)
+        cats = runs[names[0]]["score"]["categories"]
+        out += ["", "Benchmark score (TPR − FPR) per category and profile:", ""]
+        matrix = [[f"{SAST_NAMES.get(cat, cat)} (CWE-{v['cwe']})",
+                   *[signed(runs[n]["score"]["categories"][cat]["score"]) for n in names]]
+                  for cat, v in cats.items()]
+        out += _table(["Category", *names], matrix)
     for name, r in runs.items():
+        if detail is not None and name not in detail:
+            continue
         s = r["score"]
         out += ["", f"**{r['label']}** — per category:", ""]
         rows = []
@@ -75,6 +105,54 @@ def _sast(suite: dict) -> list[str]:
         sev = ", ".join(f"{k} {v}" for k, v in s.get("sast_findings_by_severity", {}).items())
         out += ["", f"SAST findings in the whole report: {s.get('sast_findings')} (by severity: {sev})."]
     return out
+
+
+def _sast_js(suite: dict) -> list[str]:
+    c, runs = suite["corpus"], suite["runs"]
+    out = ["### SAST — OpenSSF CVE Benchmark (JavaScript/TypeScript)", "",
+           f"Corpus: [{c['repo'].removeprefix('https://github.com/')}]({c['repo']}) metadata at "
+           f"`{c['commit']}`; the labelled files of {c['cves_scored']} of its {c['cves_listed']} "
+           f"CVEs at their vulnerable and fix commits ({c['files']} files, tree sha256 "
+           f"`{c['tree_sha256'][:16]}…`). In {c['cves_fix_elsewhere']} CVEs the fix left the "
+           "labelled file byte-identical (fixed in another file).", ""]
+    if c.get("excluded"):
+        out += ["Not scored (labelled file not fetchable at a pinned commit): "
+                + ", ".join(f"{e['cve']} (`{e['repository']}`)" for e in c["excluded"]) + ".", ""]
+    rows = []
+    for name, r in runs.items():
+        s = r["score"]
+        t, span = s["totals"], s.get("span_match", {}).get("totals", {})
+        rows.append([r["label"], s.get("rules", "?"),
+                     f"{pct(t['tpr'])} ({t['tp']})", f"{pct(t['fpr'])} ({t['fp']})",
+                     f"**{signed(t['score'])}**", pct(t["precision"]),
+                     f"{pct(span.get('tpr'))} / {signed(span.get('score'))}",
+                     t["cwe_matched"], s.get("sast_findings", "?"),
+                     f"{r['runtime_seconds']:.0f} s"])
+    out += _table(["Profile", "Rules loaded", "TPR (detected)", "FPR (fix still flagged)",
+                   "Score (fixes recognized)", "Precision", "Span match: TPR / score",
+                   "Detected, CWE agrees", "SAST findings", "Runtime"], rows)
+    names = list(runs)
+    cats = runs[names[0]]["score"]["categories"]
+    out += ["", "Per category — detected / fix recognized, of CVEs:", ""]
+    matrix = []
+    for cat, v in cats.items():
+        cells = []
+        for n in names:
+            k = runs[n]["score"]["categories"][cat]
+            cells.append(f"{k['tp']} / {k['tp'] - k['fp']}")
+        matrix.append([SAST_NAMES.get(cat, cat), v["cves"], *cells])
+    out += _table(["Category", "CVEs", *names], matrix)
+    return out
+
+
+def _provenance_measured(results: dict) -> list[str]:
+    lines = []
+    for name, suite in results["suites"].items():
+        m = suite.get("measured") or {}
+        if m and m.get("generated") != results["generated"]:
+            lines.append(f"- `{name}` was measured earlier, {m.get('generated')} by appsec-compose "
+                         f"{m.get('appsec_compose')} (commit `{(m.get('appsec_compose_commit') or '')[:12]}`).")
+    return ["", "Suites not re-run in this run keep their earlier numbers:", "", *lines] if lines else []
 
 
 def _secrets(suite: dict) -> list[str]:
@@ -147,7 +225,7 @@ def _provenance(results: dict) -> list[str]:
     out = ["### Provenance", "",
            f"Generated {results['generated']} by appsec-compose {results['appsec_compose']} "
            f"(commit `{results['appsec_compose_commit'][:12]}`) on {results['host']['platform']}, "
-           f"Docker {results['host']['docker']}.", ""]
+           f"Docker {results['host']['docker']}.", *_provenance_measured(results), ""]
     engines: dict[str, str] = {}
     dbs: list[str] = []
     for suite_name, suite in results["suites"].items():
@@ -170,6 +248,11 @@ def render(results: dict) -> str:
     s = results["suites"]
     if "sast" in s:
         parts += _sast(s["sast"]) + [""]
+    if "sast-python" in s:
+        parts += _sast(s["sast-python"], "SAST — OWASP Benchmark for Python 0.1",
+                       detail=("default", "auto")) + [""]
+    if "sast-js" in s:
+        parts += _sast_js(s["sast-js"]) + [""]
     if "secrets" in s:
         parts += _secrets(s["secrets"]) + [""]
     if "sca" in s:

@@ -14,7 +14,8 @@ Machine-readable: [`results.json`](results.json). Harness: [`bench.py`](bench.py
 ```bash
 python3 benchmark/bench.py                    # all suites, all profiles
 python3 benchmark/bench.py --profile default  # only the shipped defaults
-python3 benchmark/bench.py --suite sast       # one suite
+python3 benchmark/bench.py --suite sast       # one suite: sast (Java), sast-python,
+                                              # sast-js, secrets, sca
 python3 benchmark/bench.py --rescore          # re-score the last run, no scan
 python3 benchmark/bench.py --refresh-sca-truth  # re-snapshot OSV (changes the truth!)
 ```
@@ -62,6 +63,99 @@ from the official reader: it takes only the *first* CWE tag of a rule, we
 accept any (Semgrep rules rarely carry two). Findings outside test files —
 helpers, the HTML/JS front end — are not scored at all, so noise there is
 invisible in the score (it is counted separately as total SAST findings).
+
+### SAST — OWASP Benchmark for Python
+
+[BenchmarkPython](https://github.com/OWASP-Benchmark/BenchmarkPython)
+(GPL-3.0) is the same design in Python: 1,230 Flask views, each a real
+vulnerability or a safe look-alike, labelled in `expectedresults-0.1.csv` in
+the same four-column format with a CWE per case. Upstream calls 0.1 a
+preliminary release and publishes it as the head of `main`, so a commit is
+pinned in [`corpora.json`](corpora.json).
+
+**Same scorer, same CWE map.** The Java matching rule, score and CWE
+translation table apply unchanged; only the file name is `.py`. Four of its 14
+categories do not exist in the Java Benchmark — code injection (CWE-94),
+insecure deserialization (502), open redirect (601) and XXE (611). The
+official Semgrep reader has no translation for them, so they score on exactly
+that CWE, here as on the official scorecard. The one place this bites:
+Semgrep's Python `eval`/`exec` rules tag CWE-95 ("eval injection"), which does
+not count for a CWE-94 case. That is upstream's rule, kept as is; the code
+injection row below reads lower than a human reviewer would score it.
+
+**Limits.** Category sizes are uneven and some are small (SQL injection has 5
+real and 11 safe cases), so a single test case moves a small category's score
+by 10–20 points; read the per-category rows as direction, not decimals.
+
+### SAST — OpenSSF CVE Benchmark (JavaScript/TypeScript)
+
+**Choosing a corpus.** There is no OWASP Benchmark for JavaScript (the
+OWASP-Benchmark organisation has Java, Python and the scorer only), and NIST
+SARD's Juliet suites are C/C++, Java and C#. Of the JS/TS datasets that exist:
+[RealVuln](https://github.com/kolega-ai/Real-Vuln-Benchmark) (Apache-2.0)
+labels vulnerable lines in 74 JS/TS repositories, but its JS/TS half has no
+false-positive traps yet and is mostly intentionally vulnerable apps (NodeGoat,
+DVNA, Juice Shop…) and LLM-generated ones — recall only. SecBench.js and x.js
+are exploit-validated npm vulnerabilities without safe counterparts.
+[BenchProctor](https://github.com/TheAuditorTool/BenchProctor) (Apache-2.0) is
+template-generated, 1.5 GB, from one vendor, with releases halted — a
+synthetic suite either way. The
+[OpenSSF CVE Benchmark](https://github.com/ossf-cve-benchmark/ossf-cve-benchmark)
+(MIT) has the property that matters: 223 **real** JS/TS CVEs, each with the
+vulnerable line labelled at the last vulnerable commit **and** the fix commit,
+so the safe look-alike is the maintainers' actual patch rather than one we
+wrote. That makes it discriminating without being synthetic, so no synthetic
+JS suite was built.
+
+**Corpus.** [`ossf_cve.py`](ossf_cve.py) reads the metadata at the pinned
+commit and fetches each labelled file at both commits from
+`raw.githubusercontent.com` (addressed by SHA, so immutable) into
+`<CVE>/pre/…` and `<CVE>/post/…`; one scan covers all of them. CVEs whose file
+cannot be fetched any more (repository deleted or history rewritten) are listed
+and left out.
+
+**Matching rule — OpenSSF's own.** A CVE is *detected* when a SAST finding
+starts exactly on a labelled line; the rules of those findings are its
+*on-target rules*. The fix is *recognized* when at least one on-target rule
+fires fewer times on the fixed file than on the vulnerable one. As a confusion
+matrix, each CVE is one real case and one safe case: detected = TP, missed =
+FN, detected but the fix not recognized = FP (the fixed code is still
+flagged), otherwise TN. So TPR = detected / CVEs, FPR = fixes still flagged /
+CVEs, and the score TPR − FPR is simply *fixes recognized / CVEs*. Precision =
+TP / (TP + FP) is over these pairs, not over every finding.
+
+**Deviations, and why they are small for Semgrep CE.** (1) Only the labelled
+files are scanned, not the whole repository: Semgrep CE's taint analysis does
+not cross files, so the rest of the repository cannot change what it reports
+in these files; it does change upstream's "recognized", which counts a rule's
+alerts over the whole repository — a fix that moves code to another file is
+recognized here and not upstream. (2) In 24 of the 220 CVEs the fix left the
+labelled file byte-identical (validation added in a caller, a dependency
+bumped): no file-local tool can tell the two versions apart, so a detection
+there is necessarily an FP (`fp_fix_elsewhere` in `results.json`). (3) The CWE
+is not part of the rule (it is not upstream either); the "CWE agrees" column
+counts detections whose on-target finding also names one of the CVE's CWEs.
+(4) Exact start line is strict for multi-line matches; a "span match" variant
+(the labelled line lies anywhere inside the finding) is reported alongside.
+
+**Limits.** Real CVEs are dominated by library code — parsers, template
+engines, `lodash`-style utilities — where the "source" is a function argument,
+not an HTTP request. Semgrep's taint rules start from framework sources
+(`req.query`, …), so this corpus is hard for any rule pack by construction,
+and its numbers are not comparable with OWASP Benchmark's. The 223 CVEs are
+also unevenly spread: XSS and ReDoS are two fifths of them, SQL injection
+and SSRF a handful.
+
+### SAST rule-pack profiles
+
+For Python and JS/TS each profile is a separate scan of the same corpus with a
+different `scanners.semgrep.rules`: the shipped default (`p/default`), `auto`
+(`p/default` plus the packs [stack detection](../scripts/render-env.py) picks:
+`p/python`; `p/javascript` + `p/typescript`), each relevant registry pack
+**alone** (what its rules find by themselves), and a ceiling with
+every pack added to `p/default`. "Rules loaded" is what Semgrep itself reports
+in its SARIF, across all languages. `p/typescript` is the same rule set as
+`p/javascript` (identical rule ids), so it is not measured separately.
 
 ### Secrets — synthetic, labelled (SYNTHETIC)
 
@@ -143,10 +237,10 @@ prerequisite; until then, IaC has no number here rather than a weak one.
 
 Corpus: [OWASP-Benchmark/BenchmarkJava](https://github.com/OWASP-Benchmark/BenchmarkJava) at `1fa16b84f77a438a7b7c929f0e67b947b0766861` (tree sha256 `201e75c419ff03de…`), 2740 test cases.
 
-| Profile | Rules loaded | Avg TPR | Avg FPR | Benchmark score | Precision (all cases) | Runtime |
-|---|--:|--:|--:|--:|--:|--:|
-| Semgrep, p/default (shipped default) | 1074 | 88.1% | 44.1% | **+44.0** | 69.3% | 81 s |
-| Semgrep, p/default + `auto` stack packs (opt-in) | 1076 | 88.1% | 44.1% | **+44.0** | 69.3% | 108 s |
+| Profile | Rules loaded | Avg TPR | Avg FPR | Benchmark score | Precision (all cases) | SAST findings | Runtime |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| Semgrep, p/default (shipped default) | 1074 | 88.1% | 44.1% | **+44.0** | 69.3% | 3252 | 81 s |
+| Semgrep, p/default + `auto` stack packs (opt-in) | 1076 | 88.1% | 44.1% | **+44.0** | 69.3% | 3252 | 108 s |
 
 **Semgrep, p/default (shipped default)** — per category:
 
@@ -185,6 +279,118 @@ SAST findings in the whole report: 3252 (by severity: medium 3252).
 | **All (micro)** | 1248 | 167 | 552 | 773 | 88.2% | 41.7% | +46.5 |
 
 SAST findings in the whole report: 3252 (by severity: medium 3252).
+
+### SAST — OWASP Benchmark for Python 0.1
+
+Corpus: [OWASP-Benchmark/BenchmarkPython](https://github.com/OWASP-Benchmark/BenchmarkPython) at `f1291485808b66e20ddb6b01b10dc71b3df8c8ba` (tree sha256 `f60f2d3de30431f2…`), 1230 test cases.
+
+| Profile | Rules loaded | Avg TPR | Avg FPR | Benchmark score | Precision (all cases) | Score if CWE-95→94, 327→328 (not official) | SAST findings | Runtime |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| Semgrep, p/default (shipped default) | 1074 | 26.0% | 19.1% | **+6.9** | 51.8% | +10.7 | 1300 | 19 s |
+| Semgrep, p/default + `auto` stack packs (opt-in) | 1105 | 26.0% | 19.1% | **+6.9** | 51.8% | +12.4 | 1317 | 20 s |
+| Semgrep, p/python alone | 151 | 7.6% | 8.5% | **-0.8** | 54.5% | +4.6 | 184 | 8 s |
+| Semgrep, p/flask alone | 18 | 1.1% | 0.0% | **+1.1** | 100.0% | +1.1 | 19 | 5 s |
+| Semgrep, p/django alone (control: not a Django app) | 28 | 1.8% | 0.5% | **+1.3** | 60.0% | +1.3 | 864 | 8 s |
+| Semgrep, p/security-audit alone | 225 | 25.8% | 24.1% | **+1.7** | 51.3% | +5.4 | 409 | 7 s |
+| Semgrep, p/owasp-top-ten alone | 560 | 7.6% | 8.5% | **-0.8** | 54.5% | +4.6 | 184 | 13 s |
+| Semgrep, p/default + every pack above (ceiling) | 1157 | 33.2% | 26.3% | **+6.9** | 47.1% | +12.4 | 1430 | 22 s |
+
+Benchmark score (TPR − FPR) per category and profile:
+
+| Category | default | auto | python | flask | django | security-audit | owasp-top-ten | all |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| Command injection (CWE-78) | -46.2 | -46.2 | -46.2 | +15.4 | +0.0 | -46.2 | -46.2 | -46.2 |
+| Code injection (CWE-94) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+| Insecure deserialization (CWE-502) | +66.7 | +66.7 | +33.3 | +0.0 | +16.7 | +66.7 | +33.3 | +66.7 |
+| Weak hash (CWE-328) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+| LDAP injection (CWE-90) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+| Path traversal (CWE-22) | +1.1 | +1.1 | +1.1 | +0.0 | +1.1 | +0.0 | +1.1 | +1.1 |
+| Open redirect (CWE-601) | +2.9 | +2.9 | +0.0 | +0.0 | +0.0 | +2.9 | +0.0 | +2.9 |
+| Insecure cookie (CWE-614) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+| SQL injection (CWE-89) | +100.0 | +100.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +100.0 |
+| Trust boundary (CWE-501) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+| Weak randomness (CWE-330) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+| XPath injection (CWE-643) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+| Cross-site scripting (CWE-79) | -27.6 | -27.6 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | -27.6 |
+| XML external entities (CWE-611) | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 | +0.0 |
+
+**Semgrep, p/default (shipped default)** — per category:
+
+| Category | TP | FN | FP | TN | TPR | FPR | Score |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| Command injection (CWE-78) | 7 | 6 | 7 | 0 | 53.8% | 100.0% | -46.2 |
+| Code injection (CWE-94) | 0 | 20 | 0 | 33 | 0.0% | 0.0% | +0.0 |
+| Insecure deserialization (CWE-502) | 18 | 0 | 12 | 24 | 100.0% | 33.3% | +66.7 |
+| Weak hash (CWE-328) | 0 | 71 | 0 | 80 | 0.0% | 0.0% | +0.0 |
+| LDAP injection (CWE-90) | 0 | 16 | 0 | 13 | 0.0% | 0.0% | +0.0 |
+| Path traversal (CWE-22) | 2 | 63 | 2 | 101 | 3.1% | 1.9% | +1.1 |
+| Open redirect (CWE-601) | 1 | 12 | 1 | 20 | 7.7% | 4.8% | +2.9 |
+| Insecure cookie (CWE-614) | 24 | 0 | 15 | 0 | 100.0% | 100.0% | +0.0 |
+| SQL injection (CWE-89) | 5 | 0 | 0 | 11 | 100.0% | 0.0% | +100.0 |
+| Trust boundary (CWE-501) | 0 | 18 | 0 | 19 | 0.0% | 0.0% | +0.0 |
+| Weak randomness (CWE-330) | 0 | 99 | 0 | 227 | 0.0% | 0.0% | +0.0 |
+| XPath injection (CWE-643) | 0 | 51 | 0 | 135 | 0.0% | 0.0% | +0.0 |
+| Cross-site scripting (CWE-79) | 0 | 31 | 16 | 42 | 0.0% | 27.6% | -27.6 |
+| XML external entities (CWE-611) | 0 | 8 | 0 | 20 | 0.0% | 0.0% | +0.0 |
+| **All (micro)** | 57 | 395 | 53 | 725 | 12.6% | 6.8% | +5.8 |
+
+SAST findings in the whole report: 1300 (by severity: high 130, medium 1170).
+
+**Semgrep, p/default + `auto` stack packs (opt-in)** — per category:
+
+| Category | TP | FN | FP | TN | TPR | FPR | Score |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| Command injection (CWE-78) | 7 | 6 | 7 | 0 | 53.8% | 100.0% | -46.2 |
+| Code injection (CWE-94) | 0 | 20 | 0 | 33 | 0.0% | 0.0% | +0.0 |
+| Insecure deserialization (CWE-502) | 18 | 0 | 12 | 24 | 100.0% | 33.3% | +66.7 |
+| Weak hash (CWE-328) | 0 | 71 | 0 | 80 | 0.0% | 0.0% | +0.0 |
+| LDAP injection (CWE-90) | 0 | 16 | 0 | 13 | 0.0% | 0.0% | +0.0 |
+| Path traversal (CWE-22) | 2 | 63 | 2 | 101 | 3.1% | 1.9% | +1.1 |
+| Open redirect (CWE-601) | 1 | 12 | 1 | 20 | 7.7% | 4.8% | +2.9 |
+| Insecure cookie (CWE-614) | 24 | 0 | 15 | 0 | 100.0% | 100.0% | +0.0 |
+| SQL injection (CWE-89) | 5 | 0 | 0 | 11 | 100.0% | 0.0% | +100.0 |
+| Trust boundary (CWE-501) | 0 | 18 | 0 | 19 | 0.0% | 0.0% | +0.0 |
+| Weak randomness (CWE-330) | 0 | 99 | 0 | 227 | 0.0% | 0.0% | +0.0 |
+| XPath injection (CWE-643) | 0 | 51 | 0 | 135 | 0.0% | 0.0% | +0.0 |
+| Cross-site scripting (CWE-79) | 0 | 31 | 16 | 42 | 0.0% | 27.6% | -27.6 |
+| XML external entities (CWE-611) | 0 | 8 | 0 | 20 | 0.0% | 0.0% | +0.0 |
+| **All (micro)** | 57 | 395 | 53 | 725 | 12.6% | 6.8% | +5.8 |
+
+SAST findings in the whole report: 1317 (by severity: high 130, medium 1187).
+
+### SAST — OpenSSF CVE Benchmark (JavaScript/TypeScript)
+
+Corpus: [ossf-cve-benchmark/ossf-cve-benchmark](https://github.com/ossf-cve-benchmark/ossf-cve-benchmark) metadata at `91c59fd54b2b768c0f310bb0027d2ac59cdf74d4`; the labelled files of 220 of its 223 CVEs at their vulnerable and fix commits (440 files, tree sha256 `57e8981c781812a2…`). In 24 CVEs the fix left the labelled file byte-identical (fixed in another file).
+
+Not scored (labelled file not fetchable at a pinned commit): CVE-2016-1000229 (`linxiaowu66/swagger-ui`), CVE-2018-8035 (`apache/uima-ducc`), CVE-2019-12041 (`probablyup/markdown-to-jsx`).
+
+| Profile | Rules loaded | TPR (detected) | FPR (fix still flagged) | Score (fixes recognized) | Precision | Span match: TPR / score | Detected, CWE agrees | SAST findings | Runtime |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| Semgrep, p/default (shipped default) | 1074 | 10.9% (24) | 5.9% (13) | **+5.0** | 64.9% | 11.4% / +5.5 | 19 | 526 | 124 s |
+| Semgrep, p/default + `auto` stack packs (opt-in) | 1075 | 10.9% (24) | 5.9% (13) | **+5.0** | 64.9% | 11.4% / +5.5 | 19 | 507 | 111 s |
+| Semgrep, p/javascript alone (= p/typescript) | 74 | 3.2% (7) | 2.7% (6) | **+0.4** | 53.8% | 3.6% / +0.9 | 6 | 62 | 61 s |
+| Semgrep, p/nodejs alone | 36 | 0.0% (0) | 0.0% (0) | **+0.0** | — | 0.0% / +0.0 | 0 | 34 | 47 s |
+| Semgrep, p/expressjs alone | 71 | 3.2% (7) | 2.7% (6) | **+0.4** | 53.8% | 3.6% / +0.9 | 6 | 62 | 59 s |
+| Semgrep, p/react alone | 4 | 2.3% (5) | 1.8% (4) | **+0.4** | 55.6% | 2.3% / +0.4 | 5 | 13 | 12 s |
+| Semgrep, p/nodejsscan alone | 114 | 3.2% (7) | 1.8% (4) | **+1.4** | 63.6% | 5.9% / +2.3 | 3 | 327 | 149 s |
+| Semgrep, p/security-audit alone | 225 | 4.5% (10) | 2.7% (6) | **+1.8** | 62.5% | 4.5% / +1.8 | 10 | 51 | 22 s |
+| Semgrep, p/default + p/nodejsscan | 1188 | 13.2% (29) | 6.8% (15) | **+6.4** | 65.9% | 15.9% / +7.7 | 21 | 759 | 228 s |
+| Semgrep, p/default + every pack above (ceiling) | 1204 | 13.2% (29) | 6.8% (15) | **+6.4** | 65.9% | 15.9% / +7.7 | 21 | 756 | 236 s |
+
+Per category — detected / fix recognized, of CVEs:
+
+| Category | CVEs | default | auto | javascript | nodejs | expressjs | react | nodejsscan | security-audit | default-nodejsscan | all |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| Command injection | 25 | 8 / 4 | 8 / 4 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 6 / 4 | 8 / 4 | 8 / 4 |
+| Code injection | 14 | 1 / 1 | 1 / 1 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 1 / 1 | 1 / 1 |
+| Other | 28 | 1 / 0 | 1 / 0 | 1 / 0 | 0 / 0 | 1 / 0 | 0 / 0 | 2 / 2 | 0 / 0 | 3 / 2 | 3 / 2 |
+| Path traversal | 29 | 2 / 1 | 2 / 1 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 2 / 0 | 0 / 0 | 3 / 1 | 3 / 1 |
+| Prototype pollution | 23 | 1 / 1 | 1 / 1 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 1 / 1 | 1 / 1 |
+| Open redirect | 7 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| ReDoS | 31 | 2 / 1 | 2 / 1 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 2 / 1 | 2 / 1 |
+| SQL injection | 4 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 1 / 0 | 0 / 0 | 1 / 0 | 1 / 0 |
+| SSRF | 3 | 1 / 0 | 1 / 0 | 1 / 0 | 0 / 0 | 1 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 1 / 0 | 1 / 0 |
+| Cross-site scripting | 56 | 8 / 3 | 8 / 3 | 5 / 1 | 0 / 0 | 5 / 1 | 5 / 1 | 2 / 1 | 4 / 0 | 9 / 4 | 9 / 4 |
 
 ### Secrets — synthetic labelled corpus (SYNTHETIC)
 
@@ -261,7 +467,15 @@ Corpus: 26 packages pinned in `go/go.mod`, `jvm/gradle.lockfile`, `node/package-
 
 ### Provenance
 
-Generated 2026-11-03T05:15:34Z by appsec-compose 1.2.0 (commit `38eb0ff7a891`) on macOS-27.0.1-arm64-arm-64bit-Mach-O, Docker 28.2.2.
+Generated 2026-11-03T20:25:43Z by appsec-compose 1.3.0 (commit `46768d4ebad3`) on macOS-27.0.1-arm64-arm-64bit-Mach-O, Docker 28.2.2.
+
+Suites not re-run in this run keep their earlier numbers:
+
+- `sast` was measured earlier, 2026-11-03T05:15:34Z by appsec-compose 1.2.0 (commit `38eb0ff7a891`).
+- `secrets` was measured earlier, 2026-11-03T05:15:34Z by appsec-compose 1.2.0 (commit `38eb0ff7a891`).
+- `sca` was measured earlier, 2026-11-03T05:15:34Z by appsec-compose 1.2.0 (commit `38eb0ff7a891`).
+- `sast-js` was measured earlier, 2026-11-03T20:06:18Z by appsec-compose 1.3.0 (commit `46768d4ebad3`).
+- `sast-python` was measured earlier, 2026-11-03T20:06:18Z by appsec-compose 1.3.0 (commit `46768d4ebad3`).
 
 | Engine | Image (digest-pinned) |
 |---|--:|
@@ -304,6 +518,75 @@ is a safe one.
 algorithm name comes from a properties file, not a literal. Trust-boundary
 violations are found barely more often than safe cases are flagged (+10).
 Stored/reflected XSS misses ~18%.
+
+**Python SAST is far weaker than Java SAST** (+6.9 against +44.0, same
+engine, same scorer). Per category it is coverage, not tuning: weak
+randomness, XPath injection, LDAP injection, trust boundary and XXE (CWE-611
+cases) get **no** true positive from any pack measured — there is no Python
+rule for `random` used for security values, and the XML rule that fires
+(`use-defused-xml-parse`, CWE-611) fires on the XPath cases, not the XXE ones.
+Where rules exist they rarely tell safe from unsafe: command injection flags
+all 7 safe cases (FPR 100%), the cookie rule (`secure-set-cookie`) wants
+`secure`, `httponly` and `samesite` all set, so it fires on every `set_cookie`
+in the corpus — the Benchmark's safe cases set `secure=True` and nothing else
+(100% / 100%, plus a CWE-614 finding in most other test files, whose GET
+handlers set a cookie too) — and the XSS rule fires
+only on safe cases (0 TP, 16 FP). SQL injection (+100) and deserialization
+(+67) are the two categories that work. Two zeros are a labelling artefact,
+not blindness: Semgrep tags `eval`/`exec` CWE-95 and md5/sha1 CWE-327, which
+the official scorer does not credit to code injection (94) or weak hash (328).
+Re-scored with those two equivalences (the "not official" column) the default
+gets weak hash 37/71 with no FP, but code injection stays at zero score — the
+eval rule flags every one of the 53 cases, safe or not.
+
+**Python packs: `auto` is worth it, nothing else is.** `auto` adds `p/python`
+(31 more rules, about a second) and leaves the official score unchanged — but
+those rules raise weak-hash recall from 37 to 54 of 71 with no false positive,
+which only the not-official column can show (+10.7 → +12.4). Every other pack
+is a subset of `p/default` + `p/python` or adds noise as fast as signal:
+`p/security-audit` alone matches the default's TPR at a higher FPR, and the
+ceiling (every pack) buys +7.2 points of TPR with +7.2 of FPR — score
+unchanged, 130 more findings. `p/owasp-top-ten` gives byte-identical results
+to `p/python` on this corpus (same scores, same 184 findings). `p/flask`
+(18 rules) finds two command-injection cases on a Flask
+corpus; `p/django` is the control and finds nearly nothing.
+
+**JS/TS: on real CVEs Semgrep CE finds about one in nine, and recognizes the
+fix in one in twenty.** The default detects 24 of 220 CVEs on the labelled
+line and goes quiet after the fix in 11 of them (score +5.0); a finding
+*somewhere* in the vulnerable file exists for 92. That gap is the corpus'
+nature: most of these CVEs are library code (template engines, parsers,
+`lodash`-style helpers) where the tainted value is a function argument, and
+Semgrep's taint rules start from framework sources such as `req.query`.
+Command injection (8 of 25) and XSS (8 of 56) are the best classes; prototype
+pollution (1 of 23), ReDoS (2 of 31), path traversal (2 of 29) and open
+redirect (0 of 7) are close to invisible, although `p/default` has a rule for
+each — they fire 34, 46 and 91 times in the vulnerable files, on other lines. For an
+agent's review this means: a clean Semgrep run on a JS library says almost
+nothing about these classes.
+
+**JS/TS packs: only `p/nodejsscan` adds anything, at a price.** `p/javascript`
+(= `p/typescript`), `p/nodejs`, `p/expressjs`, `p/react` and
+`p/security-audit` add only a handful of JS rules that `p/default` lacks, and
+those detect nothing here, so `auto` — which adds `p/javascript` + `p/typescript` — changes
+nothing. `p/nodejsscan` is 114 rules that are *not* in `p/default`; on top of
+it, it detects 5 more CVEs (24 → 29) and recognizes 3 more fixes (+5.0 →
++6.4), but costs 233 more findings (+44%), 64 rule timeouts (against 13) and
+roughly twice the runtime. A candidate for an opt-in "deep" tier, not for the
+default.
+
+**Semgrep can die and look like a clean scan.** In the first JS run the
+`auto` profile reported 0 findings: semgrep-core had been killed (out of
+memory: an 8 GB Docker VM with 11 CPUs, Semgrep's default parallelism, and
+bundled files such as `lodash.js`; the same profile succeeded on re-run). Semgrep still wrote a valid SARIF —
+`executionSuccessful: true`, no results — and said so only in an error-level
+tool notification. The collector does not read notifications, so the run
+passed with "0 SAST findings", even with `strict: true`. The benchmark now
+detects this and re-runs (none of the runs above needed it), but a user's
+scan has no such guard. Also in these runs: Semgrep's per-rule timeouts on
+large files (13 with the default, 64–68 with `p/nodejsscan`) make two
+identical scans differ by a few findings (default 526 vs `auto` 507 with the
+same JS rules).
 
 **`auto` adds nothing for Java.** Stack detection adds `p/java`, which is
 already inside `p/default`: two extra rules, identical results. It is not a way
@@ -363,8 +646,23 @@ previous one. The benchmark reads the cache again after each run and shows both.
 **Fixed** in d0848cb: dates are read after the scan, for the engines that ran,
 including Grype v6.
 
+**What this means for "profile → rule packs".** Per language, from these
+numbers: Python → `p/default` + `p/python` (what `auto` already does); JS/TS →
+`p/default` alone, with `p/nodejsscan` as the one opt-in for a deeper, slower,
+noisier pass; Java → `p/default` alone. Framework packs (`p/flask`,
+`p/django`, `p/expressjs`, `p/react`, `p/nodejs`) and `p/security-audit` /
+`p/owasp-top-ten` should not be added by a profile: they are subsets of what
+already runs or trade precision for recall one-for-one. The bigger lesson is
+the ceiling: across every pack the registry offers for these languages, the
+best Python profile moves the score by 0 points and the best JS one by 1.4.
+Rule-pack selection is not where SAST quality comes from here; the gaps above
+(no rule at all for half the Python categories, file-local taint, framework-
+only sources) need custom rules in `semgrep-rules/` or a different engine,
+and a profile feature should be judged by a benchmark row, not by pack names.
+
 **Not measured at all:** IaC (see above), container images, git history,
-SAST languages other than Java, business logic and authorization — which is
+SAST languages other than Java, Python and JS/TS (Go, Ruby, PHP, C#…), and
+frameworks other than Flask on Python, business logic and authorization — which is
 most of what an actual security review is about. Silence from appsec-compose
 in those areas is not evidence of anything.
 

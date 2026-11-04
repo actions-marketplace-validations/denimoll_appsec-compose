@@ -42,8 +42,8 @@ assert args[0] == "scan", args
 reports = Path(args[args.index("--reports") + 1])
 data = json.loads(Path(os.environ["STUB_FINDINGS"]).read_text())
 ignored = {{}}
-if "--config" in args:
-    cfg = yaml.safe_load(Path(args[args.index("--config") + 1]).read_text()) or {{}}
+if "--repo-config" in args:
+    cfg = yaml.safe_load(Path(args[args.index("--repo-config") + 1]).read_text()) or {{}}
     ignored = {{e["fingerprint"]: e["reason"] for e in cfg.get("ignore") or []
                if isinstance(e, dict) and "fingerprint" in e}}
 kept = [f for f in data["findings"] if f["fingerprint"] not in ignored]
@@ -243,7 +243,7 @@ def test_scan_returns_compact_verdict_and_remembers_it(tool, repo):
 
     argv = argv_calls(tool)[-1]
     assert argv[:2] == ["scan", str(repo)] and "--json" in argv
-    assert "--config" not in argv and "--baseline" not in argv
+    assert "--repo-config" not in argv and "--baseline" not in argv
 
 
 def test_scan_passes_project_config_baseline_and_flags(tool, repo):
@@ -251,7 +251,7 @@ def test_scan_passes_project_config_baseline_and_flags(tool, repo):
     (repo / core.PROJECT_BASELINE).write_text('{"fingerprints": []}')
     run_scan(repo, diff_base="origin/main", fail_on="critical")
     argv = argv_calls(tool)[-1]
-    assert argv[argv.index("--config") + 1] == str(repo / core.PROJECT_CONFIG)
+    assert argv[argv.index("--repo-config") + 1] == str(repo / core.PROJECT_CONFIG)
     assert argv[argv.index("--baseline") + 1] == str(repo / core.PROJECT_BASELINE)
     assert argv[argv.index("--diff") + 1] == "origin/main"
     assert argv[argv.index("--fail-on") + 1] == "critical"
@@ -561,7 +561,7 @@ def test_scan_suppress_rescan_loop(tool, repo):
     assert out["gating"] == 4 and out["suppressed"] == 2
     d = views.detail(views.load_report(repo), "da84b24e3939")
     assert d["status"] == "suppressed" and d["suppressed_reason"] == "sandbox image, never deployed"
-    assert "--config" in argv_calls(tool)[-1]
+    assert "--repo-config" in argv_calls(tool)[-1]
 
 
 # ---- the MCP surface -------------------------------------------------------------------
@@ -571,7 +571,7 @@ def test_tools_and_prompt_are_registered():
     from appsec_mcp.server import mcp
 
     tools = {t.name: t for t in asyncio.run(mcp.list_tools())}
-    assert set(tools) == {"scan", "findings", "components", "finding", "brief", "suppress"}
+    assert set(tools) == {"scan", "profile", "findings", "components", "finding", "brief", "suppress"}
     for t in tools.values():
         assert t.description and len(t.description) > 80
         assert "ctx" not in t.input_schema["properties"]
@@ -628,3 +628,18 @@ def test_components_group_dependencies_and_say_what_to_upgrade_to(scanned):
     assert comp["package"] == "flask@1.0" and comp["upgrade_to"] == "2.2.5"
     assert [f["fingerprint"] for f in comp["findings"]] == [f["fingerprint"][:12] for f in flask]
     assert out["total"] == 1 and out["next_offset"] is None
+
+
+def test_profile_tool_describes_the_repo_without_scanning(repo):
+    pytest.importorskip("mcp")
+    from appsec_mcp import server
+    out = json.loads(server.profile(str(repo)))
+    assert "languages" in out["profile"] and isinstance(out["recommendations"], list)
+
+
+def test_no_repo_config_passes_neither_the_config_nor_the_baseline(tool, repo):
+    (repo / core.PROJECT_CONFIG).write_text("ignore: []\n")
+    (repo / core.PROJECT_BASELINE).write_text('{"fingerprints": []}')
+    argv = core.build_argv(core.detect_cli(), repo, repo / "r", no_repo_config=True)
+    assert "--no-repo-config" in argv
+    assert "--repo-config" not in argv and "--baseline" not in argv

@@ -1,0 +1,14 @@
+# Actions are pinned by commit, so nothing moves on its own; this proposes the
+# updates as reviewable PRs.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Let a new release age first: a hijacked one is usually caught within days.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

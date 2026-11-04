@@ -190,3 +190,10 @@ def test_a_critical_verdict_is_exploitable_even_without_detail_flags():
 
 def test_a_medium_verdict_is_not_exploitable():
     assert not _verdict_from(HIGH_CVSS_LOW_EPSS).exploitable
+
+
+def test_only_http_urls_are_ever_opened():
+    import pytest
+    from enrich import _post
+    with pytest.raises(ValueError, match="must be http"):
+        _post("file:///etc/passwd", {}, "", 1)

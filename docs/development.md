@@ -28,6 +28,7 @@ scripts/render-env.py   # scan-config.yml -> .env
 scripts/diff-scope.py   # --diff: the changed set, narrowed per engine
 orchestrator/           # Python collector (config, normalize, policy, summary)
 appsec_mcp/             # MCP server for AI agents (scan, triage, suppress)
+manager/                # optional: projects, batch, schedules, the local UI (docs/projects.md)
 tests/                  # collector unit tests (pytest)
 benchmark/              # precision/recall harness + RESULTS.md
 ```
@@ -61,12 +62,14 @@ and the scan job depends on them.
 
 A first step of a review is only useful if the reviewer knows what it already
 covered. [`benchmark/RESULTS.md`](../benchmark/RESULTS.md) measures the default
-scan on corpora with known answers — OWASP Benchmark for Java (SAST), a
-synthetic labelled secrets set, and pinned vulnerable packages checked against
-an OSV snapshot (SCA) — with per-category recall and false-positive rates, the
-exact engine digests and DB dates, and a section on where the tool is weak.
-IaC has no number yet: no labelled corpus maps onto these engines.
+scan on corpora with known answers — OWASP Benchmark for Java and for Python
+and the OpenSSF CVE Benchmark for JavaScript/TypeScript (SAST, with each
+relevant Semgrep rule pack scored as its own profile), a synthetic labelled
+secrets set, and pinned vulnerable packages checked against an OSV snapshot
+(SCA) — with per-category recall and false-positive rates, the exact engine
+digests and DB dates, and a section on where the tool is weak. IaC has no
+number yet: no labelled corpus maps onto these engines.
 
 ```bash
-python3 benchmark/bench.py        # re-run everything (Docker + network; ~10 min)
+python3 benchmark/bench.py        # re-run everything (Docker + network; ~40 min)
 ```

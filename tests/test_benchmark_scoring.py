@@ -65,6 +65,164 @@ def test_benchmark_test_name():
     assert scoring.benchmark_test_of(f"{TESTDIR}/BenchmarkTest02740.java") == "BenchmarkTest02740"
     assert scoring.benchmark_test_of(f"{TESTDIR}/BenchmarkTest02740.html") is None
     assert scoring.benchmark_test_of("") is None
+    # BenchmarkPython: same names, .py files, same expected-results format.
+    assert scoring.benchmark_test_of("testcode/BenchmarkTest01230.py") == "BenchmarkTest01230"
+    assert scoring.benchmark_test_of("testcode/BenchmarkTest01230.pyc") is None
+
+
+def test_benchmark_python_categories_pass_through_unmapped_cwes():
+    # Python-only categories (code injection 94, deserialization 502, open
+    # redirect 601, XXE 611) are absent from the translation table, so they
+    # score on their own CWE — and CWE-95 (eval) does not count as 94, as on
+    # the official scorecard.
+    exp = scoring.parse_expected_results(
+        "# test name, category, real vulnerability, cwe\n"
+        "BenchmarkTest00001,codeinj,true,94\nBenchmarkTest00002,codeinj,true,94\n"
+        "BenchmarkTest00003,deserialization,true,502\n")
+    findings = [{"category": "sast", "file": "testcode/BenchmarkTest00001.py", "cwe": ["CWE-94"]},
+                {"category": "sast", "file": "testcode/BenchmarkTest00002.py", "cwe": ["CWE-95"]},
+                {"category": "sast", "file": "testcode/BenchmarkTest00003.py", "cwe": ["CWE-502"]}]
+    r = scoring.score_owasp_benchmark(exp, findings)
+    assert (r["categories"]["codeinj"]["tp"], r["categories"]["codeinj"]["fn"]) == (1, 1)
+    assert r["categories"]["deserialization"]["tp"] == 1
+    # The labelled diagnostic map credits the eval finding; the official one does not.
+    lenient = scoring.score_owasp_benchmark(exp, findings, scoring.PYTHON_LENIENT_CWE_MAP)
+    assert lenient["categories"]["codeinj"]["tp"] == 2
+    assert scoring.BENCHMARK_CWE_MAP.get(95) is None and scoring.BENCHMARK_CWE_MAP[327] == 327
+
+
+def _cve(cve, line=10, cwes=("CWE-078",), files=("lib/a.js",), fix_elsewhere=False):
+    return {"cve": cve, "category": scoring.cve_category(list(cwes)), "cwes": list(cwes),
+            "pre": f"{cve}/pre", "post": f"{cve}/post", "files": list(files),
+            "weaknesses": [{"file": files[0], "line": line}], "fix_elsewhere": fix_elsewhere}
+
+
+def _hit(path, line, rule="r1", end=None, cwe=("CWE-78",)):
+    return {"category": "sast", "file": path, "line": line, "end_line": end or line,
+            "rule_id": rule, "cwe": list(cwe)}
+
+
+def test_cve_pairs_detection_and_fix_recognition():
+    cases = [_cve("CVE-1"), _cve("CVE-2"), _cve("CVE-3"), _cve("CVE-4", fix_elsewhere=True)]
+    findings = [
+        # CVE-1: on target, gone after the fix -> TP, TN (recognized).
+        _hit("CVE-1/pre/lib/a.js", 10),
+        # CVE-2: on target, same rule still fires after the fix -> TP, FP.
+        _hit("CVE-2/pre/lib/a.js", 10), _hit("CVE-2/post/lib/a.js", 12),
+        # CVE-3: right file, wrong line -> FN; its post-patch hit is no FP.
+        _hit("CVE-3/pre/lib/a.js", 30), _hit("CVE-3/post/lib/a.js", 30),
+        # CVE-4: file unchanged by the fix, so the rule fires on both.
+        _hit("CVE-4/pre/lib/a.js", 10), _hit("CVE-4/post/lib/a.js", 10),
+        # Not SAST: never counts, even on target.
+        {"category": "secrets", "file": "CVE-3/pre/lib/a.js", "line": 10, "rule_id": "s"},
+    ]
+    r = scoring.score_cve_pairs(cases, findings)
+    t = r["totals"]
+    assert (t["cves"], t["tp"], t["fn"], t["fp"], t["tn"]) == (4, 3, 1, 2, 2)
+    assert t["tpr"] == 0.75 and t["fpr"] == 0.5 and t["score"] == 0.25
+    assert t["precision"] == 0.6 and t["fp_fix_elsewhere"] == 1 and t["cwe_matched"] == 3
+    assert r["outcome"] == {"CVE-1": "recognized", "CVE-2": "not-recognized",
+                            "CVE-3": "missed", "CVE-4": "not-recognized"}
+    assert set(r["categories"]) == {"cmdi"}
+
+
+def test_cve_pairs_recognition_needs_an_on_target_rule_to_drop():
+    case = _cve("CVE-1")
+    findings = [_hit("CVE-1/pre/lib/a.js", 10, rule="sink"),
+                _hit("CVE-1/pre/lib/a.js", 40, rule="noise"),   # off target: not counted
+                _hit("CVE-1/post/lib/a.js", 11, rule="sink")]
+    assert scoring.score_cve_pairs([case], findings)["outcome"]["CVE-1"] == "not-recognized"
+    # Two hits before, one after: the rule fires less often -> recognized.
+    findings.append(_hit("CVE-1/pre/lib/a.js", 20, rule="sink"))
+    assert scoring.score_cve_pairs([case], findings)["outcome"]["CVE-1"] == "recognized"
+
+
+def test_cve_pairs_span_match_and_category():
+    case = _cve("CVE-1", line=12, cwes=("CWE-079", "CWE-116"))
+    multi = [_hit("CVE-1/pre/lib/a.js", 10, end=14, cwe=("CWE-79",))]
+    assert scoring.score_cve_pairs([case], multi)["totals"]["tp"] == 0          # official: start line
+    span = scoring.score_cve_pairs([case], multi, match="span")["totals"]
+    assert span["tp"] == 1 and span["cwe_matched"] == 1
+    assert scoring.cve_category(["CWE-400", "CWE-730"]) == "redos"
+    assert scoring.cve_category(["CWE-078", "CWE-088"]) == "cmdi"
+    assert scoring.cve_category(["CWE-915", "CWE-094"]) == "protopollution"
+    assert scoring.cve_category(["CWE-020"]) == "other"
+    assert scoring.cve_category([]) == "other"
+
+
+def test_semgrep_crash_is_detected_despite_successful_sarif(tmp_path):
+    import json
+
+    import bench
+    native = tmp_path / "native"
+    native.mkdir()
+
+    def sarif(*notes):
+        (native / "semgrep.sarif").write_text(json.dumps({"runs": [{
+            "tool": {"driver": {"rules": []}}, "results": [],
+            "invocations": [{"executionSuccessful": True,
+                             "toolExecutionNotifications": list(notes)}]}]}))
+    killed = {"level": "error", "message": {"text": "Error while running rules: \n"
+              "  You are seeing this because the engine was killed.\n"}}
+    timeout = {"level": "warning", "message": {"text": "Timeout when running r on f.js"}}
+    sarif(timeout)
+    assert bench.semgrep_crash(tmp_path) is None
+    assert bench.semgrep_notifications(tmp_path) == {"timeouts": 1, "syntax_errors": 0, "other": 0}
+    sarif(timeout, killed)
+    assert bench.semgrep_crash(tmp_path) == "You are seeing this because the engine was killed."
+    assert bench.semgrep_crash(tmp_path / "missing") is None
+
+
+def test_ossf_corpus_build_pairs_files_and_drops_unfetchable(tmp_path):
+    import json
+
+    import ossf_cve
+    cves = tmp_path / "CVEs"
+    cves.mkdir()
+
+    def record(cve, repo, path):
+        (cves / f"{cve}.json").write_text(json.dumps({
+            "CVE": cve, "state": "PUBLISHED", "repository": f"https://github.com/{repo}.git",
+            "prePatch": {"commit": "a" * 40, "weaknesses": [
+                {"location": {"file": path, "line": 3}, "explanation": "x"}]},
+            "postPatch": {"commit": "b" * 40}, "CWEs": ["CWE-078"]}))
+    record("CVE-1", "o/fixed", "/index.js")          # leading "/" = repo root
+    record("CVE-2", "o/same", "lib/a.js")
+    record("CVE-3", "o/gone", "lib/a.js")
+    bodies = {"o/fixed/" + "a" * 40: b"bad", "o/fixed/" + "b" * 40: b"good",
+              "o/same/" + "a" * 40: b"same", "o/same/" + "b" * 40: b"same"}
+
+    class NotFound(Exception):
+        code = 404
+
+    def fetch(url):
+        owner, repo, commit = url.split("/")[3:6]
+        if f"{owner}/{repo}/{commit}" not in bodies:
+            raise NotFound(url)
+        return bodies[f"{owner}/{repo}/{commit}"]
+
+    files, cases, excluded = ossf_cve.build(cves, tmp_path / "dl", fetch)
+    assert files == {"CVE-1/pre/index.js": b"bad", "CVE-1/post/index.js": b"good",
+                     "CVE-2/pre/lib/a.js": b"same", "CVE-2/post/lib/a.js": b"same"}
+    assert [(c["cve"], c["fix_elsewhere"], c["category"]) for c in cases] == [
+        ("CVE-1", False, "cmdi"), ("CVE-2", True, "cmdi")]
+    assert [e["cve"] for e in excluded] == ["CVE-3"]
+
+    # Everything is cached now, 404s included: a rebuild asks the network nothing.
+    def offline(url):
+        raise AssertionError(url)
+    assert ossf_cve.build(cves, tmp_path / "dl", offline)[0] == files
+
+    # Anything but a 404 fails the build instead of silently shrinking the corpus.
+    record("CVE-4", "o/flaky", "x.js")
+    def flaky(url):
+        raise RuntimeError("curl: (6) Could not resolve host")
+    try:
+        ossf_cve.build(cves, tmp_path / "dl", flaky)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("a network error must not be cached as a 404")
 
 
 LABELS = [

@@ -53,6 +53,28 @@ more than you need — `secrets_history_range: "origin/main..HEAD"` limits it to
 the branch's own commits, which is orders of magnitude faster and still catches
 a secret that was committed and then removed within the branch.
 
+## A repository's own config
+
+`.appsec-compose.yml` in the scanned repository is written by whoever controls
+that repository, not by whoever runs the scan, so it is not trusted like a
+`--config` or `--profile` you pass yourself. Only project policy applies from it:
+`fail_on`, `unknown_severity`, `strict`, `dedup`, `baseline`, `exclude`, `ignore`,
+`sbom`, `sbom_formats`, `secrets_history`, `licenses`, `offline`, `require_pinned`,
+`scanners.<engine>.enabled` and `scanners.semgrep.rules: [default, auto]`.
+
+Everything else is refused with a warning: image `version`s, `enrich` (its URL
+would receive `CVE_PAAS_API_KEY`), TruffleHog `verify` (it would send found
+secrets out), Checkov `frameworks`/`guidelines`, other Semgrep rule refs and
+`secrets_history_range`. To use them in your own project, pass the file
+explicitly: `--config .appsec-compose.yml`.
+
+Policy can still hide findings, so what the repository set is recorded
+(`provenance.repo_config`, the console, the review brief's blind spots) together
+with how many findings it suppresses, in-code comments included. **For code that
+is not yours, scan with `--no-repo-config`**: its config and baseline are ignored.
+Engine-level ignore files it carries (`.semgrepignore`, `zizmor.yml`) still
+apply, and in-code suppressions are still honoured and counted.
+
 ## Custom & auto Semgrep rules
 
 By default Semgrep runs the curated `p/default` pack. Point it at your own rules

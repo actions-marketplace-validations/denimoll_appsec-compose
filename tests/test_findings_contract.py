@@ -264,3 +264,16 @@ def test_provenance_records_where_the_time_went(run, monkeypatch):
     assert t["engines"] == {"semgrep": 18.4, "trivy": 5.0} and t["scanners_s"] == 19
     assert t["collector_s"] >= 0
     assert "semgrep 18.4 s" in (Path(main.REPORTS_DIR) / "summary.md").read_text()
+
+
+def test_strict_fails_when_an_engine_died_mid_run(run):
+    native = Path(main.NATIVE_DIR) / "semgrep.sarif"
+    sarif = json.loads(native.read_text())
+    sarif["runs"][0]["invocations"] = [{"executionSuccessful": True, "toolExecutionNotifications": [
+        {"level": "error", "message": {"text": "engine was killed"}}]}]
+    native.write_text(json.dumps(sarif))
+    _, doc = run()                                   # not strict: report, flag it
+    assert any("incomplete" in e for e in doc["reports_errored"])
+    assert "**Incomplete report:**" in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    run.config.write_text("strict: true\n")
+    assert run()[0] == main.EXIT_SCAN

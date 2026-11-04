@@ -13,8 +13,10 @@ record verdicts itself.
 **AI agent asked to check a project?** Follow [AGENTS.md](AGENTS.md): how to
 run the scan, read the results and report them.
 
-A thin, stateless orchestrator: no database, no UI, no workers. Each engine runs
-as a one-shot container; a small Python collector does the rest.
+A thin, stateless orchestrator: no database, no workers. Each engine runs as a
+one-shot container; a small Python collector does the rest. Looking after several
+repositories? An optional layer adds named projects, batch runs, schedules and a
+local UI, and a plain `scan` never touches it: [projects](docs/projects.md).
 
 ## Install and run locally (no clone)
 
@@ -22,7 +24,7 @@ Needs Docker with Compose v2, Python 3.9+ with PyYAML, and bash.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
-# or pin a release:  bash install.sh --ref v.1.3.0
+# or pin a release:  bash install.sh --ref v.1.4.0
 ```
 
 ```bash
@@ -30,6 +32,7 @@ appsec-compose scan                       # the current directory
 appsec-compose scan ~/src/api --fail-on critical
 appsec-compose scan . --diff origin/main  # only what your branch changed
 appsec-compose scan --image nginx:1.27    # a container image
+appsec-compose profile .                  # what the repo is, and the config that fits it
 appsec-compose scan . --json              # one JSON object on stdout, for tools and agents
 ```
 
@@ -87,6 +90,10 @@ ignore:
     expires: 2027-03-01                    # accepted risks get re-argued
 ```
 
+A file inside the scanned repo is not trusted like one you pass: only project
+policy applies from it, and the reports say what it set. **Scanning code that
+isn't yours? Add `--no-repo-config`.**
+
 `.appsec-baseline.json` next to it gates on new findings only
 (`--update-baseline` to accept the current state). Everything else — engines,
 custom Semgrep rules, strict mode, exploitability data from CVE-PaaS:
@@ -106,12 +113,13 @@ a human to review with the code. [AI agents](docs/ai-agents.md) ·
 
 ## In CI
 
-`uses: denimoll/appsec-compose@v.1.3.0` in GitHub Actions, or an `include:` of
+`uses: denimoll/appsec-compose@v.1.4.0` in GitHub Actions, or an `include:` of
 the GitLab template: [CI/CD](docs/ci.md).
 
 ## Documentation
 
 - [Usage](docs/usage.md) — install, flags, diff mode, images, offline, pinned images, several projects
+- [Projects](docs/projects.md) — optional: named projects and profiles, batch, schedules, the local UI
 - [Configuration](docs/configuration.md) — the config file, gate, suppressions, baseline
 - [Engines](docs/engines.md) — what each engine checks, severity, de-duplication
 - [Reports](docs/reports.md) — every output file and the `findings.json` contract

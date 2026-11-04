@@ -184,17 +184,21 @@ def validate_fail_on(level: str | None) -> str | None:
 
 
 def build_argv(cli: Cli, target: Path, reports_dir: Path, *,
-               diff_base: str | None = None, fail_on: str | None = None) -> list[str]:
+               diff_base: str | None = None, fail_on: str | None = None,
+               no_repo_config: bool = False) -> list[str]:
     """An argv list — never a shell string, so no path or ref is ever parsed
     by a shell."""
     argv = [*cli.argv, str(target), "--reports", str(reports_dir)]
+    # Not --config: a scanned repo's own file is held to project policy only.
     config = target / PROJECT_CONFIG
-    if config.is_file():
-        argv += ["--config", str(config)]
+    if no_repo_config:
+        argv.append("--no-repo-config")
+    elif config.is_file():
+        argv += ["--repo-config", str(config)]
     # Only an existing baseline: run.sh would otherwise create the file inside
     # the target, and scanning must not write into the scanned tree.
     baseline = target / PROJECT_BASELINE
-    if baseline.is_file():
+    if baseline.is_file() and not no_repo_config:
         argv += ["--baseline", str(baseline)]
     if fail_on:
         argv += ["--fail-on", fail_on]
@@ -340,7 +344,7 @@ def _read_json(path: Path) -> dict | None:
 
 async def scan(target: Path, *, diff_base: str | None = None,
                fail_on: str | None = None, on_line: LineSink | None = None,
-               cli: Cli | None = None) -> dict:
+               cli: Cli | None = None, no_repo_config: bool = False) -> dict:
     """Run one scan and return the compact result handed to the agent."""
     cli = cli or detect_cli()
     sdir = state_dir(target)
@@ -349,8 +353,9 @@ async def scan(target: Path, *, diff_base: str | None = None,
         raise UserError("the report store is inside the target; "
                         "set APPSEC_MCP_STATE_DIR to a directory outside it")
     (reports / "native").mkdir(parents=True, exist_ok=True)
-    os.chmod(sdir, 0o700)
-    argv = build_argv(cli, target, reports, diff_base=diff_base, fail_on=fail_on)
+    os.chmod(sdir, 0o700)  # nosemgrep: insecure-file-permissions -- owner only
+    argv = build_argv(cli, target, reports, diff_base=diff_base, fail_on=fail_on,
+                      no_repo_config=no_repo_config)
 
     # Another server process (a second agent session) scanning the same target
     # would share this reports dir and compose project name.

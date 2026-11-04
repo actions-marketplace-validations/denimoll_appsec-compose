@@ -7,6 +7,21 @@
     "expected_results": "expectedresults-1.2.csv",
     "test_dir": "src/main/java/org/owasp/benchmark/testcode"
   },
+  "owasp_benchmark_python": {
+    "description": "OWASP Benchmark for Python 0.1: 1,230 Flask test cases across 14 vulnerability categories, each labelled as a real vulnerability or a false-positive trap. Upstream calls 0.1 a preliminary release and publishes it as the head of main, so a commit is pinned.",
+    "repo": "https://github.com/OWASP-Benchmark/BenchmarkPython",
+    "commit": "f1291485808b66e20ddb6b01b10dc71b3df8c8ba",
+    "license": "GPL-3.0 (scanned locally, not redistributed)",
+    "expected_results": "expectedresults-0.1.csv",
+    "test_dir": "testcode"
+  },
+  "ossf_cve_benchmark": {
+    "description": "OpenSSF CVE Benchmark: metadata for 223 real JavaScript/TypeScript CVEs (repository, last vulnerable commit with the vulnerable line labelled, fix commit). benchmark/ossf_cve.py fetches the labelled files at both commits from raw.githubusercontent.com.",
+    "repo": "https://github.com/ossf-cve-benchmark/ossf-cve-benchmark",
+    "commit": "91c59fd54b2b768c0f310bb0027d2ac59cdf74d4",
+    "license": "MIT (metadata); each CVE's code under its own project's licence (scanned locally, not redistributed)",
+    "cves_dir": "CVEs"
+  },
   "benchmark_utils": {
     "description": "Official Benchmark scorer. Not downloaded: its Semgrep CWE translation table is reproduced in scoring.BENCHMARK_CWE_MAP so a finding counts exactly when it would on the official scorecard.",
     "repo": "https://github.com/OWASP-Benchmark/BenchmarkUtils",

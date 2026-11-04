@@ -75,12 +75,15 @@ def cve_ids(finding: Finding) -> list[str]:
 
 
 def _post(url: str, payload: dict, api_key: str, timeout: float) -> dict:
+    # urlopen also opens file:// and ftp://; this only ever talks to a web API.
+    if not url.lower().startswith(("http://", "https://")):
+        raise ValueError(f"CVE-PaaS url must be http(s), got {url!r}")
     data = json.dumps(payload).encode()
     request = urllib.request.Request(url, data=data, method="POST")
     request.add_header("Content-Type", "application/json")
     if api_key:
         request.add_header("X-API-Key", api_key)
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # nosemgrep: dynamic-urllib-use-detected
         return json.loads(response.read().decode())
 
 

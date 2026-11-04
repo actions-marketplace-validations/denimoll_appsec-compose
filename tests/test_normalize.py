@@ -391,3 +391,63 @@ def test_one_engine_knowing_it_is_malware_is_enough_after_merge():
     merged, _ = merge([plain, marked])
     assert len(merged) == 1 and merged[0].malicious and merged[0].severity == "critical"
     assert merged[0].message.startswith("MALICIOUS PACKAGE")
+
+
+# --- an engine that failed but still wrote valid SARIF ----------------------
+
+def _sarif_run(notifications, successful=True):
+    return {"version": "2.1.0", "runs": [{
+        "tool": {"driver": {"name": "semgrep", "rules": []}}, "results": [],
+        "invocations": [{"executionSuccessful": successful,
+                         "toolExecutionNotifications": notifications}]}]}
+
+
+def test_a_killed_engine_makes_its_report_incomplete(tmp_path):
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif_run([
+        {"level": "error", "message": {"text": "Error: engine was killed (out of memory)"}}])))
+    result = load_findings(str(tmp_path), expected={"semgrep.sarif"})
+    assert result.reports_found == ["semgrep.sarif"]
+    assert result.reports_errored == [
+        "semgrep.sarif: incomplete — Error: engine was killed (out of memory)"]
+
+
+def test_warnings_from_a_working_engine_are_not_failures(tmp_path):
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif_run([
+        {"level": "warning", "descriptor": {"id": "Syntax error"},
+         "message": {"text": "Syntax error at line /code/run.sh:68"}},
+        {"level": "warning", "descriptor": {"id": "Timeout"},
+         "message": {"text": "Timeout when running a rule"}}])))
+    assert load_findings(str(tmp_path), expected={"semgrep.sarif"}).reports_errored == []
+
+
+def test_an_unsuccessful_run_without_details_is_still_incomplete(tmp_path):
+    (tmp_path / "semgrep.sarif").write_text(json.dumps(_sarif_run([], successful=False)))
+    assert "unsuccessful run" in load_findings(
+        str(tmp_path), expected={"semgrep.sarif"}).reports_errored[0]
+
+
+# --- native SARIF leaves the machine: no container paths ----------------------
+
+def test_native_sarif_locations_become_repo_relative(tmp_path):
+    from normalize import relativize_sarif
+    def result(uri):
+        return {"ruleId": "r", "message": {"text": "m"}, "locations": [
+            {"physicalLocation": {"artifactLocation": {"uri": uri}, "region": {"startLine": 2}}}]}
+    path = tmp_path / "semgrep.sarif"
+    path.write_text(json.dumps(_sarif([result("/code/src/a b.py"), result("code/Dockerfile"),
+                                       result("file:///code/x.py"), result("already/relative.py"),
+                                       result("/usr/lib/libssl.so")])))
+    relativize_sarif(str(tmp_path))
+    uris = [r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+            for r in json.loads(path.read_text())["runs"][0]["results"]]
+    assert uris == ["src/a%20b.py", "Dockerfile", "x.py", "already/relative.py", "/usr/lib/libssl.so"]
+    # and the collector reads them back as the same files
+    found = load_findings(str(tmp_path), expected={"semgrep.sarif"}).findings
+    assert [f.file for f in found][:2] == ["src/a b.py", "Dockerfile"]
+
+
+def test_a_corrupt_report_is_left_for_load_findings_to_flag(tmp_path):
+    from normalize import relativize_sarif
+    (tmp_path / "semgrep.sarif").write_text("{not json")
+    relativize_sarif(str(tmp_path))
+    assert (tmp_path / "semgrep.sarif").read_text() == "{not json"
