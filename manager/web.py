@@ -342,14 +342,16 @@ def serve(host: str, port: int, public_hosts: list[str], allow_remote: bool, job
               "anyone who can reach this port can read reports, add projects and start scans.",
               file=sys.stderr)
     shown = f"[{literal}]" if ":" in literal else literal
-    print(f"Serving on http://{shown}:{actual}/ (Ctrl-C to stop)", file=sys.stderr, flush=True)
 
     def _terminate(*_):
         raise KeyboardInterrupt
-    signal.signal(signal.SIGTERM, _terminate)
     scheduler = Scheduler(scans)
-    scheduler.start()
+    # Before the banner, and the banner inside the try: a caller may stop the
+    # server the moment it says it is up, and that must still be a clean exit.
+    signal.signal(signal.SIGTERM, _terminate)
     try:
+        print(f"Serving on http://{shown}:{actual}/ (Ctrl-C to stop)", file=sys.stderr, flush=True)
+        scheduler.start()
         server.serve_forever()
     except KeyboardInterrupt:
         pass
