@@ -76,7 +76,7 @@ on_exit() {
 trap on_exit EXIT
 
 TARGET=""; IMAGE_REF=""; BUILD_CTX=""; DOCKERFILE=""; FAIL_ON_OVERRIDE=""
-CONFIG_FILE=""; PROFILE_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""; DIFF_BASE=""
+CONFIG_FILE=""; PROFILE_FILE=""; REPO_CONFIG_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""; DIFF_BASE=""
 REG_USER="${REGISTRY_USER:-}"; REG_PASS="${REGISTRY_PASS:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -87,6 +87,8 @@ while [[ $# -gt 0 ]]; do
     --registry-pass) REG_PASS="${2:-}"; shift 2 ;;
     --config) CONFIG_FILE="${2:-}"; shift 2 ;;
     --profile) PROFILE_FILE="${2:-}"; shift 2 ;;
+    --repo-config) REPO_CONFIG_FILE="${2:-}"; shift 2 ;;
+    --no-repo-config) shift ;;   # the launcher's: it simply passes no repo files
     --baseline) BASELINE_FILE="${2:-}"; shift 2 ;;
     --reports) REPORTS_DIR="${2:-}"; shift 2 ;;
     --name) PROJECT_NAME="${2:-}"; shift 2 ;;
@@ -139,6 +141,7 @@ abspath() { [[ "$1" = /* ]] && echo "$1" || echo "$CALLER_PWD/$1"; }
 [[ -n "$DOCKERFILE" ]] && DOCKERFILE="$(abspath "$DOCKERFILE")"
 [[ -n "$CONFIG_FILE" ]] && CONFIG_FILE="$(abspath "$CONFIG_FILE")"
 [[ -n "$PROFILE_FILE" ]] && PROFILE_FILE="$(abspath "$PROFILE_FILE")"
+[[ -n "$REPO_CONFIG_FILE" ]] && REPO_CONFIG_FILE="$(abspath "$REPO_CONFIG_FILE")"
 [[ -n "$REPORTS_DIR" ]] && REPORTS_DIR="$(abspath "$REPORTS_DIR")"
 [[ -n "$BASELINE_FILE" ]] && BASELINE_FILE="$(abspath "$BASELINE_FILE")"
 # The vulnerability-DB cache: ./cache by default; the CLI points it at the
@@ -149,6 +152,9 @@ cd "$SCRIPT_DIR"
 # Resolve the per-project state paths (defaults keep the single-project layout).
 if [[ -n "$CONFIG_FILE" ]]; then
   [[ -f "$CONFIG_FILE" ]] || { echo "Error: config '$CONFIG_FILE' not found" >&2; exit $EXIT_USAGE; }
+fi
+if [[ -n "$REPO_CONFIG_FILE" ]]; then
+  [[ -f "$REPO_CONFIG_FILE" ]] || { echo "Error: config '$REPO_CONFIG_FILE' not found" >&2; exit $EXIT_USAGE; }
 fi
 if [[ -n "$PROFILE_FILE" ]]; then
   [[ -f "$PROFILE_FILE" ]] || { echo "Error: profile '$PROFILE_FILE' not found" >&2; exit $EXIT_USAGE; }
@@ -186,10 +192,15 @@ mkdir -p "$ASS_EXCLUDES_DIR" "$ASS_ARCHIVE_DIR"
 overlays=()
 if [[ -n "$PROFILE_FILE" ]]; then overlays+=("$PROFILE_FILE"); fi
 if [[ -n "$CONFIG_FILE" ]]; then overlays+=("$CONFIG_FILE"); fi
+# The repo's own file is not trusted like the two above: whoever controls the
+# scanned repository wrote it, so only project policy applies from it (see
+# effective-config.py), and what it did goes into the reports.
+if [[ -n "$REPO_CONFIG_FILE" ]]; then overlays+=(--repo "$REPO_CONFIG_FILE"); fi
 if [[ ${#overlays[@]} -gt 0 ]]; then
-  python3 scripts/effective-config.py "$SCRIPT_DIR/scan-config.yml" "${overlays[@]}" \
-    "$RUN_DIR/scan-config.yml" || {
+  ASS_REPO_CONFIG="$(python3 scripts/effective-config.py "$SCRIPT_DIR/scan-config.yml" "${overlays[@]}" \
+    "$RUN_DIR/scan-config.yml")" || {
     rc=$?; [[ $rc == "$EXIT_USAGE" ]] || rc=$EXIT_SCAN; exit $rc; }
+  export ASS_REPO_CONFIG
   ASS_CONFIG_FILE="$RUN_DIR/scan-config.yml"; export ASS_CONFIG_FILE
 fi
 
@@ -347,6 +358,7 @@ export ASS_COLLECTOR_IMAGE
 
 [[ -n "$PROFILE_FILE" ]] && echo "Profile  : $PROFILE_FILE (over the shipped defaults)"
 [[ -n "$CONFIG_FILE" ]] && echo "Config   : $CONFIG_FILE (over the shipped defaults)"
+[[ -n "$REPO_CONFIG_FILE" ]] && echo "Config   : $REPO_CONFIG_FILE (the repository's own; project policy only)"
 [[ -n "${ASS_REPORTS_DIR:-}" ]] && echo "Reports  : $ASS_REPORTS_DIR"
 echo "Target   : $TARGET_LABEL"
 echo "Scanners : ${RUN_ENGINES:-none}"

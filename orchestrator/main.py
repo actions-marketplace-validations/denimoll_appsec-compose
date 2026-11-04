@@ -40,7 +40,7 @@ DIFF_SCOPE_PATH = "/diff/scope.json"
 # Version of the findings.json contract (schemas/findings.schema.json). Bump
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
-SCHEMA_VERSION = "1.3"
+SCHEMA_VERSION = "1.4"
 
 # Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
 # way of not reaching a verdict maps elsewhere, so a caller never mistakes a
@@ -72,6 +72,9 @@ def _provenance(cfg, image_mode: bool, scope=None) -> dict:
         # What was scanned: the whole target, or only what a change touched.
         "scope": scope.provenance() if scope else dict(diffscope.FULL_SCOPE),
         "timings": _timings(_json_env("ASS_ENGINE_TIMINGS")),
+        # The scanned repository's own config, when one applied: what it set
+        # decides what this report shows, and its author is not the reader.
+        "repo_config": _json_env("ASS_REPO_CONFIG") or None,
         # The Checkov frameworks this run used ("all", or the ones the repo
         # has files for): a framework not listed was not checked.
         "checkov_frameworks": _checkov_frameworks(),
@@ -327,7 +330,12 @@ def main() -> int:
     brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
                  CODE_DIR, excludes, image_mode, new_fps if delta else None,
                  scope=scope, license_stats=license_stats,
-                 incomplete=result.reports_errored)
+                 incomplete=result.reports_errored,
+                 suppressed_by_repo=sum(1 for s in suppressed
+                                        if s.reason.startswith("suppressed in source"))
+                 + sum(1 for s in suppressed
+                       if not s.reason.startswith("suppressed in source")
+                       and "ignore" in ((provenance.get("repo_config") or {}).get("applied") or [])))
 
     # Console summary.
     total = sum(policy.severity_counts.values())

@@ -34,6 +34,8 @@ def _parser() -> argparse.ArgumentParser:
     add.add_argument("target", help="a directory, or an https/ssh git URL")
     add.add_argument("--profile", help="a profile's name")
     add.add_argument("--meta", action="append", default=[], metavar="K=V")
+    add.add_argument("--no-repo-config", action="store_true",
+                     help="ignore the repo's own config and baseline (code that isn't yours)")
     add.add_argument("--json", action="store_true")
 
     listing = sub.add_parser("list", help="projects and their latest verdict", allow_abbrev=False)
@@ -175,7 +177,8 @@ def _dispatch(args) -> int:
         return serve(args.host, args.port, args.public_host, args.allow_remote, args.jobs)
     action = args.action
     if action == "add":
-        project = store.add_project(args.name, args.target, args.profile, store.parse_meta(args.meta))
+        project = store.add_project(args.name, args.target, args.profile, store.parse_meta(args.meta),
+                                    repo_config=not args.no_repo_config)
         kind = "git URL, cloned at scan time" if targets.is_git_url(project.target) else "local path"
         _out(args, project.to_dict(), f"Added {project.name}: {project.target} ({kind})")
     elif action == "list":

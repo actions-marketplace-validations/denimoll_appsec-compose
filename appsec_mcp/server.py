@@ -77,6 +77,10 @@ async def scan(
         description="Git ref to diff against (e.g. origin/main, HEAD~1) to scan only "
                     "what changed since it — much faster; use it to re-check your own "
                     "fix. Omit for a full scan.")] = None,
+    no_repo_config: Annotated[bool, Field(
+        description="Ignore the repository's own .appsec-compose.yml and baseline. Set "
+                    "it when the code is not the user's: otherwise its authors decide "
+                    "what counts.")] = False,
     fail_on: Annotated[Threshold | None, Field(
         description="Override the gate threshold for this run (default: the project "
                     "config, normally `high`). `none` reports without gating.")] = None,
@@ -120,6 +124,7 @@ async def scan(
         await ctx.report_progress(0, None, f"scanning {target}")
         try:
             result = await core.scan(target, diff_base=diff_base, fail_on=fail_on,
+                                     no_repo_config=no_repo_config,
                                      on_line=on_line)
         except core.UserError as exc:
             raise ToolError(str(exc)) from None

@@ -756,3 +756,17 @@ def test_fetch_swaps_a_finished_clone_into_place(box):
     targets.fetch(URL, dest)
     assert (dest / "app.py").exists() and os.path.isdir(dest / ".git")
     assert not dest.with_name("dest.new").exists()
+
+
+def test_no_repo_config_is_stored_and_survives_an_update(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    from manager import store
+    target = tmp_path / "t"
+    target.mkdir()
+    store.add_project("third", str(target), repo_config=False)
+    assert store.load_project("third").repo_config is False
+    store.update_project("third", str(target), None, {}, None)
+    assert store.load_project("third").repo_config is False
+    store.add_project("mine", str(target))
+    assert store.load_project("mine").repo_config is True

@@ -90,6 +90,10 @@ ignore:
     expires: 2027-03-01                    # accepted risks get re-argued
 ```
 
+A file inside the scanned repo is not trusted like one you pass: only project
+policy applies from it, and the reports say what it set. **Scanning code that
+isn't yours? Add `--no-repo-config`.**
+
 `.appsec-baseline.json` next to it gates on new findings only
 (`--update-baseline` to accept the current state). Everything else — engines,
 custom Semgrep rules, strict mode, exploitability data from CVE-PaaS:

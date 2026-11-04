@@ -22,7 +22,7 @@ from . import cron, runs, targets
 from .paths import (ROOT, UsageError, check_name, private_dir, profile_file, profiles_dir,
                     project_file, project_state, projects_dir, write_atomic)
 
-_PROJECT_KEYS = {"name", "target", "profile", "meta", "schedule"}
+_PROJECT_KEYS = {"name", "target", "profile", "meta", "schedule", "repo_config"}
 _META_KEY = re.compile(r"[A-Za-z0-9_.-]{1,64}")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 MAX_META_VALUE = 500
@@ -36,6 +36,7 @@ class Project:
     profile: str | None = None
     meta: dict = field(default_factory=dict)
     schedule: str | None = None
+    repo_config: bool = True       # False: ignore the repo's own config and baseline
 
     @property
     def is_git(self) -> bool:
@@ -49,6 +50,8 @@ class Project:
             data["meta"] = self.meta
         if self.schedule:
             data["schedule"] = self.schedule
+        if not self.repo_config:
+            data["repo_config"] = False
         return data
 
 
@@ -94,7 +97,8 @@ def _from_dict(stem: str, data: object) -> Project:
         target=targets.check_stored(data.get("target")),
         profile=check_name(profile, "profile") if profile else None,
         meta=check_meta(data.get("meta")),
-        schedule=cron.normalize(schedule) if schedule else None)
+        schedule=cron.normalize(schedule) if schedule else None,
+        repo_config=data.get("repo_config") is not False)
 
 
 def load_project(name: str) -> Project:
@@ -126,7 +130,7 @@ def save_project(project: Project) -> None:
 
 
 def add_project(name: str, target: str, profile: str | None = None, meta: dict | None = None,
-                schedule: str | None = None) -> Project:
+                schedule: str | None = None, repo_config: bool = True) -> Project:
     check_name(name)
     if name in _RESERVED:
         raise UsageError(f"'{name}' is reserved by the UI's URLs")
@@ -134,7 +138,7 @@ def add_project(name: str, target: str, profile: str | None = None, meta: dict |
     if profile:
         read_profile(profile)
     project = Project(name, targets.normalize(target), profile, check_meta(meta),
-                      cron.normalize(schedule) if schedule else None)
+                      cron.normalize(schedule) if schedule else None, repo_config)
     _from_dict(name, project.to_dict())
     private_dir(projects_dir())
     # 'x': two simultaneous adds of one name cannot both succeed.
@@ -149,11 +153,11 @@ def add_project(name: str, target: str, profile: str | None = None, meta: dict |
 
 def update_project(name: str, target: str, profile: str | None, meta: dict,
                    schedule: str | None) -> Project:
-    load_project(name)
+    current = load_project(name)
     if profile:
         read_profile(profile)
     project = Project(name, targets.normalize(target), profile or None, check_meta(meta),
-                      cron.normalize(schedule) if schedule else None)
+                      cron.normalize(schedule) if schedule else None, current.repo_config)
     save_project(project)
     return project
 

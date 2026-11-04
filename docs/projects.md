@@ -92,12 +92,12 @@ Every scan brings the clone to the remote's `HEAD` with a shallow fetch. A clone
 or fetch that fails is exit 3 for that project: there is no result, and a stale
 tree is not scanned.
 
-**A cloned repository's own config applies, as it does when you scan any checkout
-by hand.** That is what keeps a repo's suppressions working, but it also means a
-repository you do not trust can suppress its own findings. For third-party code,
-read its `.appsec-compose.yml` before believing a pass. Its `enrich.cve_paas.url`
-could also point the optional enrichment elsewhere, sending your
-`CVE_PAAS_API_KEY` if you have one exported.
+**A cloned repository's own config applies only as project policy**, as when
+you scan any checkout: gate, excludes, suppressions and baseline, never image
+versions, enrichment URLs or anything else that picks what runs or where data
+goes ([details](configuration.md#a-repositorys-own-config)). That keeps a repo's
+suppressions working, but it can still suppress its own findings; the report
+says so. For code that is not yours: `project add --no-repo-config`.
 
 ## Baselines
 

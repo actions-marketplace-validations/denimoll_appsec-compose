@@ -259,7 +259,7 @@ def _components(comps, gates, is_new) -> list[str]:
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
            image_mode: bool, new_fps: set[str] | None, scope=None,
-           license_stats=None, incomplete=None) -> None:
+           license_stats=None, incomplete=None, suppressed_by_repo=0) -> None:
     source = _Source(None if image_mode else code_dir)
     secrets = {(_norm_file(f.file), f.line): f for f in findings
                if f.category == "secrets" and f.line}
@@ -333,6 +333,21 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
               "What this scan did not or could not check. Absence of findings here "
               "is not evidence of absence.", ""]
     spots = _blind_spots(enabled, cfg, coverage, image_mode, scope, code_dir)
+    repo_config = provenance.get("repo_config")
+    if repo_config or suppressed_by_repo:
+        # A repository can shape its own report. Fine for your own code; for
+        # anyone else's, the reader has to know before believing a clean result.
+        said = [f"**Set by the scanned repository itself:** "]
+        if repo_config:
+            said.append(f"`{repo_config['file']}` applied "
+                        + (", ".join(f"`{k}`" for k in repo_config.get("applied", [])) or "nothing"))
+            if repo_config.get("dropped"):
+                said.append(" (ignored: " + ", ".join(f"`{k}`" for k in repo_config["dropped"]) + ")")
+            said.append("; ")
+        said.append(f"{suppressed_by_repo} finding(s) are suppressed by it (in-code comments"
+                    + (" or `ignore:`" if repo_config else "") + "). If this is not your own "
+                    "code, rescan with `--no-repo-config` before trusting a clean result.")
+        spots.insert(0, "".join(said))
     for what in incomplete or []:
         # First: an engine that failed mid-run makes its zero meaningless.
         spots.insert(0, f"**Incomplete report:** {what}. Its findings are "

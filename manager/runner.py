@@ -77,13 +77,14 @@ def _invoke(argv: list[str], name: str, on_start) -> tuple[int, dict]:
 def _scan_under_lock(project: store.Project, extra: list[str], on_start) -> dict:
     name = project.name
     target = project.target
-    args: list[str] = []
+    args: list[str] = [] if project.repo_config else ["--no-repo-config"]
     if project.is_git:
         target = str(source_dir(name))
         targets.fetch(project.target, Path(target))
         # A clone is replaced freely, so its baseline lives beside it (the
         # launcher would otherwise take one committed in the repo, if any).
         baseline = project_state(name) / "baseline.json"
+        # Its own, from our own earlier snapshot: not the repo's, so kept either way.
         if baseline.exists() or "--update-baseline" in extra:
             args += ["--baseline", str(baseline)]
     if project.profile:

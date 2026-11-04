@@ -119,10 +119,16 @@ case "$cmd" in
     if [[ -n "$target" ]]; then
       [[ -d "$target" ]] || fail "target '$target' is not a directory"
       abs="$(cd "$target" && pwd)"
-      if ! has --config "$@" && [[ -f "$abs/.appsec-compose.yml" ]]; then
-        args+=(--config "$abs/.appsec-compose.yml")
+      # The repo's own config is not trusted like an explicit --config: only
+      # project policy applies from it. --no-repo-config (for code that isn't
+      # yours) ignores it and the repo's baseline, so a scanned repo cannot
+      # suppress or baseline away its own findings.
+      if ! has --config "$@" && ! has --repo-config "$@" && ! has --no-repo-config "$@" \
+         && [[ -f "$abs/.appsec-compose.yml" ]]; then
+        args+=(--repo-config "$abs/.appsec-compose.yml")
       fi
-      if ! has --baseline "$@" && { [[ -f "$abs/.appsec-baseline.json" ]] || has --update-baseline "$@"; }; then
+      if ! has --baseline "$@" && ! has --no-repo-config "$@" \
+         && { [[ -f "$abs/.appsec-baseline.json" ]] || has --update-baseline "$@"; }; then
         args+=(--baseline "$abs/.appsec-baseline.json")
       fi
       if ! has --name "$@"; then
