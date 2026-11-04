@@ -14,7 +14,7 @@ branding:
 #     security-events: write        # only for upload-sarif
 #   steps:
 #     - uses: actions/checkout@v5
-#     - uses: denimoll/appsec-compose@v.1.3.0
+#     - uses: denimoll/appsec-compose@v.1.4.0
 #       with:
 #         config: .github/scan-config.yml
 #

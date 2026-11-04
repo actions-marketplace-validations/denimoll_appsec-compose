@@ -74,17 +74,17 @@
   (`LICENSE:<id>`) under the usual gate, suppressions and baseline.
   Dependencies whose manifests record no license are counted as unjudged.
 
-## Release: 1.3.0
+## Release: 1.4.0
 
-1.2.0 shipped. 1.3.0 adds, with no breaking change (`findings.json` 1.3 is
-additions only): dependencies grouped per vulnerable component with the
-version to upgrade to; per-engine timings in every report; the MCP
-`components` tool; Checkov limited to the frameworks a repository has files
-for and run without its guideline download (django full scan 58.7 s ->
-34.6 s, identical findings); AGENTS.md for AI agents; the speed benchmark.
+1.3.0 shipped. 1.4.0 adds the project profile, optional projects with batch
+runs, schedules and a local UI, cross-engine merging of CI workflow findings,
+and repo-relative native SARIF; it detects engines that fail mid-run and stops
+trusting a scanned repository's own config. Breaking: `enrich`, image versions
+and similar in a repo's `.appsec-compose.yml` now need an explicit `--config`.
 
 - [ ] Merge `develop` -> `main`.
-- [ ] Tag `v.1.3.0` + GitHub Release (triggers the collector image publish to GHCR).
+- [ ] Tag `v.1.4.0` + GitHub Release (triggers the collector image publish to GHCR).
+- [ ] Cold start on a colleague's machine: empty cache and no engine images.
 
 ## Primary direction: local and AI-assisted review
 
@@ -141,7 +141,10 @@ the first step of an AI agent's security review. CI integrations come later.
 
 ## CI integrations (later — current versions work)
 
-- [ ] Run the GitHub Action and the GitLab template in real pipelines.
+- [x] Run the GitHub Action in a real pipeline (`uses: ./`, gate included) and
+      the GitLab template's job scripts in `docker:29` with the host socket.
+- [ ] A real GitLab runner, including how GitLab takes the reports, and the
+      action from another repository (`uses: denimoll/appsec-compose@v.X.Y.Z`).
 - [ ] Optional moving tag (e.g. `v.1`) for the Action, moved by the release
       workflow; until then, pin an exact `v.X.Y.Z` tag or a commit SHA.
 
