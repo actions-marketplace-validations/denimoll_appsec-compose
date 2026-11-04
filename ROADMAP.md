@@ -145,20 +145,25 @@ the first step of an AI agent's security review. CI integrations come later.
 - [ ] Optional moving tag (e.g. `v.1`) for the Action, moved by the release
       workflow; until then, pin an exact `v.X.Y.Z` tag or a commit SHA.
 
-## Multi-project & UI (later)
+## Multi-project & UI
 
-A "project" = a named **profile** (a scan-config) applied to a target entity.
-The enabling primitives are done (`--config`/`--baseline`/`--reports`/`--name`,
-per-run state, shared `cache/`).
+An optional layer over the CLI (`manager/`, [docs/projects.md](docs/projects.md));
+a plain `scan` stays stateless and never touches it. A "project" = a name + a target
++ a **profile** + metadata.
 
-- [ ] **Profiles** — one main profile or several reusable profiles (which
-      practices/engines, SBOM formats, policy, etc.).
-- [ ] **Projects** — entities with their own name, path/address (repo URL or
-      local path) and metadata, each referencing a profile.
-- [ ] **Scheduling** — run a project's scan on a **cron** schedule.
-- [ ] **Batch** — run many projects; aggregated `reports/index.html` across them.
-- [ ] **Minimal UI** — thin backend (e.g. FastAPI/Flask) over `run.sh` to CRUD
-      profiles/projects, browse reports, and manage schedules.
+- [x] **Profiles** — named overlays in the project-config format; shipped defaults
+      < profile < the repo's own `.appsec-compose.yml`, so its suppressions hold.
+- [x] **Projects** — `project add/list/show/rm/scan`: a local path or an https/ssh
+      git URL (shallow clone, argv only), metadata, reports and the last N runs'
+      summaries for a trend under the XDG state directory.
+- [x] **Scheduling** — a cron expression per project; `project cron` prints crontab
+      lines, nothing is installed; `serve` runs what is due; a per-project lock
+      stops two scans of one project from anywhere.
+- [x] **Batch** — `project scan --all`: sequential by default, an aggregated
+      `index.html`, exit with the worst outcome.
+- [x] **Minimal UI** — `serve`: stdlib `http.server`, server-rendered, loopback only
+      by default, Host/CSRF/Origin checks, reports from an allowlist under a strict
+      CSP. No login, so a non-loopback bind needs a flag and warns.
 
 ## Integrations & extras (backlog)
 

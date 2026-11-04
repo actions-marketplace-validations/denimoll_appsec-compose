@@ -283,6 +283,9 @@ projects:
                     --reports /var/appsec/front --baseline /var/appsec/front/baseline.json
 ```
 
+Or let appsec-compose keep the list: [projects](projects.md) gives each one a name,
+a profile, a run history, batch runs and schedules.
+
 `--name` namespaces the containers (`COMPOSE_PROJECT_NAME`), and `cache/` stays
 shared on purpose — the vulnerability databases are the same for every project.
 

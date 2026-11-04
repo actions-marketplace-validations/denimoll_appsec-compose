@@ -12,10 +12,14 @@ list such as `ignore:` or `exclude:`, a scalar, or a key whose type differs
 (`fail_on: high` in the defaults, a per-category map in the project) — is
 replaced whole. To switch a default engine off, say so: `enabled: false`.
 
-    effective-config.py <defaults.yml> <project.yml> <out.yml>
+    effective-config.py <defaults.yml> <overlay.yml>... <out.yml>
 
-The project file is validated before merging, so a mistake is reported
-against the file and key the user wrote. Exits 2 on any config problem.
+Overlays apply in the order given, each over the result so far: `run.sh` passes
+a named profile first and the project's own config last, so a repo's
+suppressions outrank the profile it is scanned with.
+
+Each overlay is validated before merging, so a mistake is reported against the
+file and key the user wrote. Exits 2 on any config problem.
 """
 from __future__ import annotations
 
@@ -61,25 +65,35 @@ def _load(path: Path) -> dict:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 4:
-        print("usage: effective-config.py <defaults.yml> <project.yml> <out.yml>", file=sys.stderr)
+    if len(argv) < 4:
+        print("usage: effective-config.py <defaults.yml> <overlay.yml>... <out.yml>", file=sys.stderr)
         return 2
-    defaults_path, project_path, out = Path(argv[1]), Path(argv[2]), Path(argv[3])
+    defaults_path, overlay_paths, out = Path(argv[1]), [Path(a) for a in argv[2:-1]], Path(argv[-1])
     try:
-        defaults, project = _load(defaults_path), _load(project_path)
+        defaults = _load(defaults_path)
+        overlays = [_load(path) for path in overlay_paths]
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
     known = set((defaults.get("scanners") or {}))
-    problems = _schema().validate(project, known_scanners=known)
-    if problems:
-        print(f"ERROR: invalid {project_path.name}:\n  " + "\n  ".join(
-            p.replace("scan-config.yml", project_path.name) for p in problems), file=sys.stderr)
+    validate = _schema().validate
+    failed = False
+    for path, overlay in zip(overlay_paths, overlays):
+        problems = validate(overlay, known_scanners=known)
+        if problems:
+            failed = True
+            print(f"ERROR: invalid {path.name}:\n  " + "\n  ".join(
+                p.replace("scan-config.yml", path.name) for p in problems), file=sys.stderr)
+    if failed:
         return 2
+    merged = defaults
+    for overlay in overlays:
+        merged = merge(merged, overlay)
     out.write_text(
-        f"# Effective config: {defaults_path} overlaid with {project_path}.\n"
+        f"# Effective config: {defaults_path} overlaid with "
+        + ", then ".join(str(p) for p in overlay_paths) + ".\n"
         "# Generated per run by scripts/effective-config.py — do not edit.\n"
-        + yaml.safe_dump(merge(defaults, project), sort_keys=False))
+        + yaml.safe_dump(merged, sort_keys=False))
     return 0
 
 

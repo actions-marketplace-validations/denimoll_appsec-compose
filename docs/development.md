@@ -28,6 +28,7 @@ scripts/render-env.py   # scan-config.yml -> .env
 scripts/diff-scope.py   # --diff: the changed set, narrowed per engine
 orchestrator/           # Python collector (config, normalize, policy, summary)
 appsec_mcp/             # MCP server for AI agents (scan, triage, suppress)
+manager/                # optional: projects, batch, schedules, the local UI (docs/projects.md)
 tests/                  # collector unit tests (pytest)
 benchmark/              # precision/recall harness + RESULTS.md
 ```

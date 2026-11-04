@@ -10,6 +10,9 @@
 # excludes/ into a private directory under .run/ (removed on exit), so runs from
 # one clone can overlap — give each its own --name and --reports.
 #
+# --profile <file> lays a named set of settings between the shipped defaults and
+# --config, so a repo's own config keeps the last word (docs/projects.md).
+#
 # Relative paths are resolved against the directory run.sh was invoked from, so
 # it can be called from another project's checkout (CI, the GitHub Action).
 #
@@ -38,7 +41,7 @@ trap 'echo "Error: scan aborted: \`$BASH_COMMAND\` failed (line $LINENO)" >&2; e
 usage() {
   echo "Usage: $0 <path-to-repo> [--fail-on L] [--strict] [--require-pinned] [--update-baseline]" >&2
   echo "       $0 <path-to-repo> --diff <base-ref> [--fail-on L] [--strict]" >&2
-  echo "       $0 <path-to-repo> [--config <file>] [--baseline <file>] [--reports <dir>] [--name <slug>]" >&2
+  echo "       $0 <path-to-repo> [--profile <file>] [--config <file>] [--baseline <file>] [--reports <dir>] [--name <slug>]" >&2
   echo "       $0 --image <ref> [--registry-user U --registry-pass P] [--fail-on L]" >&2
   echo "       $0 --build <context> [--dockerfile <path>] [--fail-on L]" >&2
   echo "       any of the above with --json: one JSON result on stdout, the rest on stderr" >&2
@@ -73,7 +76,7 @@ on_exit() {
 trap on_exit EXIT
 
 TARGET=""; IMAGE_REF=""; BUILD_CTX=""; DOCKERFILE=""; FAIL_ON_OVERRIDE=""
-CONFIG_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""; DIFF_BASE=""
+CONFIG_FILE=""; PROFILE_FILE=""; BASELINE_FILE=""; REPORTS_DIR=""; PROJECT_NAME=""; DIFF_BASE=""
 REG_USER="${REGISTRY_USER:-}"; REG_PASS="${REGISTRY_PASS:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -83,6 +86,7 @@ while [[ $# -gt 0 ]]; do
     --registry-user) REG_USER="${2:-}"; shift 2 ;;
     --registry-pass) REG_PASS="${2:-}"; shift 2 ;;
     --config) CONFIG_FILE="${2:-}"; shift 2 ;;
+    --profile) PROFILE_FILE="${2:-}"; shift 2 ;;
     --baseline) BASELINE_FILE="${2:-}"; shift 2 ;;
     --reports) REPORTS_DIR="${2:-}"; shift 2 ;;
     --name) PROJECT_NAME="${2:-}"; shift 2 ;;
@@ -134,6 +138,7 @@ abspath() { [[ "$1" = /* ]] && echo "$1" || echo "$CALLER_PWD/$1"; }
 [[ -n "$BUILD_CTX" ]] && BUILD_CTX="$(abspath "$BUILD_CTX")"
 [[ -n "$DOCKERFILE" ]] && DOCKERFILE="$(abspath "$DOCKERFILE")"
 [[ -n "$CONFIG_FILE" ]] && CONFIG_FILE="$(abspath "$CONFIG_FILE")"
+[[ -n "$PROFILE_FILE" ]] && PROFILE_FILE="$(abspath "$PROFILE_FILE")"
 [[ -n "$REPORTS_DIR" ]] && REPORTS_DIR="$(abspath "$REPORTS_DIR")"
 [[ -n "$BASELINE_FILE" ]] && BASELINE_FILE="$(abspath "$BASELINE_FILE")"
 # The vulnerability-DB cache: ./cache by default; the CLI points it at the
@@ -144,6 +149,9 @@ cd "$SCRIPT_DIR"
 # Resolve the per-project state paths (defaults keep the single-project layout).
 if [[ -n "$CONFIG_FILE" ]]; then
   [[ -f "$CONFIG_FILE" ]] || { echo "Error: config '$CONFIG_FILE' not found" >&2; exit $EXIT_USAGE; }
+fi
+if [[ -n "$PROFILE_FILE" ]]; then
+  [[ -f "$PROFILE_FILE" ]] || { echo "Error: profile '$PROFILE_FILE' not found" >&2; exit $EXIT_USAGE; }
 fi
 if [[ -n "$REPORTS_DIR" ]]; then
   mkdir -p "$REPORTS_DIR/native"
@@ -173,9 +181,13 @@ mkdir -p "$ASS_EXCLUDES_DIR" "$ASS_ARCHIVE_DIR"
 
 # A project config is laid over the shipped defaults rather than replacing
 # them, so it states only what differs. Both render-env and the collector read
-# the merged result.
-if [[ -n "$CONFIG_FILE" ]]; then
-  python3 scripts/effective-config.py "$SCRIPT_DIR/scan-config.yml" "$CONFIG_FILE" \
+# the merged result. Overlays apply in order: a profile first, so the project's
+# own config (its suppressions, above all) wins over it.
+overlays=()
+if [[ -n "$PROFILE_FILE" ]]; then overlays+=("$PROFILE_FILE"); fi
+if [[ -n "$CONFIG_FILE" ]]; then overlays+=("$CONFIG_FILE"); fi
+if [[ ${#overlays[@]} -gt 0 ]]; then
+  python3 scripts/effective-config.py "$SCRIPT_DIR/scan-config.yml" "${overlays[@]}" \
     "$RUN_DIR/scan-config.yml" || {
     rc=$?; [[ $rc == "$EXIT_USAGE" ]] || rc=$EXIT_SCAN; exit $rc; }
   ASS_CONFIG_FILE="$RUN_DIR/scan-config.yml"; export ASS_CONFIG_FILE
@@ -333,6 +345,7 @@ offline_flag=""; [[ "$ASS_OFFLINE" == "1" ]] && offline_flag="--offline"
 ASS_COLLECTOR_IMAGE="$(scripts/collector-image.sh $offline_flag)" || exit $EXIT_SCAN
 export ASS_COLLECTOR_IMAGE
 
+[[ -n "$PROFILE_FILE" ]] && echo "Profile  : $PROFILE_FILE (over the shipped defaults)"
 [[ -n "$CONFIG_FILE" ]] && echo "Config   : $CONFIG_FILE (over the shipped defaults)"
 [[ -n "${ASS_REPORTS_DIR:-}" ]] && echo "Reports  : $ASS_REPORTS_DIR"
 echo "Target   : $TARGET_LABEL"

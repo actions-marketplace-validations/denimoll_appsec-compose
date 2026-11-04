@@ -32,6 +32,7 @@ use no network at all.
 | `ZIZMOR_GITHUB_TOKEN` in the environment | workflow `uses:` references | the GitHub API |
 | `scanners.checkov.guidelines: true` | a download request | Prisma Cloud (Palo Alto Networks) |
 | `enrich.cve_paas.enabled` | CVE ids found in your dependencies | the CVE-PaaS server you configure |
+| a git URL as a [project](docs/projects.md) target | a fetch of that repository (`git`, with your credentials if the host asks) | the host in the URL, on each scan of that project |
 
 ## GitHub Action
 

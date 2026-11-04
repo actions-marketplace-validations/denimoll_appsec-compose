@@ -13,8 +13,10 @@ record verdicts itself.
 **AI agent asked to check a project?** Follow [AGENTS.md](AGENTS.md): how to
 run the scan, read the results and report them.
 
-A thin, stateless orchestrator: no database, no UI, no workers. Each engine runs
-as a one-shot container; a small Python collector does the rest.
+A thin, stateless orchestrator: no database, no workers. Each engine runs as a
+one-shot container; a small Python collector does the rest. Looking after several
+repositories? An optional layer adds named projects, batch runs, schedules and a
+local UI, and a plain `scan` never touches it: [projects](docs/projects.md).
 
 ## Install and run locally (no clone)
 
@@ -113,6 +115,7 @@ the GitLab template: [CI/CD](docs/ci.md).
 ## Documentation
 
 - [Usage](docs/usage.md) — install, flags, diff mode, images, offline, pinned images, several projects
+- [Projects](docs/projects.md) — optional: named projects and profiles, batch, schedules, the local UI
 - [Configuration](docs/configuration.md) — the config file, gate, suppressions, baseline
 - [Engines](docs/engines.md) — what each engine checks, severity, de-duplication
 - [Reports](docs/reports.md) — every output file and the `findings.json` contract
