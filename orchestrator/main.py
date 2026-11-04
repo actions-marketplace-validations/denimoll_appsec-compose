@@ -26,7 +26,7 @@ import licenses as lic
 from config import load_config
 from converters import trufflehog_json_to_sarif
 from dedup import merge
-from normalize import load_findings, finding_to_dict, expected_reports
+from normalize import load_findings, finding_to_dict, expected_reports, relativize_sarif
 from policy import evaluate, resolve_unknown
 from summary import render, timing_label
 from suppress import Suppressed, apply as apply_ignore
@@ -113,6 +113,9 @@ def main() -> int:
     # Generate SARIF for tools that have no native SARIF (keeps the raw report).
     trufflehog_json_to_sarif(Path(NATIVE_DIR, "trufflehog.json"),
                              Path(NATIVE_DIR, "trufflehog.sarif"))
+
+    # The reports leave this machine (code scanning, ASPM): no container paths.
+    relativize_sarif(NATIVE_DIR)
 
     # Use the scanners that actually ran (run.sh passes the filtered list in
     # image mode); fall back to everything enabled in the config.

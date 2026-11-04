@@ -10,7 +10,7 @@ import json
 import re
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 # Each source: (filename, tool label, category, parser format).
 SOURCES = [
@@ -482,6 +482,39 @@ class ScanResult:
     reports_found: list[str]
     reports_missing: list[str]
     reports_errored: list[str]
+
+
+def relativize_sarif(native_dir: str) -> None:
+    """Make the locations in the native SARIF reports repo-relative.
+
+    The engines run with the repository mounted at /code and report that
+    ("/code/app.py", "code/app.py"), a path that exists nowhere else: GitHub
+    code scanning and ASPMs cannot place such a result on a file in the repo.
+    Only artifact locations change; results, rules and levels stay the engine's.
+    """
+    def fix(node) -> bool:
+        changed = False
+        if isinstance(node, dict):
+            loc = node.get("artifactLocation")
+            if isinstance(loc, dict) and isinstance(loc.get("uri"), str):
+                new = quote(_clean_path(loc["uri"]), safe="/:@")
+                if new and new != loc["uri"]:
+                    loc["uri"] = new
+                    changed = True
+            for value in node.values():
+                changed = fix(value) or changed
+        elif isinstance(node, list):
+            for value in node:
+                changed = fix(value) or changed
+        return changed
+
+    for path in Path(native_dir).glob("*.sarif"):
+        try:
+            data = json.loads(path.read_text())
+            if fix(data.get("runs")):
+                path.write_text(json.dumps(data))
+        except (OSError, ValueError, AttributeError):
+            continue            # load_findings reports an unreadable one
 
 
 def _engine_failures(path: Path) -> list[str]:
