@@ -11,6 +11,8 @@ untouched for ASPM import). Dedup key depends on category:
             rule maps to a known equivalence class merge per file; the rest
             fall back to the same rule at the same (file, line).
 - sast    : same rule at the same (file, line).
+- workflow: the same flaw in a CI workflow from different engines merges where
+            their regions overlap, across categories, into one iac finding.
 
 A merged finding records every tool that reported it (provenance) plus the
 union of equivalent IDs (aliases). Its severity is the highest among the tools
@@ -39,6 +41,25 @@ _IAC_EQUIVALENCE = {
 }
 
 _IAC_CLASS = {rule: cls for cls, rules in _IAC_EQUIVALENCE.items() for rule in rules}
+
+
+# The same flaw in a CI workflow, as each engine names it. Unlike the Dockerfile
+# policies above these occur many times per file, so they merge only where the
+# engines' regions overlap: Semgrep flags a whole `run:` step, zizmor the
+# expression inside it, and two steps stay two findings. CKV2_GHA_1 (file) and
+# zizmor's excessive-permissions (job) are not here: different places to fix.
+# Semgrep ids carry a prefix, so names match on the id's last segment too.
+_WORKFLOW_EQUIVALENCE = {
+    "workflow.template-injection": ["zizmor/template-injection", "run-shell-injection", "CKV_GHA_2"],
+    "workflow.unpinned-action": ["zizmor/unpinned-uses", "github-actions-mutable-action-tag"],
+}
+_WORKFLOW_CLASS = {rule.lower(): cls for cls, rules in _WORKFLOW_EQUIVALENCE.items()
+                   for rule in rules}
+
+
+def workflow_class(rule_id: str) -> str | None:
+    rule = (rule_id or "").lower()
+    return _WORKFLOW_CLASS.get(rule) or _WORKFLOW_CLASS.get(rule.rsplit(".", 1)[-1])
 
 
 def iac_class(rule_id: str) -> str | None:
@@ -156,10 +177,48 @@ def _cluster_sca(findings: list[Finding]) -> list[list[Finding]]:
     return groups
 
 
+def _cluster_workflow(findings: list[Finding]) -> tuple[list[list[Finding]], list[Finding]]:
+    """Workflow findings reported by more than one engine, grouped by overlap.
+
+    Returns those groups and everything else. A cluster one engine reported
+    alone is not a duplicate: its findings go on unchanged, keeping their
+    category and fingerprint.
+    """
+    buckets: dict[tuple, list[Finding]] = {}
+    rest: list[Finding] = []
+    for f in findings:
+        cls = workflow_class(f.rule_id)
+        if cls and f.line:
+            buckets.setdefault((cls, _norm_file(f.file)), []).append(f)
+        else:
+            rest.append(f)
+    groups: list[list[Finding]] = []
+    for bucket in buckets.values():
+        bucket.sort(key=lambda f: f.line)
+        clusters: list[list[Finding]] = []
+        end = 0
+        for f in bucket:
+            if clusters and f.line <= end:
+                clusters[-1].append(f)
+            else:
+                clusters.append([f])
+                end = 0
+            end = max(end, f.end_line or f.line, f.line)
+        for cluster in clusters:
+            if len({f.tool for f in cluster}) > 1:
+                groups.append(cluster)
+            else:
+                rest.extend(cluster)
+    return groups, rest
+
+
 def merge(findings: list[Finding], enabled: bool = True) -> tuple[list[Finding], DedupStats]:
     raw = len(findings)
     if not enabled:
         return list(findings), DedupStats(raw=raw, unique=raw)
+
+    # Across categories: Semgrep files these under sast, the others under iac.
+    workflow_groups, findings = _cluster_workflow(findings)
 
     by_cat: dict[str, list[Finding]] = {}
     for f in findings:
@@ -184,5 +243,9 @@ def merge(findings: list[Finding], enabled: bool = True) -> tuple[list[Finding],
             groups.extend(keyed.values())
 
     merged = [_merge_group(g) for g in groups]
+    for group in workflow_groups:
+        finding = _merge_group(group)
+        finding.category = "iac"     # one gate threshold, whichever engine leads
+        merged.append(finding)
     merged.sort(key=lambda f: (-_SEVERITY_RANK[f.severity], f.category, f.tools))
     return merged, DedupStats(raw=raw, unique=len(merged))

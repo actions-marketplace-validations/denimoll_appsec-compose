@@ -308,6 +308,19 @@ the summary (the raw native reports are left untouched for ASPM import):
   so findings whose rule maps to a known equivalence class merge per file.
   Unmapped rules keep their own `(rule, file, line)` identity.
 - **SAST** — same rule at the same `(file, line)`.
+- **CI workflows** — one flaw in a workflow, reported by different engines,
+  merges where their regions overlap: template injection (zizmor
+  `template-injection`, Semgrep `run-shell-injection`, Checkov `CKV_GHA_2`) and
+  unpinned actions (zizmor `unpinned-uses`, Semgrep
+  `github-actions-mutable-action-tag`). Semgrep flags a whole `run:` step and
+  zizmor the expression inside it, so two injections in one step are one thing
+  to fix, and two steps stay two findings. The result is an `iac` finding, under
+  that category's gate. A finding only one engine reported is left as it is.
+
+A baseline keeps working across this: the merged finding keeps the fingerprint
+of the engine that leads it. The absorbed engine's fingerprint counts once as
+`fixed`, and an `ignore: fingerprint` naming it should be re-pointed at the
+merged finding; `rule:` entries match all its aliases and need no change.
 
 A merged finding keeps the highest severity among the tools that assigned one
 (see [Severity](#severity)), records **every tool** that reported it, and lists

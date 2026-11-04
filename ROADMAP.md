@@ -135,10 +135,9 @@ the first step of an AI agent's security review. CI integrations come later.
       p/default to the project's languages (541 of 1,074 rules on django) gave
       identical findings and saved 2-4 s of 30; a local rules file also costs
       more to load than the registry pack, so diff scans would not gain.
-- [ ] **Workflow findings across engines** — one template injection is
-      reported by zizmor, Checkov (`CKV_GHA_2`) and Semgrep separately. The
-      per-file IaC equivalence used for Dockerfiles would collapse distinct
-      injections in one workflow into one, so this needs a line-aware merge.
+- [x] **Workflow findings across engines** — template injection and unpinned
+      actions from zizmor, Semgrep and Checkov merge where their regions
+      overlap; distinct steps stay distinct, baselines keep working.
 
 ## CI integrations (later — current versions work)
 

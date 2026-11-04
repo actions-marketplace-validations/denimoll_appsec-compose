@@ -213,3 +213,64 @@ def test_trivy_without_a_fix_does_not_take_the_next_line(tmp_path):
                      "locations": [{"physicalLocation": {"artifactLocation": {"uri": "package-lock.json"}}}]}]}]}))
     f, = load_findings(str(tmp_path), expected={"trivy-fs.sarif"}).findings
     assert f.fixed_version == "" and f.package == "flatmap-stream@0.1.1"
+
+
+# --- the same workflow flaw from several engines ------------------------------
+
+SEMGREP_INJECTION = "yaml.github-actions.security.run-shell-injection.run-shell-injection"
+SEMGREP_TAG = "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"
+
+
+def wf(tool, rule, line, end=None, category="iac", severity="high", stated=True):
+    return Finding(tool, category, rule, severity, "m", ".github/workflows/ci.yml", line,
+                   end_line=end, severity_stated=stated)
+
+
+def test_one_injection_from_three_engines_is_one_finding():
+    merged, stats = merge([
+        wf("semgrep", SEMGREP_INJECTION, 27, 34, "sast", stated=False),
+        wf("zizmor", "zizmor/template-injection", 28),
+        wf("checkov", "CKV_GHA_2", 27, 27, stated=False),
+    ])
+    assert len(merged) == 1 and stats.removed == 2
+    f = merged[0]
+    assert f.tools == ["checkov", "semgrep", "zizmor"] and f.category == "iac"
+    assert f.rule_id == "zizmor/template-injection" and f.line == 28
+
+
+def test_two_steps_stay_two_findings():
+    merged, _ = merge([
+        wf("semgrep", SEMGREP_INJECTION, 27, 34, "sast", stated=False),
+        wf("zizmor", "zizmor/template-injection", 28),
+        wf("semgrep", SEMGREP_INJECTION, 36, 44, "sast", stated=False),
+        wf("zizmor", "zizmor/template-injection", 37),
+    ])
+    assert sorted(f.line for f in merged) == [28, 37]
+
+
+def test_one_engine_alone_is_untouched():
+    """No duplicate to merge: same category, same rule, so same fingerprint."""
+    merged, stats = merge([
+        wf("semgrep", SEMGREP_TAG, 19, 19, "sast", "medium", False),
+        wf("semgrep", SEMGREP_TAG, 25, 25, "sast", "medium", False),
+        wf("zizmor", "zizmor/template-injection", 40),
+        wf("zizmor", "zizmor/template-injection", 40),
+    ])
+    assert {f.category for f in merged if f.tool == "semgrep"} == {"sast"}
+    assert sum(f.tool == "semgrep" for f in merged) == 2
+
+
+def test_an_unpinned_action_merges_on_its_line_and_keeps_the_verdict():
+    merged, _ = merge([
+        wf("semgrep", SEMGREP_TAG, 19, 19, "sast", "medium", False),
+        wf("zizmor", "zizmor/unpinned-uses", 19, 19, "iac", "high", True),
+    ])
+    assert len(merged) == 1 and merged[0].severity == "high" and merged[0].category == "iac"
+
+
+def test_different_flaws_on_one_line_do_not_merge():
+    merged, _ = merge([
+        wf("zizmor", "zizmor/template-injection", 19),
+        wf("semgrep", SEMGREP_TAG, 19, 19, "sast", "medium", False),
+    ])
+    assert len(merged) == 2
