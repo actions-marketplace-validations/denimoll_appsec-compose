@@ -644,3 +644,12 @@ def test_browsers_get_a_real_origin_on_the_uis_own_forms(box, client):
 def test_the_add_form_explains_its_fields(box, client):
     page = client.get("/projects/new").text
     assert 'class="hint"' in page and "owner=team-payments" in page
+
+
+def test_the_stylesheet_is_local_and_nothing_loads_from_elsewhere(box, client):
+    css = client.get("/pico.css")
+    assert css.status == 200 and "Pico CSS" in css.text and css.getheader("Content-Type").startswith("text/css")
+    page = client.get("/")
+    assert 'href="/pico.css"' in page.text and "http://" not in page.text.split("</head>")[0]
+    csp = page.getheader("Content-Security-Policy")
+    assert "img-src data:" in csp and "script-src" not in csp and "default-src 'none'" in csp

@@ -13,29 +13,30 @@ from __future__ import annotations
 import html
 from urllib.parse import quote
 
+# On top of Pico (manager/static), which styles the semantic HTML: only what it
+# has no idea about, and a denser table than its reading-sized defaults.
 CSS = """
-:root { color-scheme: light dark; --line: #8884; --dim: #888; }
-* { box-sizing: border-box; }
-body { font: 14px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0 auto;
-       max-width: 1200px; padding: 16px; }
-nav a { margin-right: 16px; }
-h1 { font-size: 20px; } h2 { font-size: 16px; margin-top: 24px; }
-table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
-th, td { border-bottom: 1px solid var(--line); padding: 6px 10px 6px 0; text-align: left;
-         vertical-align: top; }
-th { color: var(--dim); font-weight: 600; white-space: nowrap; }
-code, pre, textarea { font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-input[type=text], textarea, select { width: 100%; max-width: 640px; padding: 6px; }
-textarea { min-height: 200px; }
-textarea.short { min-height: 70px; }
-.hint { margin: 2px 0 6px; max-width: 640px; font-size: 13px; opacity: .75; }
-label { display: block; margin: 12px 0 4px; font-weight: 600; }
-button { padding: 4px 10px; cursor: pointer; }
-form.inline { display: inline; }
-.dim { color: var(--dim); }
-.error { border: 1px solid #c33; padding: 8px 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.badge { border-radius: 4px; padding: 1px 7px; font-weight: 600; color: #fff; white-space: nowrap; }
+:root { --pico-font-size: 93.75%; --pico-form-element-spacing-vertical: .55rem; }
+body > main, body > header { max-width: 1280px; }
+body > header { padding-block: .5rem; border-bottom: 1px solid var(--pico-muted-border-color); }
+main { padding-block: 1.5rem; }
+h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; margin-top: 2rem; }
+.tablewrap { overflow-x: auto; }
+table { font-size: .9rem; }
+th { color: var(--pico-muted-color); white-space: nowrap; }
+td { vertical-align: top; }
+form.inline { display: inline; margin: 0; }
+form.inline button { width: auto; margin: 0; padding: .2rem .8rem; font-size: .875rem; }
+form > p > button { width: auto; }
+.hint { margin: -.6rem 0 1.1rem; font-size: .8rem; color: var(--pico-muted-color); }
+textarea.short { min-height: 5rem; }
+form { max-width: 720px; }
+button.danger { background: #c62828; border-color: #c62828; }
+.dim { color: var(--pico-muted-color); }
+.error { border: 1px solid #c62828; border-radius: var(--pico-border-radius); padding: .6rem .9rem;
+         margin-bottom: 1rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.badge { border-radius: 999px; padding: .1rem .6rem; font-size: .75rem; font-weight: 600;
+         color: #fff; white-space: nowrap; vertical-align: middle; }
 .pass { background: #1a7f37; } .fail { background: #c62828; }
 .scan_error, .usage_error { background: #b45309; } .none { background: #777; }
 .running, .queued { background: #1f6feb; }

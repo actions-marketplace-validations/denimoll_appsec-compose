@@ -28,6 +28,7 @@ import socket
 import socketserver
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, unquote
 
 from . import runs, store, views
@@ -36,7 +37,12 @@ from .jobs import Scans, Scheduler
 from .paths import UsageError, check_name
 from .reports import content_type, csp_for, open_report
 
-UI_CSP = ("default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'self'; "
+# Pico.css 2.1.1 (MIT, manager/static), vendored: the UI works offline and its
+# CSP allows no third-party origin.
+PICO_CSS = (Path(__file__).parent / "static" / "pico.classless.min.css").read_bytes()
+
+# img-src data: Pico draws its select arrow and checkbox ticks as inline SVG.
+UI_CSP = ("default-src 'none'; style-src 'self'; img-src data:; base-uri 'none'; form-action 'self'; "
           "frame-ancestors 'none'")
 MAX_BODY = 1024 * 1024
 _FORM = "application/x-www-form-urlencoded"
@@ -217,6 +223,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, views.dashboard(scans, token))
         if seg == ["app.css"]:
             return self._send(200, CSS.encode(), "text/css; charset=utf-8")
+        if seg == ["pico.css"]:
+            return self._send(200, PICO_CSS, "text/css; charset=utf-8")
         if seg == ["projects", "new"]:
             return self._send(200, views.new_project(token))
         if seg == ["profiles"]:

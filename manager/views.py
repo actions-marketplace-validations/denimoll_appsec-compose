@@ -18,9 +18,11 @@ def page(title: str, body: Safe, refresh: bool = False) -> bytes:
     return h("""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">{meta}
-<title>{title} - appsec-compose</title><link rel="stylesheet" href="/app.css"></head>
-<body><nav><a href="/">Projects</a><a href="/profiles">Profiles</a></nav>
-{body}</body></html>
+<title>{title} - appsec-compose</title>
+<link rel="stylesheet" href="/pico.css"><link rel="stylesheet" href="/app.css"></head>
+<body><header><nav><ul><li><strong>appsec-compose</strong></li></ul>
+<ul><li><a href="/">Projects</a></li><li><a href="/profiles">Profiles</a></li></ul></nav></header>
+<main>{body}</main></body></html>
 """, meta=meta, title=title, body=body).encode("utf-8")
 
 
@@ -71,10 +73,10 @@ def dashboard(scans, token: str, error: str | None = None) -> bytes:
             scan=_action(h("{}/scan", link), "Scan", token)))
     rows += [h('<tr><td>{}</td><td>{}</td><td colspan="7">{}</td></tr>',
                stem, badge("usage_error"), why) for stem, why in broken]
-    table = h("""<table><thead><tr><th>Project</th><th>Status</th><th>Severity</th><th>Trend</th>
+    table = h("""<div class="tablewrap"><table><thead><tr><th>Project</th><th>Status</th><th>Severity</th><th>Trend</th>
 <th>Top component to upgrade</th><th>Last run</th><th>Schedule</th><th>Report</th><th></th></tr></thead>
-<tbody>{}</tbody></table>""", join(rows)) if rows else Safe("<p>No projects yet.</p>")
-    body = h('<h1>Projects</h1>{}{}<p><a href="/projects/new">Add a project</a></p>',
+<tbody>{}</tbody></table></div>""", join(rows)) if rows else Safe("<p>No projects yet.</p>")
+    body = h('<h1>Projects</h1>{}{}<p><a href="/projects/new" role="button">Add a project</a></p>',
              _error(error), table)
     return page("Projects", body)
 
@@ -140,13 +142,13 @@ def project_page(project: store.Project, scans, token: str, error: str | None = 
 <p>{scan} <a href="{link}/status.json">status.json</a></p>
 <p>Trend: {trend}</p>
 <h2>Latest reports</h2><p>{reports}</p>
-<h2>Runs</h2><table><thead><tr><th>Finished</th><th>Verdict</th><th>Severity</th><th>Trigger</th>
-<th>Took</th><th>Error</th></tr></thead><tbody>{rows}</tbody></table>
+<h2>Runs</h2><div class="tablewrap"><table><thead><tr><th>Finished</th><th>Verdict</th><th>Severity</th><th>Trigger</th>
+<th>Took</th><th>Error</th></tr></thead><tbody>{rows}</tbody></table></div>
 <h2>Edit</h2><form method="post" action="{link}">{csrf}{fields}<p><button>Save</button></p></form>
 <h2>Delete</h2><form method="post" action="{link}/delete">{csrf}
 <label><input type="checkbox" name="confirm" value="1" required> Also deletes this project's reports,
 clone and history. A local target is not touched.</label>
-<p><button>Delete</button></p></form>""",
+<p><button class="danger">Delete</button></p></form>""",
              name=name, status=_status_badge(state, run), error=_error(error),
              scan=_action(h("{}/scan", link), "Scan now", token), link=link,
              trend=_trend(history), reports=report_links or "None yet.", rows=rows,
@@ -180,7 +182,7 @@ def profile_page(name: str, text: str, token: str, error: str | None = None) -> 
 <label for="yaml">YAML, same format as a project config</label>
 <textarea id="yaml" name="yaml">{text}</textarea><p><button>Save</button></p></form>
 <h2>Delete</h2><form method="post" action="{link}/delete">{csrf}
-<p><button>Delete</button></p></form>""",
+<p><button class="danger">Delete</button></p></form>""",
              name=name, error=_error(error), link=link, csrf=_csrf(token), text=text)
     return page(f"Profile {name}", body)
 
