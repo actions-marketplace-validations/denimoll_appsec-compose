@@ -131,6 +131,10 @@ the first step of an AI agent's security review. CI integrations come later.
       files, and the config that fits, each with a reason; `--write` creates
       `.appsec-compose.yml`. One detection shared with Checkov's framework
       choice and the review brief.
+- [x] **Semgrep rules by language: measured, not worth it** — filtering
+      p/default to the project's languages (541 of 1,074 rules on django) gave
+      identical findings and saved 2-4 s of 30; a local rules file also costs
+      more to load than the registry pack, so diff scans would not gain.
 - [ ] **Workflow findings across engines** — one template injection is
       reported by zizmor, Checkov (`CKV_GHA_2`) and Semgrep separately. The
       per-file IaC equivalence used for Dockerfiles would collapse distinct

@@ -36,12 +36,15 @@ def fetch(url: str, data: bytes | None = None, out: str | None = None,
           timeout: int = 120) -> bytes:
     """GET (or POST JSON when `data` is given); write to `out` if named."""
     global _USE_CURL
+    # urlopen also opens file:// and ftp://; the corpora are all on the web.
+    if not url.lower().startswith(("http://", "https://")):
+        raise ValueError(f"not an http(s) URL: {url!r}")
     if _USE_CURL:
         return _curl(url, data, out)
     headers = {"Content-Type": "application/json"} if data is not None else {}
     req = urllib.request.Request(url, data=data, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosemgrep: dynamic-urllib-use-detected
             body = resp.read()
     except urllib.error.URLError as exc:
         if not isinstance(exc.reason, ssl.SSLError):

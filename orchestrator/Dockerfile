@@ -13,5 +13,8 @@ COPY . .
 # collector can write into the bind-mounted reports/ and baseline file.
 USER 65532:65532
 
+# A one-shot job that exits when the reports are written: nothing to probe.
+HEALTHCHECK NONE
+
 # Reports land in the shared volume; config is mounted read-only at runtime.
 ENTRYPOINT ["python", "-u", "main.py"]

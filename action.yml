@@ -94,7 +94,7 @@ runs:
         fi
 
     - name: Cache scanner DBs
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
       with:
         path: ${{ steps.prep.outputs.tool-dir }}/cache
         key: appsec-compose-db-${{ runner.os }}-${{ steps.prep.outputs.cache-week }}
@@ -142,48 +142,48 @@ runs:
     # One upload per tool: code scanning needs a distinct category per SARIF run.
     - name: Upload Semgrep SARIF
       if: always() && steps.sarif.outputs.semgrep == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/semgrep.sarif", category: semgrep }
     - name: Upload Trivy (fs) SARIF
       if: always() && steps.sarif.outputs.trivy-fs == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trivy-fs.sarif", category: trivy-fs }
     - name: Upload Trivy (config) SARIF
       if: always() && steps.sarif.outputs.trivy-config == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trivy-config.sarif", category: trivy-config }
     - name: Upload Gitleaks SARIF
       if: always() && steps.sarif.outputs.gitleaks == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/gitleaks.sarif", category: gitleaks }
     - name: Upload Checkov SARIF
       if: always() && steps.sarif.outputs.checkov == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/checkov.sarif", category: checkov }
     - name: Upload Grype SARIF
       if: always() && steps.sarif.outputs.grype == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/grype.sarif", category: grype }
     - name: Upload TruffleHog SARIF
       if: always() && steps.sarif.outputs.trufflehog == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trufflehog.sarif", category: trufflehog }
     - name: Upload Hadolint SARIF
       if: always() && steps.sarif.outputs.hadolint == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/hadolint.sarif", category: hadolint }
     - name: Upload OSV SARIF
       if: always() && steps.sarif.outputs.osv == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/osv.sarif", category: osv }
     - name: Upload zizmor SARIF
       if: always() && steps.sarif.outputs.zizmor == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/zizmor.sarif", category: zizmor }
 
     - name: Upload reports artifact
       if: always() && inputs.artifact-name != ''
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
       with:
         name: ${{ inputs.artifact-name }}
         path: ${{ steps.prep.outputs.reports-dir }}

@@ -349,7 +349,7 @@ async def scan(target: Path, *, diff_base: str | None = None,
         raise UserError("the report store is inside the target; "
                         "set APPSEC_MCP_STATE_DIR to a directory outside it")
     (reports / "native").mkdir(parents=True, exist_ok=True)
-    os.chmod(sdir, 0o700)
+    os.chmod(sdir, 0o700)  # nosemgrep: insecure-file-permissions -- owner only
     argv = build_argv(cli, target, reports, diff_base=diff_base, fail_on=fail_on)
 
     # Another server process (a second agent session) scanning the same target

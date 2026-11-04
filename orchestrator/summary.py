@@ -452,12 +452,13 @@ def render(result: ScanResult, policy: PolicyResult, findings: list[Finding],
            stats: DedupStats, out_dir: str = "/reports",
            suppressed_count: int = 0, delta=None, coverage=None,
            enrichment=None, expired=None, provenance=None, scope=None) -> None:
-    env = Environment(autoescape=False, trim_blocks=True, lstrip_blocks=True)
+    # Markdown: HTML-escaping would corrupt it. The HTML report below escapes.
+    env = Environment(autoescape=False, trim_blocks=True, lstrip_blocks=True)  # nosemgrep: direct-use-of-jinja2
     ctx = _context(result, policy, findings, stats, suppressed_count, delta,
                    coverage, enrichment, expired, provenance, scope)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.md").write_text(env.from_string(_MD_TEMPLATE).render(**ctx))
 
-    html_env = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
+    html_env = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)  # nosemgrep: direct-use-of-jinja2
     (out / "summary.html").write_text(html_env.from_string(_HTML_TEMPLATE).render(**ctx))

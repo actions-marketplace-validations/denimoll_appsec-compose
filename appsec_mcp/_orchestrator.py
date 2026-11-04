@@ -33,6 +33,7 @@ def _load() -> dict[str, ModuleType]:
     saved = {n: sys.modules.pop(n) for n in _MODULES if n in sys.modules}
     sys.path.insert(0, str(ORCHESTRATOR_DIR))
     try:
+        # nosemgrep: non-literal-import -- _MODULES is the constant above
         return {n: importlib.import_module(n) for n in _MODULES}
     finally:
         sys.path.remove(str(ORCHESTRATOR_DIR))

@@ -20,9 +20,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with: { persist-credentials: false }   # no token left in .git for later steps
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
         with: { python-version: "3.14" }
       - run: pip install -r tests/requirements.txt
       - run: python -m pytest tests/ -q
@@ -32,10 +32,10 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with: { persist-credentials: false }   # no token left in .git for later steps
       - name: Cache scanner DBs
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
         with:
           path: cache
           key: appsec-smoke-${{ runner.os }}-${{ hashFiles('scan-config.yml') }}
@@ -53,11 +53,11 @@ jobs:
       contents: read
       security-events: write   # only this job uploads SARIF to code scanning
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with: { persist-credentials: false }   # no token left in .git for later steps
 
       - name: Run appsec-compose
         id: appsec
-        uses: ./
+        uses: ./  # zizmor: ignore[self-repository] -- dogfoods this checkout
         with:
           config: .github/appsec-compose.yml
