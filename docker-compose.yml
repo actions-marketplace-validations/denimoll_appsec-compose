@@ -365,6 +365,7 @@ services:
       ASS_STRICT: ${ASS_STRICT:-}
       ASS_MIN_CONFIDENCE: ${ASS_MIN_CONFIDENCE:-}
       ASS_EXCLUDES: ${ASS_EXCLUDES:-}
+      ASS_GITIGNORED: ${ASS_GITIGNORED:-}
       # Key for the CVE-PaaS enrichment; passed through from the host env so it
       # never has to live in scan-config.yml.
       CVE_PAAS_API_KEY: ${CVE_PAAS_API_KEY:-}

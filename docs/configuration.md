@@ -118,6 +118,25 @@ into each engine's own mechanism (`--exclude`, `--skip-dirs`, `--skip-path`, a
 generated Gitleaks allowlist, a TruffleHog regex file, a pruned input list for
 zizmor, …), so one list covers all ten.
 
+### What git ignores (`respect_gitignore`)
+
+In a git repository, untracked paths that its `.gitignore` covers — caches,
+virtualenvs, local databases, build output, a local `.env` — are skipped too,
+on top of `exclude:`. They are not the repository: Semgrep already looked only
+at tracked files, while Gitleaks, Trivy and Checkov walked the whole working
+tree, and one ignored 1.7 GB cache once turned a 16-second scan into an
+11-minute one, full of "secrets" from a vulnerability database.
+
+Only untracked paths qualify, so a repository cannot hide a committed file
+this way; a path whose name a tracked file shares (an ignored `build/` next to
+a tracked `src/build/`) is scanned anyway, since an exclude entry matches its
+name anywhere. The brief lists what was skipped. To scan the whole working
+tree — say, to check local `.env` files for live credentials:
+
+```yaml
+respect_gitignore: false
+```
+
 ## Policy per category
 
 `fail_on` may be a single level or a map, so each practice gets the gate it

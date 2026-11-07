@@ -146,6 +146,8 @@ the first step of an AI agent's security review. CI integrations come later.
       off the gate.
 - [x] **A compact brief** — repeats of one rule after the third, and
       non-gating low-confidence rules, are one line each, without code.
+- [x] **`.gitignore` respected** — untracked ignored paths (caches,
+      virtualenvs, build output) are skipped by every engine, not just Semgrep.
 - [x] **Run metrics** — time, reports, raw → unique → reported, the brief's
       size in ~tokens and database age, at the end of every run and in
       `findings.json`.

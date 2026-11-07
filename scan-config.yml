@@ -91,6 +91,11 @@ secrets_history_range: ""  # limit the history scan to a commit range, e.g.
 #   - .gradle
 #   - .tox
 #   - .mypy_cache
+respect_gitignore: true    # also skip untracked paths the repo's .gitignore
+                           # covers (caches, virtualenvs, local DBs, build
+                           # output): they are not the repository. A tracked
+                           # file is never skipped this way. false => scan the
+                           # whole working tree, e.g. to find a local .env.
 
 # ---- Dependency licenses (opt-in) ------------------------------------
 # A dependency whose license the policy denies becomes an SCA finding with

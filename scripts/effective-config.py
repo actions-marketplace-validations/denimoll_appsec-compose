@@ -76,7 +76,7 @@ def _load(path: Path) -> dict:
 
 # What a repository may decide about its own scan. Default-deny: a new setting
 # stays out of reach of a scanned repo until someone argues it belongs here.
-_REPO_POLICY_KEYS = {"fail_on", "unknown_severity", "min_confidence", "strict", "dedup", "baseline", "exclude",
+_REPO_POLICY_KEYS = {"fail_on", "unknown_severity", "min_confidence", "respect_gitignore", "strict", "dedup", "baseline", "exclude",
                      "ignore", "sbom", "sbom_formats", "secrets_history", "licenses",
                      "offline", "require_pinned"}
 _REPO_SEMGREP_RULES = {"default", "auto"}

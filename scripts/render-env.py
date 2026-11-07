@@ -24,6 +24,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -120,6 +121,54 @@ def _path_regex(pattern: str) -> str:
     """A directory name / simple glob as a path regex (checkov, gitleaks, trufflehog)."""
     body = "".join(".*" if ch == "*" else re.escape(ch) for ch in pattern)
     return f"(^|/){body}(/|$)"
+
+
+# What git ignores is not the repository: caches, virtualenvs, build output,
+# local databases. Semgrep already scans only tracked files; Gitleaks (`dir`),
+# Trivy and Checkov walk the whole working tree, and one untracked 1.7 GB cache
+# made a 16-second scan take 11 minutes and filled it with "secrets" from a
+# vulnerability database. Only *untracked* paths qualify, so a repository can
+# never hide a committed file this way.
+_SAFE_PATH = re.compile(r"^[\w.@+-]+(/[\w.@+-]+)*$")   # one word: lands on command lines
+MAX_GITIGNORED = 300
+
+
+def gitignored(target: str) -> tuple[list[str], str]:
+    """Untracked paths the target's .gitignore covers, as exclude entries,
+    and a note when some had to be left in the scan."""
+    if not target or not (Path(target) / ".git").exists():
+        return [], ""
+
+    def git(*args: str) -> list[str] | None:
+        try:
+            proc = subprocess.run(["git", "-C", target, *args], capture_output=True,
+                                  timeout=120)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if proc.returncode != 0:
+            return None
+        return [p for p in proc.stdout.decode("utf-8", "replace").split("\0") if p]
+
+    ignored = git("ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory")
+    tracked = git("ls-files", "-z")
+    if ignored is None or tracked is None:
+        return [], "git could not list the ignored files; they are scanned"
+    # An exclude entry matches its name anywhere in the tree (`cache` is also
+    # `src/cache`), so an entry that would also match a tracked path stays out.
+    haystack = "\n".join(f"/{p}/" for p in tracked)
+    entries, skipped = [], 0
+    for raw in sorted({p.rstrip("/") for p in ignored}, key=lambda p: (p.count("/"), p)):
+        if not _SAFE_PATH.match(raw) or f"/{raw}/" in haystack:
+            skipped += 1
+            continue
+        entries.append(raw)
+    note = ""
+    if len(entries) > MAX_GITIGNORED:
+        skipped += len(entries) - MAX_GITIGNORED
+        entries = entries[:MAX_GITIGNORED]
+    if skipped:
+        note = f"{skipped} ignored path(s) are scanned anyway (unusual names, or a name a tracked file shares)"
+    return entries, note
 
 
 def _exclude_flags(patterns: list[str]) -> dict[str, str]:
@@ -427,6 +476,12 @@ def main(argv: list[str] | None = None) -> int:
     # directory when that lies inside the target.
     excludes = excludes + [e for e in os.environ.get("ASS_EXTRA_EXCLUDES", "").splitlines()
                            if e.strip() and e not in excludes]
+    ignored, ignored_note = [], ""
+    if cfg.get("respect_gitignore", True) and not (image or tar):
+        ignored, ignored_note = gitignored(os.environ.get("SCAN_TARGET", ""))
+        excludes = excludes + [e for e in ignored if e not in excludes]
+        if ignored_note:
+            print(f"NOTE: {ignored_note}", file=sys.stderr)
     _write_exclude_files(excludes, out_dir / EXCLUDES_DIR)
 
     # Gitleaks scans the working tree by default; `secrets_history` walks the
@@ -501,6 +556,8 @@ def main(argv: list[str] | None = None) -> int:
     # The collector prunes its manifest walk with the same list.
     env["ASS_EXCLUDES"] = " ".join(str(e).strip().strip("/") for e in excludes
                                    if str(e).strip())
+    # Which of them came from .gitignore: the brief lists those apart.
+    env["ASS_GITIGNORED"] = " ".join(ignored)
 
     # Single-quote every value: several of them contain spaces (SEMGREP_CONFIGS,
     # TRIVY_DB_FLAGS, ASS_TAGREFS) and pin.sh/preload.sh `.` this file as shell.

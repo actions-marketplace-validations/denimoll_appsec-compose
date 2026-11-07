@@ -361,8 +361,16 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
         if frameworks:
             lines.append("- Frameworks (from the manifests): " + ", ".join(frameworks)
                          + " — review framework-specific risks the generic rules miss")
-        if excludes:
-            lines.append("- Not scanned (excluded): " + ", ".join(f"`{e}`" for e in sorted(excludes)))
+        ignored = set(os.environ.get("ASS_GITIGNORED", "").split())
+        configured = sorted(set(excludes) - ignored)
+        if configured:
+            lines.append("- Not scanned (excluded): " + ", ".join(f"`{e}`" for e in configured))
+        if ignored:
+            shown_ignored = sorted(ignored)[:15]
+            more = f" and {len(ignored) - 15} more" if len(ignored) > 15 else ""
+            lines.append(f"- Not scanned (untracked, in .gitignore): "
+                         + ", ".join(f"`{e}`" for e in shown_ignored) + more
+                         + " — local files, not part of the repository")
     fws = provenance.get("checkov_frameworks")
     if "checkov" in enabled and isinstance(fws, list):
         lines.append("- Checkov frameworks (the IaC kinds found in the repo): "
