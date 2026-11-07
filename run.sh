@@ -39,7 +39,7 @@ ASS_RUN_START="$(date +%s)"; export ASS_RUN_START   # provenance: total run time
 trap 'echo "Error: scan aborted: \`$BASH_COMMAND\` failed (line $LINENO)" >&2; exit $EXIT_SCAN' ERR
 
 usage() {
-  echo "Usage: $0 <path-to-repo> [--fail-on L] [--min-confidence L] [--strict] [--require-pinned] [--update-baseline]" >&2
+  echo "Usage: $0 <path-to-repo> [--fail-on L] [--min-confidence L] [--secrets-history] [--strict] [--require-pinned] [--update-baseline]" >&2
   echo "       $0 <path-to-repo> --diff <base-ref> [--fail-on L] [--strict]" >&2
   echo "       $0 <path-to-repo> [--profile <file>] [--config <file>] [--baseline <file>] [--reports <dir>] [--name <slug>]" >&2
   echo "       $0 --image <ref> [--registry-user U --registry-pass P] [--fail-on L]" >&2
@@ -94,6 +94,7 @@ while [[ $# -gt 0 ]]; do
     --name) PROJECT_NAME="${2:-}"; shift 2 ;;
     --fail-on) FAIL_ON_OVERRIDE="${2:-}"; shift 2 ;;
     --min-confidence) export ASS_MIN_CONFIDENCE="${2:-}"; shift 2 ;;
+    --secrets-history) export ASS_SECRETS_HISTORY=1; shift ;;
     --strict) export ASS_STRICT=1; shift ;;
     --require-pinned) export ASS_REQUIRE_PINNED=1; shift ;;
     --update-baseline) export ASS_UPDATE_BASELINE=1; shift ;;
@@ -301,6 +302,10 @@ render_out="$(python3 scripts/render-env.py --out-dir "$RUN_DIR")" || {
   rc=$?; [[ $rc == "$EXIT_USAGE" ]] || rc=$EXIT_SCAN; exit $rc; }
 eval "$render_out"
 [[ -n "$FAIL_ON_OVERRIDE" ]] && export FAIL_ON="$FAIL_ON_OVERRIDE"
+# The shell outranks .env in compose: take back render-env's decision on
+# history (it turns --secrets-history off for a target without .git).
+ASS_SECRETS_HISTORY="$(sed -n "s/^ASS_SECRETS_HISTORY='\(.*\)'$/\1/p" "$RUN_DIR/.env")"
+export ASS_SECRETS_HISTORY
 
 # Cache stays global: the vulnerability DBs are shared across every project.
 REPORTS="${ASS_REPORTS_DIR:-$SCRIPT_DIR/reports}"
@@ -367,6 +372,7 @@ echo "Scanners : ${RUN_ENGINES:-none}"
 echo "Mode     : $([[ "$ASS_OFFLINE" == "1" ]] && echo offline || echo online)"
 [[ -n "${FAIL_ON_OVERRIDE}" ]] && echo "fail_on  : $FAIL_ON_OVERRIDE (override)"
 [[ -n "${ASS_MIN_CONFIDENCE:-}" ]] && echo "gate     : rules of ${ASS_MIN_CONFIDENCE} confidence and above"
+[[ "${ASS_SECRETS_HISTORY:-}" == "1" ]] && echo "secrets  : working tree and git history"
 [[ "${ASS_STRICT:-}" == "1" ]] && echo "strict   : a missing scanner report fails the run"
 [[ "${ASS_UPDATE_BASELINE:-}" == "1" ]] && echo "baseline : updating snapshot"
 

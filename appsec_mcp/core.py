@@ -198,7 +198,8 @@ def validate_min_confidence(level: str | None) -> str | None:
 def build_argv(cli: Cli, target: Path, reports_dir: Path, *,
                diff_base: str | None = None, fail_on: str | None = None,
                no_repo_config: bool = False,
-               min_confidence: str | None = None) -> list[str]:
+               min_confidence: str | None = None,
+               secrets_history: bool = False) -> list[str]:
     """An argv list — never a shell string, so no path or ref is ever parsed
     by a shell."""
     argv = [*cli.argv, str(target), "--reports", str(reports_dir)]
@@ -217,6 +218,8 @@ def build_argv(cli: Cli, target: Path, reports_dir: Path, *,
         argv += ["--fail-on", fail_on]
     if min_confidence:
         argv += ["--min-confidence", min_confidence]
+    if secrets_history:
+        argv.append("--secrets-history")
     if diff_base:
         if not cli.supports_diff:
             raise UserError("diff mode needs a newer appsec-compose "
@@ -360,7 +363,7 @@ def _read_json(path: Path) -> dict | None:
 async def scan(target: Path, *, diff_base: str | None = None,
                fail_on: str | None = None, on_line: LineSink | None = None,
                cli: Cli | None = None, no_repo_config: bool = False,
-               min_confidence: str | None = None) -> dict:
+               min_confidence: str | None = None, secrets_history: bool = False) -> dict:
     """Run one scan and return the compact result handed to the agent."""
     cli = cli or detect_cli()
     sdir = state_dir(target)
@@ -371,7 +374,8 @@ async def scan(target: Path, *, diff_base: str | None = None,
     (reports / "native").mkdir(parents=True, exist_ok=True)
     os.chmod(sdir, 0o700)  # nosemgrep: insecure-file-permissions -- owner only
     argv = build_argv(cli, target, reports, diff_base=diff_base, fail_on=fail_on,
-                      no_repo_config=no_repo_config, min_confidence=min_confidence)
+                      no_repo_config=no_repo_config, min_confidence=min_confidence,
+                      secrets_history=secrets_history)
 
     # Another server process (a second agent session) scanning the same target
     # would share this reports dir and compose project name.

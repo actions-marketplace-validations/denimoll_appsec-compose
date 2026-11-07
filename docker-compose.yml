@@ -141,8 +141,9 @@ services:
   gitleaks:
     image: ${GITLEAKS_IMAGE:-zricethezav/gitleaks:v8.30.1}
     <<: *sh
-    # GITLEAKS_CMD = "dir" (working tree only, default) or "git" to scan the
-    # git history (needs a .git in the repo). --exit-code 0 keeps it green.
+    # The working tree (`dir`) always; with secrets_history (ASS_SECRETS_HISTORY)
+    # a second pass walks the commits of the real repo at /repo (narrowed by
+    # GITLEAKS_HISTORY_OPTS = secrets_history_range). --exit-code 0 keeps it green.
     # Do not go back to `detect`: it survives as a deprecated alias that exits 0
     # and writes an empty report, i.e. it silently finds nothing.
     # --redact: this SARIF is uploaded to code scanning and kept as a CI
@@ -154,14 +155,15 @@ services:
     command:
       - >-
         set -f;
-        gitleaks $$GITLEAKS_CMD /code --config=/excludes/gitleaks.toml $$GITLEAKS_LOG_OPTS
+        gitleaks $$GITLEAKS_CMD /code --config=/excludes/gitleaks.toml
         --redact --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0;
-        [ -z "$$ASS_DIFF_LOG_OPTS" ] ||
-        gitleaks git /repo --config=/excludes/gitleaks.toml $$ASS_DIFF_LOG_OPTS
+        [ -z "$$ASS_DIFF_LOG_OPTS$$ASS_SECRETS_HISTORY" ] ||
+        gitleaks git /repo --config=/excludes/gitleaks.toml $$ASS_DIFF_LOG_OPTS $$GITLEAKS_HISTORY_OPTS
         --redact --report-format=sarif --report-path=/reports/native/gitleaks-history.sarif --exit-code=0
     environment:
       GITLEAKS_CMD: ${GITLEAKS_CMD:-dir}
-      GITLEAKS_LOG_OPTS: ${GITLEAKS_LOG_OPTS:-}
+      GITLEAKS_HISTORY_OPTS: ${GITLEAKS_LOG_OPTS:-}
+      ASS_SECRETS_HISTORY: ${ASS_SECRETS_HISTORY:-}
       ASS_DIFF_LOG_OPTS: ${ASS_DIFF_LOG_OPTS:-}
     volumes:
       - *diff-code-mount
@@ -364,6 +366,7 @@ services:
       ASS_ENABLED: ${ASS_ENABLED:-}
       ASS_STRICT: ${ASS_STRICT:-}
       ASS_MIN_CONFIDENCE: ${ASS_MIN_CONFIDENCE:-}
+      ASS_SECRETS_HISTORY: ${ASS_SECRETS_HISTORY:-}
       ASS_EXCLUDES: ${ASS_EXCLUDES:-}
       ASS_GITIGNORED: ${ASS_GITIGNORED:-}
       # Key for the CVE-PaaS enrichment; passed through from the host env so it

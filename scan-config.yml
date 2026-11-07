@@ -68,7 +68,9 @@ scanners:
 sbom: true                 # generate an SBOM via Trivy (when `trivy` is enabled)
 sbom_formats: [cyclonedx]  # any of: cyclonedx, spdx -> reports/sbom.trivy.<fmt>.json
                            # (Syft, if enabled, always emits both formats)
-secrets_history: false     # true => Gitleaks also scans git history (needs .git)
+secrets_history: false     # true => Gitleaks also scans git history, as a second
+                           # pass after the working tree (needs .git;
+                           # --secrets-history for one run)
 secrets_history_range: ""  # limit the history scan to a commit range, e.g.
                            # "origin/main..HEAD" (implies secrets_history) — in
                            # CI this scans the branch's own commits, not all of

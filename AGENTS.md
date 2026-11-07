@@ -43,6 +43,12 @@ from 88% to 69%, Python from 26% to 8%, and JS from 24 to 7 known CVEs. Use it o
 for high-signal findings only and accepts missing real issues — and say so in
 the report. The brief already saves tokens without it (below).
 
+**Secrets in the git history are not searched by default** — only the current
+files. On the user's own repository, add `--secrets-history` at least once (a
+full clone, not `--depth 1`): a credential deleted from the code still works
+until it is rotated. It is slower on long histories, so for a quick re-check
+after a fix leave it off.
+
 - **The first run takes several minutes** (vulnerability databases, ~2 GB, and
   the collector image are downloaded or built once). Use a long command
   timeout — at least 20 minutes — or run it in the background. Do not kill it
@@ -95,7 +101,8 @@ Lead with the verdict, then what to do. A good report, in this order:
    read the code and confirm (or doubt) a finding, say which.
 4. **What was not checked** — always include the brief's blind spots, in one
    or two lines: scanners match patterns; authorization, business logic and
-   cross-file data flow need a human or a deeper review.
+   cross-file data flow need a human or a deeper review. If the git history
+   was not searched for secrets, say so and offer a `--secrets-history` run.
 5. **Next steps** — the few concrete fixes that clear the most.
 
 Rules:

@@ -217,6 +217,8 @@ def main() -> int:
         expected.discard("trivy-config.sarif")   # no IaC config scan in image mode
     if scope:
         expected = scope.expected(expected)
+    elif cfg.secrets_history and "gitleaks.sarif" in expected:
+        expected.add(diffscope.HISTORY_REPORT)    # the second, history pass
     result = load_findings(NATIVE_DIR, expected=expected)
 
     # Dependency license policy: Trivy's license pass, judged against

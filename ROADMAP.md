@@ -146,6 +146,8 @@ the first step of an AI agent's security review. CI integrations come later.
       off the gate.
 - [x] **A compact brief** — repeats of one rule after the third, and
       non-gating low-confidence rules, are one line each, without code.
+- [x] **`--secrets-history`** — the git history as a second Gitleaks pass,
+      one flag away (it used to replace the working-tree pass).
 - [x] **`.gitignore` respected** — untracked ignored paths (caches,
       virtualenvs, build output) are skipped by every engine, not just Semgrep.
 - [x] **Run metrics** — time, reports, raw → unique → reported, the brief's

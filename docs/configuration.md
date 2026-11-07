@@ -47,8 +47,12 @@ instead of freezing a copy. To turn a default engine off, say so with
 
 Disable a check by setting `enabled: false` — that scanner won't run and the
 collector won't expect its report. Upgrade a tool by changing its `version`.
-Set `secrets_history: true` to have Gitleaks scan the full **git history**
-(needs a `.git` in the repo), not just the working tree. In CI that is usually
+Set `secrets_history: true` (or pass `--secrets-history` for one run) to have
+Gitleaks also scan the full **git history** — a second pass, so the working
+tree, uncommitted files included, is still read. A credential deleted from the
+code stays in the history and keeps working until it is rotated, so run it at
+least once on your own repository. It needs a `.git`: without one the run says
+so and searches the files only. In CI that is usually
 more than you need — `secrets_history_range: "origin/main..HEAD"` limits it to
 the branch's own commits, which is orders of magnitude faster and still catches
 a secret that was committed and then removed within the branch.

@@ -487,8 +487,18 @@ def main(argv: list[str] | None = None) -> int:
     # Gitleaks scans the working tree by default; `secrets_history` walks the
     # full history and `secrets_history_range` narrows it to a commit range
     # (e.g. "origin/main..HEAD" — the PR's own commits instead of everything).
+    # `--secrets-history` (ASS_SECRETS_HISTORY=1) turns it on for one run. The
+    # working tree is scanned either way: history is a second pass, so a file
+    # not yet committed is never left out because history was asked for.
     history_range = str(cfg.get("secrets_history_range", "") or "").strip()
-    history = bool(cfg.get("secrets_history", False)) or bool(history_range)
+    history = (bool(cfg.get("secrets_history", False)) or bool(history_range)
+               or os.environ.get("ASS_SECRETS_HISTORY", "").strip() == "1")
+    target = os.environ.get("SCAN_TARGET", "")
+    if history and (image or tar or not (Path(target) / ".git").exists()):
+        if not (image or tar):
+            print("warning: secrets_history is set but the target is not a git "
+                  "repository; only its files are searched for secrets", file=sys.stderr)
+        history = False
 
     licenses = cfg.get("licenses") or {}
     license_policy = bool(licenses.get("deny") or licenses.get("warn"))
@@ -523,8 +533,10 @@ def main(argv: list[str] | None = None) -> int:
         "ZIZMOR_FLAGS": "--offline" if offline else "",
         "ASS_ZIZMOR_ONLINE": "1" if (not offline and
                                      os.environ.get("ZIZMOR_GITHUB_TOKEN", "").strip()) else "",
-        # Gitleaks subcommand: `git` walks the history, `dir` the working tree.
-        "GITLEAKS_CMD": "git" if history else "dir",
+        # Gitleaks: `dir` reads the working tree; with history on, a second
+        # `git` pass walks the commits into gitleaks-history.sarif.
+        "GITLEAKS_CMD": "dir",
+        "ASS_SECRETS_HISTORY": "1" if history else "",
         # Verification sends each candidate credential to its issuer's API:
         # an outbound disclosure the user must opt into, never a default.
         "TRUFFLEHOG_VERIFY": "" if (scanners.get("trufflehog") or {}).get("verify")

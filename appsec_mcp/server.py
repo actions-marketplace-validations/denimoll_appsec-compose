@@ -90,6 +90,11 @@ async def scan(
                     "LOW-confidence rules from the gate, and with them a large share of "
                     "real findings (Java detection 88% -> 69% on the benchmark). "
                     "Default: the project config, normally `low` = everything gates.")] = None,
+    secrets_history: Annotated[bool, Field(
+        description="Also search the git history for secrets, not only the current "
+                    "files: a credential deleted from the code still works until it is "
+                    "rotated. Slower on long histories; run it at least once on the "
+                    "user's own repository.")] = False,
 ) -> str:
     """Scan a repository for security issues (SAST, vulnerable dependencies,
     secrets, IaC misconfigurations). Use it first, before reviewing a codebase or
@@ -133,6 +138,7 @@ async def scan(
             result = await core.scan(target, diff_base=diff_base, fail_on=fail_on,
                                      no_repo_config=no_repo_config,
                                      min_confidence=min_confidence,
+                                     secrets_history=secrets_history,
                                      on_line=on_line)
         except core.UserError as exc:
             raise ToolError(str(exc)) from None

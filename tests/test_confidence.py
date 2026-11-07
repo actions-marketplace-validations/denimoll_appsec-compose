@@ -70,3 +70,10 @@ def test_zizmors_confidence_does_not_cost_it_its_stated_severity(tmp_path):
                                                          "region": {"startLine": 1}}}]}]}]}))
     f = load_findings(str(tmp_path), expected={"zizmor.sarif"}).findings[0]
     assert f.confidence == "low" and f.severity == "high" and f.severity_stated
+
+
+def test_the_collector_believes_render_envs_history_decision(tmp_path, monkeypatch):
+    monkeypatch.setenv("ASS_SECRETS_HISTORY", "")
+    assert not _cfg(tmp_path, "secrets_history: true\n").secrets_history   # no .git: turned off
+    monkeypatch.setenv("ASS_SECRETS_HISTORY", "1")
+    assert _cfg(tmp_path, "fail_on: high\n").secrets_history               # --secrets-history

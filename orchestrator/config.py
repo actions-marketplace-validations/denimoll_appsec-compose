@@ -113,6 +113,11 @@ def load_config(path: str = "/app/scan-config.yml") -> Config:
     if env_confidence:
         cfg.min_confidence = env_confidence
 
+    # run.sh exports what render-env decided (config or --secrets-history,
+    # off for a target without .git): the brief must not claim more.
+    if "ASS_SECRETS_HISTORY" in os.environ:
+        cfg.secrets_history = os.environ["ASS_SECRETS_HISTORY"].strip() == "1"
+
     env_strict = os.environ.get("ASS_STRICT", "").strip()
     if env_strict:
         cfg.strict = env_strict == "1"

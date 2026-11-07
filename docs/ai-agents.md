@@ -59,5 +59,10 @@ JSON result, `brief_tokens` from the MCP `scan`). From there:
 | baseline (`--update-baseline` once) | gate on new findings only; the backlog is marked, not re-triaged | a codebase with a known backlog |
 | `fail_on:` per category | e.g. `iac: none` keeps lint-grade IaC off the gate | a category the review does not cover |
 
+The opposite knob, for coverage rather than cost: `--secrets-history`
+(`secrets_history` on MCP `scan`) also searches the git history for secrets —
+once per repository at least, since a deleted credential still works until it
+is rotated.
+
 None of these hides a finding: everything stays in `findings.json` and the
 summaries. They decide what gates and what the brief spends code on.

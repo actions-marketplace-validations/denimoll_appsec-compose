@@ -309,3 +309,18 @@ def test_untracked_ignored_paths_are_excluded_tracked_ones_never(renv, tmp_path)
     assert "odd name" not in entries         # not one word: it would split on a command line
     assert "2 ignored path(s) are scanned anyway" in note
     assert renv.gitignored(str(tmp_path / "not-a-repo")) == ([], "")
+
+
+def test_history_is_a_second_pass_and_needs_a_repository(tmp_path):
+    repo, plain = tmp_path / "repo", tmp_path / "plain"
+    (repo / ".git").mkdir(parents=True)
+    plain.mkdir()
+    rendered = _render(tmp_path, "secrets_history: true\n", SCAN_TARGET=str(repo))
+    # The working tree is still read: history adds a pass, it replaces nothing.
+    assert "GITLEAKS_CMD='dir'" in rendered and "ASS_SECRETS_HISTORY='1'" in rendered
+    rendered = _render(tmp_path, "offline: false\n", SCAN_TARGET=str(repo), ASS_SECRETS_HISTORY="1")
+    assert "ASS_SECRETS_HISTORY='1'" in rendered                     # --secrets-history
+    rendered = _render(tmp_path, "secrets_history: true\n", SCAN_TARGET=str(plain))
+    assert "ASS_SECRETS_HISTORY=''" in rendered                      # no .git, no history
+    rendered = _render(tmp_path, 'secrets_history_range: "a..b"\n', SCAN_TARGET=str(repo))
+    assert "GITLEAKS_LOG_OPTS='--log-opts=a..b'" in rendered and "ASS_SECRETS_HISTORY='1'" in rendered

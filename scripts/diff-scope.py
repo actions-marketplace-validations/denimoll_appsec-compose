@@ -473,6 +473,8 @@ def main(argv: list[str] | None = None) -> int:
         # separate pass over the real repo (ASS_DIFF_LOG_OPTS).
         "GITLEAKS_CMD": "dir",
         "GITLEAKS_LOG_OPTS": "",
+        # The branch's commits, not all of history, even when secrets_history is on.
+        "ASS_SECRETS_HISTORY": "",
     }
     for key, value in exports.items():
         print(f"export {key}={q(value)}")
