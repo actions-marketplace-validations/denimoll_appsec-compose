@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import Counter
 from dataclasses import asdict, dataclass, field
@@ -326,6 +327,38 @@ def recommend(prof: Profile) -> list[Recommendation]:
     return recs
 
 
+def git_history(root: str) -> dict | None:
+    """How much history the checkout has: {"commits": n, "shallow": bool}, or
+    None when it is not a git repository (or git is not available)."""
+    if not (Path(root) / ".git").exists():
+        return None
+    def git(*args: str) -> str | None:
+        try:
+            proc = subprocess.run(["git", "-C", root, *args], capture_output=True,
+                                  text=True, timeout=30)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return proc.stdout.strip() if proc.returncode == 0 else None
+    count = git("rev-list", "--count", "HEAD")
+    if count is None or not count.isdigit():
+        return None
+    return {"commits": int(count), "shallow": git("rev-parse", "--is-shallow-repository") == "true"}
+
+
+def run_once(history: dict | None) -> list[str]:
+    """One-off scans worth running, not settings to keep: a flag, not config."""
+    if not history or history["commits"] < 2:
+        return []
+    if history["shallow"]:
+        return [f"secrets in git history: this is a shallow clone ({history['commits']} "
+                "commit(s)), so the history is mostly not there to search. Clone it in full "
+                "and run once with --secrets-history: a credential deleted from the code "
+                "still works until it is rotated."]
+    return [f"secrets in git history: scans search the current files only. Run once with "
+            f"--secrets-history ({history['commits']} commits): a credential deleted from "
+            "the code still works until it is rotated."]
+
+
 def overlay(recs: list[Recommendation]) -> str:
     """The recommendations as a project config, each with its reason."""
     lines = ["# appsec-compose project config, from `appsec-compose profile`.",
@@ -355,7 +388,7 @@ def _wrap(text: str, width: int) -> list[str]:
 
 # ---- command line ---------------------------------------------------------------
 
-def _text(prof: Profile, recs: list[Recommendation]) -> str:
+def _text(prof: Profile, recs: list[Recommendation], once: list[str] | None = None) -> str:
     out = [f"Project: {prof.path} ({prof.files:,} files"
            + (", stopped counting" if prof.truncated else "") + ")"]
     if prof.languages:
@@ -377,6 +410,10 @@ def _text(prof: Profile, recs: list[Recommendation]) -> str:
             out += [f"  - {key}{val}", *(f"      {l}" for l in _wrap(r.reason, 72))]
     else:
         out.append("The shipped defaults fit this project; no config needed.")
+    if once:
+        out += ["", "Run once:"]
+        for advice in once:
+            out += [f"  - {l}" if i == 0 else f"    {l}" for i, l in enumerate(_wrap(advice, 74))]
     return "\n".join(out)
 
 
@@ -393,6 +430,8 @@ def main(argv: list[str]) -> int:
         return 2
     prof = scan(str(target), DEFAULT_EXCLUDES)
     recs = recommend(prof)
+    history = git_history(str(target))
+    once = run_once(history)
     written = None
     if "--write" in flags and recs:
         dest = target / ".appsec-compose.yml"
@@ -404,10 +443,11 @@ def main(argv: list[str]) -> int:
             written = str(dest)
     if "--json" in flags:
         doc = {"profile": {**asdict(prof), "ci": prof.ci},
-               "recommendations": [asdict(r) for r in recs], "written": written}
+               "recommendations": [asdict(r) for r in recs], "git": history,
+               "run_once": once, "written": written}
         print(json.dumps(doc, separators=(",", ":")))
     else:
-        print(_text(prof, recs))
+        print(_text(prof, recs, once))
         if written:
             print(f"\nWrote {written}.")
     return 0

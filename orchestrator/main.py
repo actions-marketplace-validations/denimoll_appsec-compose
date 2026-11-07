@@ -23,6 +23,7 @@ import coverage as cov
 import diffscope
 import enrich as enr
 import licenses as lic
+import placeholders as ph
 from config import load_config
 from converters import trufflehog_json_to_sarif
 from dedup import merge
@@ -128,7 +129,7 @@ def _db_age_days(databases: dict, now: datetime | None = None) -> dict:
 
 
 def _metrics(provenance: dict, result, stats, ignored: int, in_source: int,
-             kept: list, policy, brief_stats: dict) -> dict:
+             placeholders: int, kept: list, policy, brief_stats: dict) -> dict:
     """What this run did, in numbers: for the reader, how much there is and
     how much of it to read; for a bug report, where the time and the findings
     went. Counts only, never content."""
@@ -143,6 +144,7 @@ def _metrics(provenance: dict, result, stats, ignored: int, in_source: int,
         # suppressed in the code never reach the merge; they are counted apart.
         "findings": {"raw": stats.raw, "unique": stats.unique, "merged": stats.removed,
                      "ignored": ignored, "suppressed_in_source": in_source,
+                     "placeholders": placeholders,
                      "reported": len(kept),
                      "gating": policy.breaching,
                      "low_confidence": sum(1 for f in kept if f.confidence == "low")},
@@ -166,6 +168,7 @@ def _metrics_lines(m: dict) -> list[str]:
            f"  reports   : {reports}",
            f"  findings  : {f['raw']} raw -> {f['unique']} unique ({f['merged']} merged)"
            + (f" -> {f['ignored']} ignored" if f["ignored"] else "")
+           + (f" -> {f['placeholders']} placeholder secret(s)" if f["placeholders"] else "")
            + f" -> {f['reported']} reported, {f['gating']} gating"
            + (f"; {f['suppressed_in_source']} suppressed in the code"
               if f["suppressed_in_source"] else "")]
@@ -297,7 +300,12 @@ def main() -> int:
     except ValueError as exc:            # e.g. a malformed `expires`
         print(f"ERROR: invalid ignore entry: {exc}", file=sys.stderr)
         return EXIT_USAGE
+    ignored_count = len(suppressed)
     suppressed += [Suppressed(f, f.source_suppression) for f in in_source]
+    # A "secret" whose value is xxxxxxxx is a placeholder: suppressed with its
+    # reason, visible to a reviewer, never gating.
+    kept, dummies = ph.split(kept, None if image_mode else CODE_DIR)
+    suppressed += [Suppressed(f, ph.REASON) for f in dummies]
 
     # Exploitability enrichment runs after the merge, so each CVE is looked up
     # once and the alias set is at its widest.
@@ -404,10 +412,6 @@ def main() -> int:
                        for s in suppressed],
     }
     provenance = consolidated["provenance"]
-    render(result, policy, kept, stats, REPORTS_DIR,
-           suppressed_count=len(suppressed), delta=delta, coverage=coverage,
-           enrichment=enrichment, expired=expired, provenance=provenance,
-           scope=scope)
     brief_stats = brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
                  CODE_DIR, excludes, image_mode, new_fps if delta else None,
                  scope=scope, license_stats=license_stats,
@@ -416,10 +420,16 @@ def main() -> int:
                                         if s.reason.startswith("suppressed in source"))
                  + sum(1 for s in suppressed
                        if not s.reason.startswith("suppressed in source")
+                       and s.reason != ph.REASON
                        and "ignore" in ((provenance.get("repo_config") or {}).get("applied") or [])))
+    # After the brief: the summaries say what reading it costs.
+    render(result, policy, kept, stats, REPORTS_DIR,
+           suppressed_count=len(suppressed), delta=delta, coverage=coverage,
+           enrichment=enrichment, expired=expired, provenance=provenance,
+           scope=scope, brief_tokens=(brief_stats or {}).get("approx_tokens"))
     provenance["timings"] = _timings(_json_env_dict("ASS_ENGINE_TIMINGS"))   # collector time so far
-    metrics = _metrics(provenance, result, stats, len(suppressed) - len(in_source),
-                       len(in_source), kept, policy, brief_stats or {})
+    metrics = _metrics(provenance, result, stats, ignored_count, len(in_source),
+                       len(dummies), kept, policy, brief_stats or {})
     consolidated["metrics"] = metrics
     Path(REPORTS_DIR, "findings.json").write_text(json.dumps(consolidated, indent=2))
 
@@ -500,7 +510,9 @@ def main() -> int:
         print(line)
     sboms = sorted(p.name for p in Path(REPORTS_DIR).glob("sbom.*.json"))
     sbom_note = (" | " + " | ".join(sboms)) if sboms else ""
-    print(f"Reports: {REPORTS_DIR}/summary.md | summary.html | findings.json"
+    # Where the reader finds them: the host path run.sh resolved, not /reports.
+    shown_dir = os.environ.get("ASS_REPORTS_HOST", "").strip() or REPORTS_DIR
+    print(f"Reports: {shown_dir}/summary.md | summary.html | findings.json"
           f" | review-brief.md"
           f"{sbom_note} | native/")
     print("=" * 60)

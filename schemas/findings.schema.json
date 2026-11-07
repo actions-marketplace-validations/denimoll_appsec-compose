@@ -149,6 +149,7 @@
           "raw": {"type": "integer"}, "unique": {"type": "integer"}, "merged": {"type": "integer"},
           "ignored": {"type": "integer", "description": "removed by ignore: entries"},
           "suppressed_in_source": {"type": "integer", "description": "suppressed by comments in the code; never part of raw or unique"},
+          "placeholders": {"type": "integer", "description": "secret findings whose value is a placeholder (one repeated character, `your_api_key`, ...); moved to `suppressed` with that reason"},
           "reported": {"type": "integer"},
           "gating": {"type": "integer"}, "low_confidence": {"type": "integer"}}},
         "brief": {"type": "object", "description": "review-brief.md: its size, and how many findings it shows with code, on one line each (further matches of a rule already shown; low-confidence rules that do not gate) or only counts.", "properties": {

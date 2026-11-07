@@ -311,6 +311,8 @@ export ASS_SECRETS_HISTORY
 REPORTS="${ASS_REPORTS_DIR:-$SCRIPT_DIR/reports}"
 mkdir -p "$REPORTS/native" "$ASS_CACHE_DIR/semgrep" "$ASS_CACHE_DIR/trivy" \
          "$ASS_CACHE_DIR/grype" semgrep-rules
+# The collector sees /reports; the reader needs the path on this machine.
+ASS_REPORTS_HOST="$(cd "$REPORTS" && pwd -P)"; export ASS_REPORTS_HOST
 
 # Clear last run's native reports. A scanner that is disabled (or that now
 # fails) would otherwise leave a stale SARIF behind, which CI's hashFiles()

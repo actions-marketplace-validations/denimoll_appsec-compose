@@ -164,6 +164,11 @@ config changes that fit, each with its reason:
 - generated or vendored directories the default `exclude:` misses
   (`.next`, `coverage`, `third_party`, …) → named for you to review.
 
+Then, under **Run once**, scans worth running once rather than settings to
+keep: a git repository with history gets `--secrets-history` (scans search the
+current files only, and a deleted credential still works until it is
+rotated); a shallow clone is told that its history is mostly not there.
+
 `--write` creates `.appsec-compose.yml` with only those changes and their
 reasons as comments; an existing file is never overwritten. `--json` gives the
 same as one object. The scan uses the same detection: it picks Checkov's
