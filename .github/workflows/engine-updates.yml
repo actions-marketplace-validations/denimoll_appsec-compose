@@ -64,8 +64,10 @@ jobs:
         if: steps.plan.outputs.changed == 'true'
         continue-on-error: true
         run: |
-          python3 benchmark/bench.py --suite sast --suite sast-python --suite secrets \
-            --suite sca --profile default
+          # Every profile: a suite is re-measured whole, so a default-only run
+          # would drop the other profiles' numbers from RESULTS.md.
+          python3 benchmark/bench.py --suite sast --suite sast-python --suite sast-js \
+            --suite secrets --suite sca
 
       - name: Describe
         id: describe
