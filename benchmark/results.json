@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-03T20:25:43Z",
-  "appsec_compose": "1.3.0",
-  "appsec_compose_commit": "46768d4ebad35f77924fd4690887ca06ca1bcb93",
+  "generated": "2026-11-07T11:47:21Z",
+  "appsec_compose": "1.4.0",
+  "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb",
   "host": {
     "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
     "machine": "arm64",
@@ -27,22 +27,48 @@
           "semgrep_rules": [
             "default"
           ],
-          "runtime_seconds": 81.2,
+          "runtime_seconds": 47.7,
           "corpus_tree_sha256": "201e75c419ff03dec1b883d8a609985a643f909c71bddeb45cc1f9111f882aba",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-02T13:15:56.44112656Z"
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
           },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.2.0",
-            "generated": "2026-11-03T05:12:42Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:48:09Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
               "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
             },
-            "databases": {
-              "trivy": "2026-11-02T13:15:56.44112656Z"
-            }
+            "databases": {},
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "semgrep": 42.9
+              },
+              "scanners_s": 44,
+              "collector_s": 0.8,
+              "total_s": 47
+            },
+            "repo_config": null,
+            "checkov_frameworks": [
+              "dockerfile",
+              "github_actions",
+              "openapi"
+            ]
+          },
+          "brief": {
+            "bytes": 167340,
+            "approx_tokens": 41292,
+            "detailed": 42,
+            "one_line": 3210,
+            "repeated": 2619,
+            "low_confidence": 591,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -172,11 +198,34 @@
               "precision": 0.6933
             },
             "test_cases": 2740,
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.6888,
+                "fpr": 0.4209,
+                "score": 0.2679
+              },
+              "totals": {
+                "tp": 970,
+                "fp": 512,
+                "fn": 445,
+                "tn": 813,
+                "tpr": 0.6855,
+                "fpr": 0.3864,
+                "precision": 0.6545
+              }
+            },
+            "low_confidence_findings": 591,
             "rules": 1074,
             "semgrep_version": "1.174.0",
+            "semgrep_notifications": {
+              "timeouts": 0,
+              "syntax_errors": 0,
+              "other": 0
+            },
             "sast_findings": 3252,
             "sast_findings_by_severity": {
-              "medium": 3252
+              "high": 572,
+              "medium": 2680
             }
           }
         },
@@ -189,22 +238,48 @@
             "default",
             "auto"
           ],
-          "runtime_seconds": 108.0,
+          "runtime_seconds": 45.8,
           "corpus_tree_sha256": "201e75c419ff03dec1b883d8a609985a643f909c71bddeb45cc1f9111f882aba",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-02T13:15:56.44112656Z"
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
           },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.2.0",
-            "generated": "2026-11-03T05:14:30Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:48:55Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
               "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
             },
-            "databases": {
-              "trivy": "2026-11-02T13:15:56.44112656Z"
-            }
+            "databases": {},
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "semgrep": 43.4
+              },
+              "scanners_s": 43,
+              "collector_s": 0.8,
+              "total_s": 46
+            },
+            "repo_config": null,
+            "checkov_frameworks": [
+              "dockerfile",
+              "github_actions",
+              "openapi"
+            ]
+          },
+          "brief": {
+            "bytes": 167340,
+            "approx_tokens": 41292,
+            "detailed": 42,
+            "one_line": 3210,
+            "repeated": 2619,
+            "low_confidence": 591,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -334,19 +409,42 @@
               "precision": 0.6933
             },
             "test_cases": 2740,
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.6888,
+                "fpr": 0.4209,
+                "score": 0.2679
+              },
+              "totals": {
+                "tp": 970,
+                "fp": 512,
+                "fn": 445,
+                "tn": 813,
+                "tpr": 0.6855,
+                "fpr": 0.3864,
+                "precision": 0.6545
+              }
+            },
+            "low_confidence_findings": 591,
             "rules": 1076,
             "semgrep_version": "1.174.0",
+            "semgrep_notifications": {
+              "timeouts": 0,
+              "syntax_errors": 0,
+              "other": 0
+            },
             "sast_findings": 3252,
             "sast_findings_by_severity": {
-              "medium": 3252
+              "high": 572,
+              "medium": 2680
             }
           }
         }
       },
       "measured": {
-        "generated": "2026-11-03T05:15:34Z",
-        "appsec_compose": "1.2.0",
-        "appsec_compose_commit": "38eb0ff7a89196f98ef47496f6ae8fae4813cd83"
+        "generated": "2026-11-07T11:47:21Z",
+        "appsec_compose": "1.4.0",
+        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
       }
     },
     "secrets": {
@@ -368,14 +466,16 @@
             "trivy"
           ],
           "semgrep_rules": null,
-          "runtime_seconds": 4.6,
+          "runtime_seconds": 18.5,
           "corpus_tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-02T13:15:56.44112656Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-04T00:19:46Z"
           },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.2.0",
-            "generated": "2026-11-03T05:14:35Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:08:10Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -383,20 +483,47 @@
               "gitleaks": "zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f"
             },
             "databases": {
-              "trivy": "2026-11-02T13:15:56.44112656Z"
-            }
+              "trivy": "2026-11-07T06:54:25.084761873Z"
+            },
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "trivy": 16.9,
+                "gitleaks": 0.1
+              },
+              "scanners_s": 17,
+              "collector_s": 0.0,
+              "total_s": 19
+            },
+            "repo_config": null,
+            "checkov_frameworks": [
+              "gitlab_ci",
+              "kubernetes",
+              "terraform"
+            ]
+          },
+          "brief": {
+            "bytes": 14331,
+            "approx_tokens": 3550,
+            "detailed": 29,
+            "one_line": 3,
+            "repeated": 3,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "merged": {
               "tp": 23,
               "fn": 3,
-              "fp_decoy": 1,
-              "tn": 19,
+              "fp_decoy": 2,
+              "tn": 18,
               "fp_unlabeled": 0,
               "recall": 0.8846,
-              "precision": 0.9583,
-              "decoy_fpr": 0.05,
-              "findings": 25,
+              "precision": 0.92,
+              "decoy_fpr": 0.1,
+              "findings": 28,
               "by_kind": {
                 "anthropic-api-key": {
                   "label": "secret",
@@ -531,7 +658,7 @@
                 "placeholder": {
                   "label": "decoy",
                   "total": 2,
-                  "hit": 0
+                  "hit": 1
                 },
                 "public-key": {
                   "label": "decoy",
@@ -795,211 +922,211 @@
                   }
                 },
                 "unlabeled": []
-              }
-            },
-            "trivy_secrets_filed_as_sca": {
-              "tp": 15,
-              "fn": 11,
-              "fp_decoy": 0,
-              "tn": 20,
-              "fp_unlabeled": 0,
-              "recall": 0.5769,
-              "precision": 1.0,
-              "decoy_fpr": 0.0,
-              "findings": 16,
-              "by_kind": {
-                "anthropic-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "aws-access-key-id": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "aws-docs-example": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "aws-secret-access-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "azure-storage-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "checksum": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "commit-sha": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "connection-string-password": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "data-uri": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "django-secret-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "env-reference": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "gcp-service-account-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "generic-api-secret": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "generic-password": {
-                  "label": "secret",
-                  "total": 2,
-                  "hit": 0
-                },
-                "github-fine-grained-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "github-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "gitlab-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "google-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "integrity-hash": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "jwt": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "k8s-secret-base64": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "keyword-not-secret": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "low-entropy-password": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "masked": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "npm-token": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "openai-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "placeholder": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "public-key": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "rsa-private-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "sendgrid-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "slack-bot-token": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "slack-webhook": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "stripe-secret-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "template-variable": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "test-vector": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "twilio-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "url-embedded-password": {
-                  "label": "secret",
-                  "total": 2,
-                  "hit": 0
-                },
-                "uuid": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                }
               },
-              "unlabeled": []
+              "trivy": {
+                "tp": 15,
+                "fn": 11,
+                "fp_decoy": 1,
+                "tn": 19,
+                "fp_unlabeled": 0,
+                "recall": 0.5769,
+                "precision": 0.9375,
+                "decoy_fpr": 0.05,
+                "findings": 17,
+                "by_kind": {
+                  "anthropic-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "aws-access-key-id": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-docs-example": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "aws-secret-access-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "azure-storage-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "checksum": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "commit-sha": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "connection-string-password": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "data-uri": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "django-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "env-reference": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "gcp-service-account-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-api-secret": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "generic-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "github-fine-grained-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "github-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "gitlab-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "google-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "integrity-hash": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "jwt": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "k8s-secret-base64": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "keyword-not-secret": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "low-entropy-password": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "masked": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "npm-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "openai-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "placeholder": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 1
+                  },
+                  "public-key": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "rsa-private-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "sendgrid-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-bot-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-webhook": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "stripe-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "template-variable": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "test-vector": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "twilio-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "url-embedded-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "uuid": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  }
+                },
+                "unlabeled": []
+              }
             }
           }
         },
@@ -1011,14 +1138,16 @@
             "trufflehog"
           ],
           "semgrep_rules": null,
-          "runtime_seconds": 8.2,
+          "runtime_seconds": 3.2,
           "corpus_tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-02T13:15:56.44112656Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-04T00:19:46Z"
           },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.2.0",
-            "generated": "2026-11-03T05:14:44Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:08:14Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -1027,20 +1156,48 @@
               "trufflehog": "trufflesecurity/trufflehog@sha256:ff4c95e9df7d645daf2140e3ca1039031c63106268d5fbb25feb43ceca1bcc33"
             },
             "databases": {
-              "trivy": "2026-11-02T13:15:56.44112656Z"
-            }
+              "trivy": "2026-11-07T06:54:25.084761873Z"
+            },
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "trufflehog": 1.6,
+                "trivy": 0.9,
+                "gitleaks": 0.1
+              },
+              "scanners_s": 2,
+              "collector_s": 0.0,
+              "total_s": 3
+            },
+            "repo_config": null,
+            "checkov_frameworks": [
+              "gitlab_ci",
+              "kubernetes",
+              "terraform"
+            ]
+          },
+          "brief": {
+            "bytes": 14803,
+            "approx_tokens": 3667,
+            "detailed": 30,
+            "one_line": 3,
+            "repeated": 3,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "merged": {
               "tp": 24,
               "fn": 2,
-              "fp_decoy": 1,
-              "tn": 19,
+              "fp_decoy": 2,
+              "tn": 18,
               "fp_unlabeled": 0,
               "recall": 0.9231,
-              "precision": 0.96,
-              "decoy_fpr": 0.05,
-              "findings": 26,
+              "precision": 0.9231,
+              "decoy_fpr": 0.1,
+              "findings": 29,
               "by_kind": {
                 "anthropic-api-key": {
                   "label": "secret",
@@ -1175,7 +1332,7 @@
                 "placeholder": {
                   "label": "decoy",
                   "total": 2,
-                  "hit": 0
+                  "hit": 1
                 },
                 "public-key": {
                   "label": "decoy",
@@ -1421,6 +1578,210 @@
                     "label": "decoy",
                     "total": 1,
                     "hit": 1
+                  },
+                  "twilio-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "url-embedded-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "uuid": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  }
+                },
+                "unlabeled": []
+              },
+              "trivy": {
+                "tp": 15,
+                "fn": 11,
+                "fp_decoy": 1,
+                "tn": 19,
+                "fp_unlabeled": 0,
+                "recall": 0.5769,
+                "precision": 0.9375,
+                "decoy_fpr": 0.05,
+                "findings": 17,
+                "by_kind": {
+                  "anthropic-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "aws-access-key-id": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-docs-example": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "aws-secret-access-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "azure-storage-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "checksum": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "commit-sha": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "connection-string-password": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "data-uri": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "django-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "env-reference": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "gcp-service-account-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-api-secret": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "generic-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "github-fine-grained-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "github-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "gitlab-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "google-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "integrity-hash": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "jwt": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "k8s-secret-base64": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "keyword-not-secret": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "low-entropy-password": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "masked": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "npm-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "openai-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "placeholder": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 1
+                  },
+                  "public-key": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "rsa-private-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "sendgrid-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-bot-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-webhook": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "stripe-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "template-variable": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "test-vector": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
                   },
                   "twilio-api-key": {
                     "label": "secret",
@@ -1644,218 +2005,14 @@
                 },
                 "unlabeled": []
               }
-            },
-            "trivy_secrets_filed_as_sca": {
-              "tp": 15,
-              "fn": 11,
-              "fp_decoy": 0,
-              "tn": 20,
-              "fp_unlabeled": 0,
-              "recall": 0.5769,
-              "precision": 1.0,
-              "decoy_fpr": 0.0,
-              "findings": 16,
-              "by_kind": {
-                "anthropic-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "aws-access-key-id": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "aws-docs-example": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "aws-secret-access-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "azure-storage-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "checksum": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "commit-sha": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "connection-string-password": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "data-uri": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "django-secret-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "env-reference": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "gcp-service-account-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "generic-api-secret": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "generic-password": {
-                  "label": "secret",
-                  "total": 2,
-                  "hit": 0
-                },
-                "github-fine-grained-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "github-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "gitlab-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "google-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "integrity-hash": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "jwt": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "k8s-secret-base64": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "keyword-not-secret": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "low-entropy-password": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "masked": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "npm-token": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "openai-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "placeholder": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "public-key": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "rsa-private-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "sendgrid-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "slack-bot-token": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "slack-webhook": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "stripe-secret-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "template-variable": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "test-vector": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "twilio-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "url-embedded-password": {
-                  "label": "secret",
-                  "total": 2,
-                  "hit": 0
-                },
-                "uuid": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                }
-              },
-              "unlabeled": []
             }
           }
         }
       },
       "measured": {
-        "generated": "2026-11-03T05:15:34Z",
-        "appsec_compose": "1.2.0",
-        "appsec_compose_commit": "38eb0ff7a89196f98ef47496f6ae8fae4813cd83"
+        "generated": "2026-11-07T11:47:21Z",
+        "appsec_compose": "1.4.0",
+        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
       }
     },
     "sca": {
@@ -1881,23 +2038,46 @@
             "trivy"
           ],
           "semgrep_rules": null,
-          "runtime_seconds": 3.4,
+          "runtime_seconds": 2.3,
           "corpus_tree_sha256": "7c5c1e9b79cb007e2fa98c9af71f9590f162012c9a56cb34591b61879cdfca8a",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-02T13:15:56.44112656Z",
-            "grype": "2026-11-02T00:22:47Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-04T00:19:46Z"
           },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.2.0",
-            "generated": "2026-11-03T05:15:37Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:08:16Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
               "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969"
             },
             "databases": {
-              "trivy": "2026-11-02T13:15:56.44112656Z"
-            }
+              "trivy": "2026-11-07T06:54:25.084761873Z"
+            },
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "trivy": 0.7
+              },
+              "scanners_s": 1,
+              "collector_s": 0.1,
+              "total_s": 2
+            },
+            "repo_config": null,
+            "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 43894,
+            "approx_tokens": 10677,
+            "detailed": 0,
+            "one_line": 0,
+            "repeated": 0,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "ecosystems": {
@@ -1928,27 +2108,33 @@
               "npm": {
                 "packages": 6,
                 "expected": 39,
-                "detected": 39,
-                "recall": 1.0
+                "detected": 38,
+                "recall": 0.9744
               }
             },
             "expected": 345,
-            "detected": 343,
-            "recall": 0.9942,
+            "detected": 342,
+            "recall": 0.9913,
             "missed": [
               "pillow@8.1.0: BIT-PILLOW-2022-45199",
-              "pillow@8.1.0: PYSEC-2023-175"
+              "pillow@8.1.0: PYSEC-2023-175",
+              "lodash@4.17.15: CVE-2026-2950"
             ],
             "outside_truth": [
               "lodash@4.17.15: NSWG-ECO-516",
+              "loofah@2.2.2: GHSA-345x-3rq2-jfrm",
+              "loofah@2.2.2: GHSA-m3x9-938q-5767",
+              "loofah@2.2.2: GHSA-mf2j-8f84-cc9q",
               "nokogiri@1.10.4: CVE-2022-23437",
               "nokogiri@1.10.4: CVE-2022-24839",
+              "nokogiri@1.10.4: GHSA-3w22-6jfg-527w",
               "nokogiri@1.10.4: GHSA-g9g8-vgvw-g3vf",
+              "nokogiri@1.10.4: GHSA-v995-44v6-5fqm",
               "rack@2.0.7: GHSA-5v64-555j-wjxm",
               "rack@2.0.7: GHSA-p8x9-v4hv-2w4g",
               "rack@2.0.7: GHSA-wvg4-6p58-3gh3"
             ],
-            "findings": 350,
+            "findings": 354,
             "coverage_warnings": []
           }
         },
@@ -1960,15 +2146,16 @@
             "osv"
           ],
           "semgrep_rules": null,
-          "runtime_seconds": 8.9,
+          "runtime_seconds": 115.8,
           "corpus_tree_sha256": "7c5c1e9b79cb007e2fa98c9af71f9590f162012c9a56cb34591b61879cdfca8a",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-02T13:15:56.44112656Z",
-            "grype": "2026-11-02T00:22:47Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.2.0",
-            "generated": "2026-11-03T05:15:46Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:10:12Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -1977,8 +2164,33 @@
               "osv": "ghcr.io/google/osv-scanner@sha256:8108ae94eadea5a02c9bec6e646909d5b790b44bd62d7f5b7f0b1d6d0ffc7734"
             },
             "databases": {
-              "trivy": "2026-11-02T13:15:56.44112656Z"
-            }
+              "trivy": "2026-11-07T06:54:25.084761873Z",
+              "grype": "2026-11-07T00:20:09Z"
+            },
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "grype": 113.7,
+                "osv": 10.5,
+                "trivy": 0.8
+              },
+              "scanners_s": 114,
+              "collector_s": 0.2,
+              "total_s": 115
+            },
+            "repo_config": null,
+            "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 55141,
+            "approx_tokens": 13475,
+            "detailed": 0,
+            "one_line": 0,
+            "repeated": 0,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "ecosystems": {
@@ -2009,35 +2221,42 @@
               "npm": {
                 "packages": 6,
                 "expected": 39,
-                "detected": 39,
-                "recall": 1.0
+                "detected": 38,
+                "recall": 0.9744
               }
             },
             "expected": 345,
-            "detected": 345,
-            "recall": 1.0,
-            "missed": [],
+            "detected": 344,
+            "recall": 0.9971,
+            "missed": [
+              "lodash@4.17.15: CVE-2026-2950"
+            ],
             "outside_truth": [
               "certifi@2026.7.22: PYSEC-2026-4320",
               "idna@2.9.0: CVE-2024-3651",
               "idna@2.9.0: CVE-2026-45409",
               "lodash@4.17.15: NSWG-ECO-516",
+              "loofah@2.2.2: GHSA-345x-3rq2-jfrm",
+              "loofah@2.2.2: GHSA-m3x9-938q-5767",
+              "loofah@2.2.2: GHSA-mf2j-8f84-cc9q",
               "nokogiri@1.10.4: CVE-2022-23437",
               "nokogiri@1.10.4: CVE-2022-24839",
+              "nokogiri@1.10.4: GHSA-3w22-6jfg-527w",
               "nokogiri@1.10.4: GHSA-g9g8-vgvw-g3vf",
+              "nokogiri@1.10.4: GHSA-v995-44v6-5fqm",
               "rack@2.0.7: GHSA-5v64-555j-wjxm",
               "rack@2.0.7: GHSA-p8x9-v4hv-2w4g",
               "rack@2.0.7: GHSA-wvg4-6p58-3gh3"
             ],
-            "findings": 469,
+            "findings": 390,
             "coverage_warnings": []
           }
         }
       },
       "measured": {
-        "generated": "2026-11-03T05:15:34Z",
-        "appsec_compose": "1.2.0",
-        "appsec_compose_commit": "38eb0ff7a89196f98ef47496f6ae8fae4813cd83"
+        "generated": "2026-11-07T11:47:21Z",
+        "appsec_compose": "1.4.0",
+        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
       }
     },
     "sast-js": {
@@ -2079,12 +2298,16 @@
           "semgrep_rules": [
             "default"
           ],
-          "runtime_seconds": 124.0,
+          "runtime_seconds": 101.1,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:08:22Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:52:20Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -2096,459 +2319,23 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 122.1
+                "semgrep": 99.1
               },
-              "scanners_s": 122,
-              "collector_s": 0.1,
-              "total_s": 124
+              "scanners_s": 100,
+              "collector_s": 0.3,
+              "total_s": 100
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
           },
-          "score": {
-            "categories": {
-              "cmdi": {
-                "cves": 25,
-                "tp": 8,
-                "fn": 17,
-                "fp": 4,
-                "tn": 21,
-                "cwe_matched": 8,
-                "fp_fix_elsewhere": 1,
-                "file_flagged": 16,
-                "tpr": 0.32,
-                "fpr": 0.16,
-                "score": 0.16,
-                "precision": 0.6667
-              },
-              "codeinj": {
-                "cves": 14,
-                "tp": 1,
-                "fn": 13,
-                "fp": 0,
-                "tn": 14,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 5,
-                "tpr": 0.0714,
-                "fpr": 0.0,
-                "score": 0.0714,
-                "precision": 1.0
-              },
-              "other": {
-                "cves": 28,
-                "tp": 1,
-                "fn": 27,
-                "fp": 1,
-                "tn": 27,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 8,
-                "tpr": 0.0357,
-                "fpr": 0.0357,
-                "score": 0.0,
-                "precision": 0.5
-              },
-              "pathtraver": {
-                "cves": 29,
-                "tp": 2,
-                "fn": 27,
-                "fp": 1,
-                "tn": 28,
-                "cwe_matched": 2,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 20,
-                "tpr": 0.069,
-                "fpr": 0.0345,
-                "score": 0.0345,
-                "precision": 0.6667
-              },
-              "protopollution": {
-                "cves": 23,
-                "tp": 1,
-                "fn": 22,
-                "fp": 0,
-                "tn": 23,
-                "cwe_matched": 1,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 12,
-                "tpr": 0.0435,
-                "fpr": 0.0,
-                "score": 0.0435,
-                "precision": 1.0
-              },
-              "redirect": {
-                "cves": 7,
-                "tp": 0,
-                "fn": 7,
-                "fp": 0,
-                "tn": 7,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 3,
-                "tpr": 0.0,
-                "fpr": 0.0,
-                "score": 0.0,
-                "precision": null
-              },
-              "redos": {
-                "cves": 31,
-                "tp": 2,
-                "fn": 29,
-                "fp": 1,
-                "tn": 30,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 8,
-                "tpr": 0.0645,
-                "fpr": 0.0323,
-                "score": 0.0322,
-                "precision": 0.6667
-              },
-              "sqli": {
-                "cves": 4,
-                "tp": 0,
-                "fn": 4,
-                "fp": 0,
-                "tn": 4,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 0,
-                "tpr": 0.0,
-                "fpr": 0.0,
-                "score": 0.0,
-                "precision": null
-              },
-              "ssrf": {
-                "cves": 3,
-                "tp": 1,
-                "fn": 2,
-                "fp": 1,
-                "tn": 2,
-                "cwe_matched": 1,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 1,
-                "tpr": 0.3333,
-                "fpr": 0.3333,
-                "score": 0.0,
-                "precision": 0.5
-              },
-              "xss": {
-                "cves": 56,
-                "tp": 8,
-                "fn": 48,
-                "fp": 5,
-                "tn": 51,
-                "cwe_matched": 7,
-                "fp_fix_elsewhere": 1,
-                "file_flagged": 19,
-                "tpr": 0.1429,
-                "fpr": 0.0893,
-                "score": 0.0536,
-                "precision": 0.6154
-              }
-            },
-            "totals": {
-              "cves": 220,
-              "tp": 24,
-              "fn": 196,
-              "fp": 13,
-              "tn": 207,
-              "cwe_matched": 19,
-              "fp_fix_elsewhere": 2,
-              "file_flagged": 92,
-              "tpr": 0.1091,
-              "fpr": 0.0591,
-              "score": 0.05,
-              "precision": 0.6486
-            },
-            "match": "line",
-            "test_cases": 220,
-            "outcome": {
-              "CVE-2016-10735": "missed",
-              "CVE-2017-0931": "missed",
-              "CVE-2017-1000006": "missed",
-              "CVE-2017-1000219": "missed",
-              "CVE-2017-1000427": "missed",
-              "CVE-2017-1001004": "missed",
-              "CVE-2017-10910": "missed",
-              "CVE-2017-15010": "missed",
-              "CVE-2017-16003": "missed",
-              "CVE-2017-16006": "missed",
-              "CVE-2017-16011": "missed",
-              "CVE-2017-16014": "missed",
-              "CVE-2017-16018": "missed",
-              "CVE-2017-16023": "not-recognized",
-              "CVE-2017-16026": "missed",
-              "CVE-2017-16028": "missed",
-              "CVE-2017-16029": "missed",
-              "CVE-2017-16030": "missed",
-              "CVE-2017-16031": "missed",
-              "CVE-2017-16034": "missed",
-              "CVE-2017-16042": "missed",
-              "CVE-2017-16043": "missed",
-              "CVE-2017-16082": "recognized",
-              "CVE-2017-16083": "missed",
-              "CVE-2017-16084": "missed",
-              "CVE-2017-16087": "missed",
-              "CVE-2017-16098": "missed",
-              "CVE-2017-16100": "not-recognized",
-              "CVE-2017-16107": "missed",
-              "CVE-2017-16114": "missed",
-              "CVE-2017-16117": "missed",
-              "CVE-2017-16118": "missed",
-              "CVE-2017-16119": "missed",
-              "CVE-2017-16136": "missed",
-              "CVE-2017-16137": "missed",
-              "CVE-2017-16138": "missed",
-              "CVE-2017-16224": "missed",
-              "CVE-2017-16226": "missed",
-              "CVE-2017-16877": "missed",
-              "CVE-2017-17461": "missed",
-              "CVE-2017-18077": "missed",
-              "CVE-2017-18214": "missed",
-              "CVE-2017-18352": "missed",
-              "CVE-2017-18353": "missed",
-              "CVE-2017-18354": "not-recognized",
-              "CVE-2017-18355": "not-recognized",
-              "CVE-2017-18635": "missed",
-              "CVE-2017-5954": "missed",
-              "CVE-2018-1000086": "missed",
-              "CVE-2018-1000096": "missed",
-              "CVE-2018-1000620": "missed",
-              "CVE-2018-1002203": "recognized",
-              "CVE-2018-1002204": "missed",
-              "CVE-2018-11093": "missed",
-              "CVE-2018-11615": "not-recognized",
-              "CVE-2018-11798": "missed",
-              "CVE-2018-13797": "missed",
-              "CVE-2018-13863": "missed",
-              "CVE-2018-14040": "missed",
-              "CVE-2018-14041": "missed",
-              "CVE-2018-14042": "missed",
-              "CVE-2018-14380": "missed",
-              "CVE-2018-16460": "recognized",
-              "CVE-2018-16461": "missed",
-              "CVE-2018-16462": "missed",
-              "CVE-2018-16472": "missed",
-              "CVE-2018-16478": "missed",
-              "CVE-2018-16479": "missed",
-              "CVE-2018-16480": "missed",
-              "CVE-2018-16484": "missed",
-              "CVE-2018-16485": "missed",
-              "CVE-2018-16487": "missed",
-              "CVE-2018-16489": "missed",
-              "CVE-2018-16490": "missed",
-              "CVE-2018-16491": "missed",
-              "CVE-2018-16492": "missed",
-              "CVE-2018-18282": "missed",
-              "CVE-2018-19048": "missed",
-              "CVE-2018-20164": "missed",
-              "CVE-2018-20676": "missed",
-              "CVE-2018-20677": "missed",
-              "CVE-2018-20801": "missed",
-              "CVE-2018-20834": "missed",
-              "CVE-2018-20835": "missed",
-              "CVE-2018-21036": "missed",
-              "CVE-2018-3712": "missed",
-              "CVE-2018-3713": "missed",
-              "CVE-2018-3718": "missed",
-              "CVE-2018-3719": "missed",
-              "CVE-2018-3721": "missed",
-              "CVE-2018-3722": "missed",
-              "CVE-2018-3725": "missed",
-              "CVE-2018-3726": "missed",
-              "CVE-2018-3728": "missed",
-              "CVE-2018-3731": "missed",
-              "CVE-2018-3732": "missed",
-              "CVE-2018-3733": "missed",
-              "CVE-2018-3736": "missed",
-              "CVE-2018-3737": "missed",
-              "CVE-2018-3738": "missed",
-              "CVE-2018-3743": "missed",
-              "CVE-2018-3746": "missed",
-              "CVE-2018-3747": "missed",
-              "CVE-2018-3750": "missed",
-              "CVE-2018-3752": "missed",
-              "CVE-2018-3757": "missed",
-              "CVE-2018-3770": "missed",
-              "CVE-2018-3772": "recognized",
-              "CVE-2018-3783": "missed",
-              "CVE-2018-3786": "missed",
-              "CVE-2018-6184": "missed",
-              "CVE-2018-6333": "missed",
-              "CVE-2018-6341": "missed",
-              "CVE-2018-6342": "missed",
-              "CVE-2018-7560": "recognized",
-              "CVE-2018-7651": "missed",
-              "CVE-2019-10061": "missed",
-              "CVE-2019-10090": "missed",
-              "CVE-2019-1010091": "missed",
-              "CVE-2019-1010266": "missed",
-              "CVE-2019-1020012": "missed",
-              "CVE-2019-10742": "missed",
-              "CVE-2019-10744": "missed",
-              "CVE-2019-10745": "missed",
-              "CVE-2019-10746": "missed",
-              "CVE-2019-10747": "missed",
-              "CVE-2019-10750": "missed",
-              "CVE-2019-10757": "missed",
-              "CVE-2019-10758": "missed",
-              "CVE-2019-10759": "missed",
-              "CVE-2019-10761": "missed",
-              "CVE-2019-10765": "missed",
-              "CVE-2019-10767": "missed",
-              "CVE-2019-10771": "missed",
-              "CVE-2019-10775": "missed",
-              "CVE-2019-10776": "missed",
-              "CVE-2019-10777": "missed",
-              "CVE-2019-10778": "not-recognized",
-              "CVE-2019-10781": "missed",
-              "CVE-2019-10785": "recognized",
-              "CVE-2019-11358": "missed",
-              "CVE-2019-12043": "missed",
-              "CVE-2019-12313": "recognized",
-              "CVE-2019-13127": "missed",
-              "CVE-2019-13173": "missed",
-              "CVE-2019-13506": "missed",
-              "CVE-2019-14772": "not-recognized",
-              "CVE-2019-14862": "missed",
-              "CVE-2019-15478": "missed",
-              "CVE-2019-15479": "missed",
-              "CVE-2019-15482": "missed",
-              "CVE-2019-15532": "missed",
-              "CVE-2019-15657": "missed",
-              "CVE-2019-15658": "missed",
-              "CVE-2019-15782": "missed",
-              "CVE-2019-16763": "missed",
-              "CVE-2019-16769": "missed",
-              "CVE-2019-17495": "not-recognized",
-              "CVE-2019-17592": "missed",
-              "CVE-2019-18350": "missed",
-              "CVE-2019-18818": "missed",
-              "CVE-2019-18954": "missed",
-              "CVE-2019-19507": "missed",
-              "CVE-2019-20149": "missed",
-              "CVE-2019-20174": "missed",
-              "CVE-2019-5413": "missed",
-              "CVE-2019-5414": "missed",
-              "CVE-2019-5423": "missed",
-              "CVE-2019-5444": "missed",
-              "CVE-2019-5479": "not-recognized",
-              "CVE-2019-5483": "missed",
-              "CVE-2019-5484": "missed",
-              "CVE-2019-8331": "missed",
-              "CVE-2019-8903": "missed",
-              "CVE-2019-9844": "missed",
-              "CVE-2020-11021": "missed",
-              "CVE-2020-11022": "missed",
-              "CVE-2020-11059": "missed",
-              "CVE-2020-11079": "not-recognized",
-              "CVE-2020-12265": "missed",
-              "CVE-2020-14000": "missed",
-              "CVE-2020-15092": "missed",
-              "CVE-2020-15095": "missed",
-              "CVE-2020-15119": "not-recognized",
-              "CVE-2020-15123": "missed",
-              "CVE-2020-15135": "missed",
-              "CVE-2020-15138": "missed",
-              "CVE-2020-15152": "missed",
-              "CVE-2020-15156": "missed",
-              "CVE-2020-15256": "missed",
-              "CVE-2020-26226": "missed",
-              "CVE-2020-26256": "missed",
-              "CVE-2020-27666": "not-recognized",
-              "CVE-2020-4051": "missed",
-              "CVE-2020-4059": "not-recognized",
-              "CVE-2020-4066": "recognized",
-              "CVE-2020-5251": "missed",
-              "CVE-2020-5258": "missed",
-              "CVE-2020-6836": "recognized",
-              "CVE-2020-7638": "recognized",
-              "CVE-2020-7656": "missed",
-              "CVE-2020-7660": "missed",
-              "CVE-2020-7662": "missed",
-              "CVE-2020-7676": "missed",
-              "CVE-2020-7699": "missed",
-              "CVE-2020-7720": "missed",
-              "CVE-2020-7750": "missed",
-              "CVE-2020-7752": "missed",
-              "CVE-2020-7763": "missed",
-              "CVE-2020-8116": "missed",
-              "CVE-2020-8135": "missed",
-              "CVE-2020-8149": "recognized",
-              "CVE-2020-8192": "missed",
-              "CVE-2020-8203": "missed",
-              "CVE-2020-8205": "missed",
-              "CVE-2020-8244": "missed",
-              "CVE-2020-9038": "missed",
-              "CVE-2021-23344": "missed",
-              "CVE-2021-23364": "missed",
-              "CVE-2021-31712": "missed"
-            },
-            "span_match": {
-              "totals": {
-                "cves": 220,
-                "tp": 25,
-                "fn": 195,
-                "fp": 13,
-                "tn": 207,
-                "cwe_matched": 20,
-                "fp_fix_elsewhere": 2,
-                "file_flagged": 92,
-                "tpr": 0.1136,
-                "fpr": 0.0591,
-                "score": 0.0545,
-                "precision": 0.6579
-              }
-            },
-            "rules": 1074,
-            "semgrep_version": "1.174.0",
-            "semgrep_notifications": {
-              "timeouts": 13,
-              "syntax_errors": 6,
-              "other": 0
-            },
-            "sast_findings": 526,
-            "sast_findings_by_severity": {
-              "high": 48,
-              "low": 22,
-              "medium": 456
-            }
-          }
-        },
-        "auto": {
-          "label": "Semgrep, p/default + `auto` stack packs (opt-in)",
-          "engines_enabled": [
-            "semgrep"
-          ],
-          "semgrep_rules": [
-            "default",
-            "auto"
-          ],
-          "runtime_seconds": 111.0,
-          "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
-          "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:10:13Z",
-            "target": "filesystem",
-            "offline": false,
-            "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
-            },
-            "databases": {},
-            "scope": {
-              "mode": "full"
-            },
-            "timings": {
-              "engines": {
-                "semgrep": 109.2
-              },
-              "scanners_s": 109,
-              "collector_s": 0.1,
-              "total_s": 111
-            },
-            "checkov_frameworks": "none"
+          "brief": {
+            "bytes": 80423,
+            "approx_tokens": 19864,
+            "detailed": 39,
+            "one_line": 465,
+            "repeated": 23,
+            "low_confidence": 442,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -2947,35 +2734,57 @@
                 "precision": 0.6579
               }
             },
-            "rules": 1075,
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 7,
+                "fn": 213,
+                "fp": 6,
+                "tn": 214,
+                "cwe_matched": 6,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 17,
+                "tpr": 0.0318,
+                "fpr": 0.0273,
+                "score": 0.0045,
+                "precision": 0.5385
+              }
+            },
+            "low_confidence_findings": 442,
+            "rules": 1074,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
-              "timeouts": 14,
+              "timeouts": 16,
               "syntax_errors": 6,
               "other": 0
             },
-            "sast_findings": 507,
+            "sast_findings": 504,
             "sast_findings_by_severity": {
               "high": 48,
               "low": 21,
-              "medium": 438
+              "medium": 435
             }
           }
         },
-        "javascript": {
-          "label": "Semgrep, p/javascript alone (= p/typescript)",
+        "auto": {
+          "label": "Semgrep, p/default + `auto` stack packs (opt-in)",
           "engines_enabled": [
             "semgrep"
           ],
           "semgrep_rules": [
-            "p/javascript"
+            "default",
+            "auto"
           ],
-          "runtime_seconds": 61.3,
+          "runtime_seconds": 113.0,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:11:14Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:54:13Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -2987,13 +2796,499 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 59.5
+                "semgrep": 111.1
               },
-              "scanners_s": 60,
-              "collector_s": 0.0,
-              "total_s": 60
+              "scanners_s": 112,
+              "collector_s": 0.4,
+              "total_s": 113
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 80428,
+            "approx_tokens": 19866,
+            "detailed": 39,
+            "one_line": 470,
+            "repeated": 23,
+            "low_confidence": 447,
+            "counted_only": 0
+          },
+          "score": {
+            "categories": {
+              "cmdi": {
+                "cves": 25,
+                "tp": 8,
+                "fn": 17,
+                "fp": 4,
+                "tn": 21,
+                "cwe_matched": 8,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 16,
+                "tpr": 0.32,
+                "fpr": 0.16,
+                "score": 0.16,
+                "precision": 0.6667
+              },
+              "codeinj": {
+                "cves": 14,
+                "tp": 1,
+                "fn": 13,
+                "fp": 0,
+                "tn": 14,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 5,
+                "tpr": 0.0714,
+                "fpr": 0.0,
+                "score": 0.0714,
+                "precision": 1.0
+              },
+              "other": {
+                "cves": 28,
+                "tp": 1,
+                "fn": 27,
+                "fp": 1,
+                "tn": 27,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 8,
+                "tpr": 0.0357,
+                "fpr": 0.0357,
+                "score": 0.0,
+                "precision": 0.5
+              },
+              "pathtraver": {
+                "cves": 29,
+                "tp": 2,
+                "fn": 27,
+                "fp": 1,
+                "tn": 28,
+                "cwe_matched": 2,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 20,
+                "tpr": 0.069,
+                "fpr": 0.0345,
+                "score": 0.0345,
+                "precision": 0.6667
+              },
+              "protopollution": {
+                "cves": 23,
+                "tp": 1,
+                "fn": 22,
+                "fp": 0,
+                "tn": 23,
+                "cwe_matched": 1,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 12,
+                "tpr": 0.0435,
+                "fpr": 0.0,
+                "score": 0.0435,
+                "precision": 1.0
+              },
+              "redirect": {
+                "cves": 7,
+                "tp": 0,
+                "fn": 7,
+                "fp": 0,
+                "tn": 7,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 3,
+                "tpr": 0.0,
+                "fpr": 0.0,
+                "score": 0.0,
+                "precision": null
+              },
+              "redos": {
+                "cves": 31,
+                "tp": 2,
+                "fn": 29,
+                "fp": 1,
+                "tn": 30,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 7,
+                "tpr": 0.0645,
+                "fpr": 0.0323,
+                "score": 0.0322,
+                "precision": 0.6667
+              },
+              "sqli": {
+                "cves": 4,
+                "tp": 0,
+                "fn": 4,
+                "fp": 0,
+                "tn": 4,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 0,
+                "tpr": 0.0,
+                "fpr": 0.0,
+                "score": 0.0,
+                "precision": null
+              },
+              "ssrf": {
+                "cves": 3,
+                "tp": 1,
+                "fn": 2,
+                "fp": 1,
+                "tn": 2,
+                "cwe_matched": 1,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 1,
+                "tpr": 0.3333,
+                "fpr": 0.3333,
+                "score": 0.0,
+                "precision": 0.5
+              },
+              "xss": {
+                "cves": 56,
+                "tp": 8,
+                "fn": 48,
+                "fp": 5,
+                "tn": 51,
+                "cwe_matched": 7,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 19,
+                "tpr": 0.1429,
+                "fpr": 0.0893,
+                "score": 0.0536,
+                "precision": 0.6154
+              }
+            },
+            "totals": {
+              "cves": 220,
+              "tp": 24,
+              "fn": 196,
+              "fp": 13,
+              "tn": 207,
+              "cwe_matched": 19,
+              "fp_fix_elsewhere": 2,
+              "file_flagged": 91,
+              "tpr": 0.1091,
+              "fpr": 0.0591,
+              "score": 0.05,
+              "precision": 0.6486
+            },
+            "match": "line",
+            "test_cases": 220,
+            "outcome": {
+              "CVE-2016-10735": "missed",
+              "CVE-2017-0931": "missed",
+              "CVE-2017-1000006": "missed",
+              "CVE-2017-1000219": "missed",
+              "CVE-2017-1000427": "missed",
+              "CVE-2017-1001004": "missed",
+              "CVE-2017-10910": "missed",
+              "CVE-2017-15010": "missed",
+              "CVE-2017-16003": "missed",
+              "CVE-2017-16006": "missed",
+              "CVE-2017-16011": "missed",
+              "CVE-2017-16014": "missed",
+              "CVE-2017-16018": "missed",
+              "CVE-2017-16023": "not-recognized",
+              "CVE-2017-16026": "missed",
+              "CVE-2017-16028": "missed",
+              "CVE-2017-16029": "missed",
+              "CVE-2017-16030": "missed",
+              "CVE-2017-16031": "missed",
+              "CVE-2017-16034": "missed",
+              "CVE-2017-16042": "missed",
+              "CVE-2017-16043": "missed",
+              "CVE-2017-16082": "recognized",
+              "CVE-2017-16083": "missed",
+              "CVE-2017-16084": "missed",
+              "CVE-2017-16087": "missed",
+              "CVE-2017-16098": "missed",
+              "CVE-2017-16100": "not-recognized",
+              "CVE-2017-16107": "missed",
+              "CVE-2017-16114": "missed",
+              "CVE-2017-16117": "missed",
+              "CVE-2017-16118": "missed",
+              "CVE-2017-16119": "missed",
+              "CVE-2017-16136": "missed",
+              "CVE-2017-16137": "missed",
+              "CVE-2017-16138": "missed",
+              "CVE-2017-16224": "missed",
+              "CVE-2017-16226": "missed",
+              "CVE-2017-16877": "missed",
+              "CVE-2017-17461": "missed",
+              "CVE-2017-18077": "missed",
+              "CVE-2017-18214": "missed",
+              "CVE-2017-18352": "missed",
+              "CVE-2017-18353": "missed",
+              "CVE-2017-18354": "not-recognized",
+              "CVE-2017-18355": "not-recognized",
+              "CVE-2017-18635": "missed",
+              "CVE-2017-5954": "missed",
+              "CVE-2018-1000086": "missed",
+              "CVE-2018-1000096": "missed",
+              "CVE-2018-1000620": "missed",
+              "CVE-2018-1002203": "recognized",
+              "CVE-2018-1002204": "missed",
+              "CVE-2018-11093": "missed",
+              "CVE-2018-11615": "not-recognized",
+              "CVE-2018-11798": "missed",
+              "CVE-2018-13797": "missed",
+              "CVE-2018-13863": "missed",
+              "CVE-2018-14040": "missed",
+              "CVE-2018-14041": "missed",
+              "CVE-2018-14042": "missed",
+              "CVE-2018-14380": "missed",
+              "CVE-2018-16460": "recognized",
+              "CVE-2018-16461": "missed",
+              "CVE-2018-16462": "missed",
+              "CVE-2018-16472": "missed",
+              "CVE-2018-16478": "missed",
+              "CVE-2018-16479": "missed",
+              "CVE-2018-16480": "missed",
+              "CVE-2018-16484": "missed",
+              "CVE-2018-16485": "missed",
+              "CVE-2018-16487": "missed",
+              "CVE-2018-16489": "missed",
+              "CVE-2018-16490": "missed",
+              "CVE-2018-16491": "missed",
+              "CVE-2018-16492": "missed",
+              "CVE-2018-18282": "missed",
+              "CVE-2018-19048": "missed",
+              "CVE-2018-20164": "missed",
+              "CVE-2018-20676": "missed",
+              "CVE-2018-20677": "missed",
+              "CVE-2018-20801": "missed",
+              "CVE-2018-20834": "missed",
+              "CVE-2018-20835": "missed",
+              "CVE-2018-21036": "missed",
+              "CVE-2018-3712": "missed",
+              "CVE-2018-3713": "missed",
+              "CVE-2018-3718": "missed",
+              "CVE-2018-3719": "missed",
+              "CVE-2018-3721": "missed",
+              "CVE-2018-3722": "missed",
+              "CVE-2018-3725": "missed",
+              "CVE-2018-3726": "missed",
+              "CVE-2018-3728": "missed",
+              "CVE-2018-3731": "missed",
+              "CVE-2018-3732": "missed",
+              "CVE-2018-3733": "missed",
+              "CVE-2018-3736": "missed",
+              "CVE-2018-3737": "missed",
+              "CVE-2018-3738": "missed",
+              "CVE-2018-3743": "missed",
+              "CVE-2018-3746": "missed",
+              "CVE-2018-3747": "missed",
+              "CVE-2018-3750": "missed",
+              "CVE-2018-3752": "missed",
+              "CVE-2018-3757": "missed",
+              "CVE-2018-3770": "missed",
+              "CVE-2018-3772": "recognized",
+              "CVE-2018-3783": "missed",
+              "CVE-2018-3786": "missed",
+              "CVE-2018-6184": "missed",
+              "CVE-2018-6333": "missed",
+              "CVE-2018-6341": "missed",
+              "CVE-2018-6342": "missed",
+              "CVE-2018-7560": "recognized",
+              "CVE-2018-7651": "missed",
+              "CVE-2019-10061": "missed",
+              "CVE-2019-10090": "missed",
+              "CVE-2019-1010091": "missed",
+              "CVE-2019-1010266": "missed",
+              "CVE-2019-1020012": "missed",
+              "CVE-2019-10742": "missed",
+              "CVE-2019-10744": "missed",
+              "CVE-2019-10745": "missed",
+              "CVE-2019-10746": "missed",
+              "CVE-2019-10747": "missed",
+              "CVE-2019-10750": "missed",
+              "CVE-2019-10757": "missed",
+              "CVE-2019-10758": "missed",
+              "CVE-2019-10759": "missed",
+              "CVE-2019-10761": "missed",
+              "CVE-2019-10765": "missed",
+              "CVE-2019-10767": "missed",
+              "CVE-2019-10771": "missed",
+              "CVE-2019-10775": "missed",
+              "CVE-2019-10776": "missed",
+              "CVE-2019-10777": "missed",
+              "CVE-2019-10778": "not-recognized",
+              "CVE-2019-10781": "missed",
+              "CVE-2019-10785": "recognized",
+              "CVE-2019-11358": "missed",
+              "CVE-2019-12043": "missed",
+              "CVE-2019-12313": "recognized",
+              "CVE-2019-13127": "missed",
+              "CVE-2019-13173": "missed",
+              "CVE-2019-13506": "missed",
+              "CVE-2019-14772": "not-recognized",
+              "CVE-2019-14862": "missed",
+              "CVE-2019-15478": "missed",
+              "CVE-2019-15479": "missed",
+              "CVE-2019-15482": "missed",
+              "CVE-2019-15532": "missed",
+              "CVE-2019-15657": "missed",
+              "CVE-2019-15658": "missed",
+              "CVE-2019-15782": "missed",
+              "CVE-2019-16763": "missed",
+              "CVE-2019-16769": "missed",
+              "CVE-2019-17495": "not-recognized",
+              "CVE-2019-17592": "missed",
+              "CVE-2019-18350": "missed",
+              "CVE-2019-18818": "missed",
+              "CVE-2019-18954": "missed",
+              "CVE-2019-19507": "missed",
+              "CVE-2019-20149": "missed",
+              "CVE-2019-20174": "missed",
+              "CVE-2019-5413": "missed",
+              "CVE-2019-5414": "missed",
+              "CVE-2019-5423": "missed",
+              "CVE-2019-5444": "missed",
+              "CVE-2019-5479": "not-recognized",
+              "CVE-2019-5483": "missed",
+              "CVE-2019-5484": "missed",
+              "CVE-2019-8331": "missed",
+              "CVE-2019-8903": "missed",
+              "CVE-2019-9844": "missed",
+              "CVE-2020-11021": "missed",
+              "CVE-2020-11022": "missed",
+              "CVE-2020-11059": "missed",
+              "CVE-2020-11079": "not-recognized",
+              "CVE-2020-12265": "missed",
+              "CVE-2020-14000": "missed",
+              "CVE-2020-15092": "missed",
+              "CVE-2020-15095": "missed",
+              "CVE-2020-15119": "not-recognized",
+              "CVE-2020-15123": "missed",
+              "CVE-2020-15135": "missed",
+              "CVE-2020-15138": "missed",
+              "CVE-2020-15152": "missed",
+              "CVE-2020-15156": "missed",
+              "CVE-2020-15256": "missed",
+              "CVE-2020-26226": "missed",
+              "CVE-2020-26256": "missed",
+              "CVE-2020-27666": "not-recognized",
+              "CVE-2020-4051": "missed",
+              "CVE-2020-4059": "not-recognized",
+              "CVE-2020-4066": "recognized",
+              "CVE-2020-5251": "missed",
+              "CVE-2020-5258": "missed",
+              "CVE-2020-6836": "recognized",
+              "CVE-2020-7638": "recognized",
+              "CVE-2020-7656": "missed",
+              "CVE-2020-7660": "missed",
+              "CVE-2020-7662": "missed",
+              "CVE-2020-7676": "missed",
+              "CVE-2020-7699": "missed",
+              "CVE-2020-7720": "missed",
+              "CVE-2020-7750": "missed",
+              "CVE-2020-7752": "missed",
+              "CVE-2020-7763": "missed",
+              "CVE-2020-8116": "missed",
+              "CVE-2020-8135": "missed",
+              "CVE-2020-8149": "recognized",
+              "CVE-2020-8192": "missed",
+              "CVE-2020-8203": "missed",
+              "CVE-2020-8205": "missed",
+              "CVE-2020-8244": "missed",
+              "CVE-2020-9038": "missed",
+              "CVE-2021-23344": "missed",
+              "CVE-2021-23364": "missed",
+              "CVE-2021-31712": "missed"
+            },
+            "span_match": {
+              "totals": {
+                "cves": 220,
+                "tp": 25,
+                "fn": 195,
+                "fp": 13,
+                "tn": 207,
+                "cwe_matched": 20,
+                "fp_fix_elsewhere": 2,
+                "file_flagged": 91,
+                "tpr": 0.1136,
+                "fpr": 0.0591,
+                "score": 0.0545,
+                "precision": 0.6579
+              }
+            },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 7,
+                "fn": 213,
+                "fp": 6,
+                "tn": 214,
+                "cwe_matched": 6,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 17,
+                "tpr": 0.0318,
+                "fpr": 0.0273,
+                "score": 0.0045,
+                "precision": 0.5385
+              }
+            },
+            "low_confidence_findings": 447,
+            "rules": 1075,
+            "semgrep_version": "1.174.0",
+            "semgrep_notifications": {
+              "timeouts": 16,
+              "syntax_errors": 6,
+              "other": 0
+            },
+            "sast_findings": 509,
+            "sast_findings_by_severity": {
+              "high": 48,
+              "low": 21,
+              "medium": 440
+            }
+          }
+        },
+        "javascript": {
+          "label": "Semgrep, p/javascript alone (= p/typescript)",
+          "engines_enabled": [
+            "semgrep"
+          ],
+          "semgrep_rules": [
+            "p/javascript"
+          ],
+          "runtime_seconds": 63.2,
+          "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
+          "provenance": {
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:55:17Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+            },
+            "databases": {},
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "semgrep": 61.4
+              },
+              "scanners_s": 62,
+              "collector_s": 0.2,
+              "total_s": 63
+            },
+            "repo_config": null,
+            "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 47416,
+            "approx_tokens": 11768,
+            "detailed": 39,
+            "one_line": 23,
+            "repeated": 23,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -3392,6 +3687,23 @@
                 "precision": 0.5714
               }
             },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 7,
+                "fn": 213,
+                "fp": 6,
+                "tn": 214,
+                "cwe_matched": 6,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 17,
+                "tpr": 0.0318,
+                "fpr": 0.0273,
+                "score": 0.0045,
+                "precision": 0.5385
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 74,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -3413,12 +3725,16 @@
           "semgrep_rules": [
             "p/nodejs"
           ],
-          "runtime_seconds": 47.1,
+          "runtime_seconds": 48.8,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:12:01Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:56:05Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -3430,13 +3746,23 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 45.4
+                "semgrep": 47.1
               },
-              "scanners_s": 46,
-              "collector_s": 0.0,
-              "total_s": 46
+              "scanners_s": 47,
+              "collector_s": 0.2,
+              "total_s": 49
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 32587,
+            "approx_tokens": 8090,
+            "detailed": 26,
+            "one_line": 8,
+            "repeated": 8,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -3835,10 +4161,27 @@
                 "precision": null
               }
             },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 0,
+                "fn": 220,
+                "fp": 0,
+                "tn": 220,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 7,
+                "tpr": 0.0,
+                "fpr": 0.0,
+                "score": 0.0,
+                "precision": null
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 36,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
-              "timeouts": 0,
+              "timeouts": 2,
               "syntax_errors": 2,
               "other": 0
             },
@@ -3856,12 +4199,16 @@
           "semgrep_rules": [
             "p/expressjs"
           ],
-          "runtime_seconds": 58.7,
+          "runtime_seconds": 55.8,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:13:00Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:57:01Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -3873,13 +4220,23 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 57.0
+                "semgrep": 54.0
               },
-              "scanners_s": 58,
-              "collector_s": 0.0,
-              "total_s": 58
+              "scanners_s": 55,
+              "collector_s": 0.2,
+              "total_s": 55
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 47416,
+            "approx_tokens": 11768,
+            "detailed": 39,
+            "one_line": 23,
+            "repeated": 23,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -4278,6 +4635,23 @@
                 "precision": 0.5714
               }
             },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 7,
+                "fn": 213,
+                "fp": 6,
+                "tn": 214,
+                "cwe_matched": 6,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 17,
+                "tpr": 0.0318,
+                "fpr": 0.0273,
+                "score": 0.0045,
+                "precision": 0.5385
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 71,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -4299,12 +4673,16 @@
           "semgrep_rules": [
             "p/react"
           ],
-          "runtime_seconds": 12.4,
+          "runtime_seconds": 13.3,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:13:13Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:57:15Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -4316,13 +4694,23 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 10.7
+                "semgrep": 11.6
               },
-              "scanners_s": 11,
-              "collector_s": 0.0,
-              "total_s": 12
+              "scanners_s": 12,
+              "collector_s": 0.2,
+              "total_s": 13
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 9227,
+            "approx_tokens": 2291,
+            "detailed": 6,
+            "one_line": 7,
+            "repeated": 7,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -4721,6 +5109,23 @@
                 "precision": 0.5556
               }
             },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 5,
+                "fn": 215,
+                "fp": 4,
+                "tn": 216,
+                "cwe_matched": 5,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 5,
+                "tpr": 0.0227,
+                "fpr": 0.0182,
+                "score": 0.0045,
+                "precision": 0.5556
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 4,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -4742,12 +5147,16 @@
           "semgrep_rules": [
             "p/nodejsscan"
           ],
-          "runtime_seconds": 148.9,
+          "runtime_seconds": 152.9,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:15:42Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:59:47Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -4759,13 +5168,23 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 147.1
+                "semgrep": 151.0
               },
-              "scanners_s": 147,
-              "collector_s": 0.1,
-              "total_s": 149
+              "scanners_s": 151,
+              "collector_s": 0.3,
+              "total_s": 153
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 89300,
+            "approx_tokens": 22097,
+            "detailed": 75,
+            "one_line": 238,
+            "repeated": 238,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -4791,7 +5210,7 @@
                 "tn": 14,
                 "cwe_matched": 0,
                 "fp_fix_elsewhere": 0,
-                "file_flagged": 2,
+                "file_flagged": 1,
                 "tpr": 0.0,
                 "fpr": 0.0,
                 "score": 0.0,
@@ -4861,7 +5280,7 @@
                 "tn": 31,
                 "cwe_matched": 0,
                 "fp_fix_elsewhere": 0,
-                "file_flagged": 7,
+                "file_flagged": 6,
                 "tpr": 0.0,
                 "fpr": 0.0,
                 "score": 0.0,
@@ -4918,7 +5337,7 @@
               "tn": 216,
               "cwe_matched": 3,
               "fp_fix_elsewhere": 1,
-              "file_flagged": 57,
+              "file_flagged": 55,
               "tpr": 0.0318,
               "fpr": 0.0182,
               "score": 0.0136,
@@ -5157,25 +5576,42 @@
                 "tn": 212,
                 "cwe_matched": 7,
                 "fp_fix_elsewhere": 1,
-                "file_flagged": 57,
+                "file_flagged": 55,
                 "tpr": 0.0591,
                 "fpr": 0.0364,
                 "score": 0.0227,
                 "precision": 0.619
               }
             },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 7,
+                "fn": 213,
+                "fp": 4,
+                "tn": 216,
+                "cwe_matched": 3,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 55,
+                "tpr": 0.0318,
+                "fpr": 0.0182,
+                "score": 0.0136,
+                "precision": 0.6364
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 114,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
-              "timeouts": 67,
+              "timeouts": 74,
               "syntax_errors": 4,
               "other": 0
             },
-            "sast_findings": 327,
+            "sast_findings": 313,
             "sast_findings_by_severity": {
-              "high": 97,
+              "high": 94,
               "low": 12,
-              "medium": 218
+              "medium": 207
             }
           }
         },
@@ -5187,12 +5623,16 @@
           "semgrep_rules": [
             "p/security-audit"
           ],
-          "runtime_seconds": 22.5,
+          "runtime_seconds": 23.8,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:16:04Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:00:11Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -5204,13 +5644,23 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 20.9
+                "semgrep": 22.0
               },
-              "scanners_s": 21,
-              "collector_s": 0.0,
-              "total_s": 22
+              "scanners_s": 23,
+              "collector_s": 0.2,
+              "total_s": 23
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 11235,
+            "approx_tokens": 2776,
+            "detailed": 3,
+            "one_line": 48,
+            "repeated": 5,
+            "low_confidence": 43,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -5609,10 +6059,27 @@
                 "precision": 0.625
               }
             },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 4,
+                "fn": 216,
+                "fp": 4,
+                "tn": 216,
+                "cwe_matched": 4,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 4,
+                "tpr": 0.0182,
+                "fpr": 0.0182,
+                "score": 0.0,
+                "precision": 0.5
+              }
+            },
+            "low_confidence_findings": 43,
             "rules": 225,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
-              "timeouts": 10,
+              "timeouts": 13,
               "syntax_errors": 4,
               "other": 0
             },
@@ -5632,12 +6099,16 @@
             "default",
             "p/nodejsscan"
           ],
-          "runtime_seconds": 227.9,
+          "runtime_seconds": 220.8,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:19:52Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:03:52Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -5649,465 +6120,23 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 226.0
+                "semgrep": 218.9
               },
-              "scanners_s": 226,
-              "collector_s": 0.1,
-              "total_s": 227
+              "scanners_s": 219,
+              "collector_s": 0.4,
+              "total_s": 220
             },
+            "repo_config": null,
             "checkov_frameworks": "none"
           },
-          "score": {
-            "categories": {
-              "cmdi": {
-                "cves": 25,
-                "tp": 8,
-                "fn": 17,
-                "fp": 4,
-                "tn": 21,
-                "cwe_matched": 8,
-                "fp_fix_elsewhere": 1,
-                "file_flagged": 17,
-                "tpr": 0.32,
-                "fpr": 0.16,
-                "score": 0.16,
-                "precision": 0.6667
-              },
-              "codeinj": {
-                "cves": 14,
-                "tp": 1,
-                "fn": 13,
-                "fp": 0,
-                "tn": 14,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 3,
-                "tpr": 0.0714,
-                "fpr": 0.0,
-                "score": 0.0714,
-                "precision": 1.0
-              },
-              "other": {
-                "cves": 28,
-                "tp": 3,
-                "fn": 25,
-                "fp": 1,
-                "tn": 27,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 14,
-                "tpr": 0.1071,
-                "fpr": 0.0357,
-                "score": 0.0714,
-                "precision": 0.75
-              },
-              "pathtraver": {
-                "cves": 29,
-                "tp": 3,
-                "fn": 26,
-                "fp": 2,
-                "tn": 27,
-                "cwe_matched": 3,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 22,
-                "tpr": 0.1034,
-                "fpr": 0.069,
-                "score": 0.0344,
-                "precision": 0.6
-              },
-              "protopollution": {
-                "cves": 23,
-                "tp": 1,
-                "fn": 22,
-                "fp": 0,
-                "tn": 23,
-                "cwe_matched": 1,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 10,
-                "tpr": 0.0435,
-                "fpr": 0.0,
-                "score": 0.0435,
-                "precision": 1.0
-              },
-              "redirect": {
-                "cves": 7,
-                "tp": 0,
-                "fn": 7,
-                "fp": 0,
-                "tn": 7,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 3,
-                "tpr": 0.0,
-                "fpr": 0.0,
-                "score": 0.0,
-                "precision": null
-              },
-              "redos": {
-                "cves": 31,
-                "tp": 2,
-                "fn": 29,
-                "fp": 1,
-                "tn": 30,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 11,
-                "tpr": 0.0645,
-                "fpr": 0.0323,
-                "score": 0.0322,
-                "precision": 0.6667
-              },
-              "sqli": {
-                "cves": 4,
-                "tp": 1,
-                "fn": 3,
-                "fp": 1,
-                "tn": 3,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 2,
-                "tpr": 0.25,
-                "fpr": 0.25,
-                "score": 0.0,
-                "precision": 0.5
-              },
-              "ssrf": {
-                "cves": 3,
-                "tp": 1,
-                "fn": 2,
-                "fp": 1,
-                "tn": 2,
-                "cwe_matched": 1,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 1,
-                "tpr": 0.3333,
-                "fpr": 0.3333,
-                "score": 0.0,
-                "precision": 0.5
-              },
-              "xss": {
-                "cves": 56,
-                "tp": 9,
-                "fn": 47,
-                "fp": 5,
-                "tn": 51,
-                "cwe_matched": 8,
-                "fp_fix_elsewhere": 2,
-                "file_flagged": 29,
-                "tpr": 0.1607,
-                "fpr": 0.0893,
-                "score": 0.0714,
-                "precision": 0.6429
-              }
-            },
-            "totals": {
-              "cves": 220,
-              "tp": 29,
-              "fn": 191,
-              "fp": 15,
-              "tn": 205,
-              "cwe_matched": 21,
-              "fp_fix_elsewhere": 3,
-              "file_flagged": 112,
-              "tpr": 0.1318,
-              "fpr": 0.0682,
-              "score": 0.0636,
-              "precision": 0.6591
-            },
-            "match": "line",
-            "test_cases": 220,
-            "outcome": {
-              "CVE-2016-10735": "missed",
-              "CVE-2017-0931": "missed",
-              "CVE-2017-1000006": "missed",
-              "CVE-2017-1000219": "missed",
-              "CVE-2017-1000427": "missed",
-              "CVE-2017-1001004": "missed",
-              "CVE-2017-10910": "missed",
-              "CVE-2017-15010": "missed",
-              "CVE-2017-16003": "missed",
-              "CVE-2017-16006": "missed",
-              "CVE-2017-16011": "missed",
-              "CVE-2017-16014": "missed",
-              "CVE-2017-16018": "missed",
-              "CVE-2017-16023": "not-recognized",
-              "CVE-2017-16026": "missed",
-              "CVE-2017-16028": "recognized",
-              "CVE-2017-16029": "missed",
-              "CVE-2017-16030": "missed",
-              "CVE-2017-16031": "missed",
-              "CVE-2017-16034": "missed",
-              "CVE-2017-16042": "missed",
-              "CVE-2017-16043": "missed",
-              "CVE-2017-16082": "recognized",
-              "CVE-2017-16083": "missed",
-              "CVE-2017-16084": "missed",
-              "CVE-2017-16087": "missed",
-              "CVE-2017-16098": "missed",
-              "CVE-2017-16100": "not-recognized",
-              "CVE-2017-16107": "not-recognized",
-              "CVE-2017-16114": "missed",
-              "CVE-2017-16117": "missed",
-              "CVE-2017-16118": "missed",
-              "CVE-2017-16119": "missed",
-              "CVE-2017-16136": "missed",
-              "CVE-2017-16137": "missed",
-              "CVE-2017-16138": "missed",
-              "CVE-2017-16224": "missed",
-              "CVE-2017-16226": "missed",
-              "CVE-2017-16877": "missed",
-              "CVE-2017-17461": "missed",
-              "CVE-2017-18077": "missed",
-              "CVE-2017-18214": "missed",
-              "CVE-2017-18352": "missed",
-              "CVE-2017-18353": "missed",
-              "CVE-2017-18354": "not-recognized",
-              "CVE-2017-18355": "not-recognized",
-              "CVE-2017-18635": "missed",
-              "CVE-2017-5954": "missed",
-              "CVE-2018-1000086": "missed",
-              "CVE-2018-1000096": "missed",
-              "CVE-2018-1000620": "missed",
-              "CVE-2018-1002203": "recognized",
-              "CVE-2018-1002204": "missed",
-              "CVE-2018-11093": "missed",
-              "CVE-2018-11615": "recognized",
-              "CVE-2018-11798": "missed",
-              "CVE-2018-13797": "missed",
-              "CVE-2018-13863": "missed",
-              "CVE-2018-14040": "missed",
-              "CVE-2018-14041": "missed",
-              "CVE-2018-14042": "missed",
-              "CVE-2018-14380": "missed",
-              "CVE-2018-16460": "recognized",
-              "CVE-2018-16461": "missed",
-              "CVE-2018-16462": "missed",
-              "CVE-2018-16472": "missed",
-              "CVE-2018-16478": "missed",
-              "CVE-2018-16479": "missed",
-              "CVE-2018-16480": "missed",
-              "CVE-2018-16484": "not-recognized",
-              "CVE-2018-16485": "missed",
-              "CVE-2018-16487": "missed",
-              "CVE-2018-16489": "missed",
-              "CVE-2018-16490": "missed",
-              "CVE-2018-16491": "missed",
-              "CVE-2018-16492": "missed",
-              "CVE-2018-18282": "missed",
-              "CVE-2018-19048": "missed",
-              "CVE-2018-20164": "missed",
-              "CVE-2018-20676": "missed",
-              "CVE-2018-20677": "missed",
-              "CVE-2018-20801": "missed",
-              "CVE-2018-20834": "missed",
-              "CVE-2018-20835": "missed",
-              "CVE-2018-21036": "missed",
-              "CVE-2018-3712": "missed",
-              "CVE-2018-3713": "missed",
-              "CVE-2018-3718": "missed",
-              "CVE-2018-3719": "missed",
-              "CVE-2018-3721": "missed",
-              "CVE-2018-3722": "missed",
-              "CVE-2018-3725": "missed",
-              "CVE-2018-3726": "missed",
-              "CVE-2018-3728": "missed",
-              "CVE-2018-3731": "missed",
-              "CVE-2018-3732": "missed",
-              "CVE-2018-3733": "missed",
-              "CVE-2018-3736": "missed",
-              "CVE-2018-3737": "missed",
-              "CVE-2018-3738": "missed",
-              "CVE-2018-3743": "missed",
-              "CVE-2018-3746": "missed",
-              "CVE-2018-3747": "missed",
-              "CVE-2018-3750": "missed",
-              "CVE-2018-3752": "missed",
-              "CVE-2018-3757": "missed",
-              "CVE-2018-3770": "missed",
-              "CVE-2018-3772": "recognized",
-              "CVE-2018-3783": "not-recognized",
-              "CVE-2018-3786": "missed",
-              "CVE-2018-6184": "missed",
-              "CVE-2018-6333": "missed",
-              "CVE-2018-6341": "missed",
-              "CVE-2018-6342": "missed",
-              "CVE-2018-7560": "recognized",
-              "CVE-2018-7651": "missed",
-              "CVE-2019-10061": "missed",
-              "CVE-2019-10090": "missed",
-              "CVE-2019-1010091": "missed",
-              "CVE-2019-1010266": "missed",
-              "CVE-2019-1020012": "missed",
-              "CVE-2019-10742": "missed",
-              "CVE-2019-10744": "missed",
-              "CVE-2019-10745": "missed",
-              "CVE-2019-10746": "missed",
-              "CVE-2019-10747": "missed",
-              "CVE-2019-10750": "missed",
-              "CVE-2019-10757": "missed",
-              "CVE-2019-10758": "missed",
-              "CVE-2019-10759": "missed",
-              "CVE-2019-10761": "missed",
-              "CVE-2019-10765": "missed",
-              "CVE-2019-10767": "missed",
-              "CVE-2019-10771": "missed",
-              "CVE-2019-10775": "missed",
-              "CVE-2019-10776": "missed",
-              "CVE-2019-10777": "missed",
-              "CVE-2019-10778": "not-recognized",
-              "CVE-2019-10781": "missed",
-              "CVE-2019-10785": "recognized",
-              "CVE-2019-11358": "missed",
-              "CVE-2019-12043": "missed",
-              "CVE-2019-12313": "recognized",
-              "CVE-2019-13127": "missed",
-              "CVE-2019-13173": "missed",
-              "CVE-2019-13506": "missed",
-              "CVE-2019-14772": "not-recognized",
-              "CVE-2019-14862": "missed",
-              "CVE-2019-15478": "missed",
-              "CVE-2019-15479": "missed",
-              "CVE-2019-15482": "missed",
-              "CVE-2019-15532": "missed",
-              "CVE-2019-15657": "missed",
-              "CVE-2019-15658": "missed",
-              "CVE-2019-15782": "missed",
-              "CVE-2019-16763": "missed",
-              "CVE-2019-16769": "missed",
-              "CVE-2019-17495": "not-recognized",
-              "CVE-2019-17592": "missed",
-              "CVE-2019-18350": "missed",
-              "CVE-2019-18818": "missed",
-              "CVE-2019-18954": "missed",
-              "CVE-2019-19507": "missed",
-              "CVE-2019-20149": "missed",
-              "CVE-2019-20174": "missed",
-              "CVE-2019-5413": "missed",
-              "CVE-2019-5414": "missed",
-              "CVE-2019-5423": "missed",
-              "CVE-2019-5444": "missed",
-              "CVE-2019-5479": "not-recognized",
-              "CVE-2019-5483": "missed",
-              "CVE-2019-5484": "missed",
-              "CVE-2019-8331": "missed",
-              "CVE-2019-8903": "missed",
-              "CVE-2019-9844": "missed",
-              "CVE-2020-11021": "missed",
-              "CVE-2020-11022": "missed",
-              "CVE-2020-11059": "missed",
-              "CVE-2020-11079": "not-recognized",
-              "CVE-2020-12265": "missed",
-              "CVE-2020-14000": "missed",
-              "CVE-2020-15092": "missed",
-              "CVE-2020-15095": "missed",
-              "CVE-2020-15119": "not-recognized",
-              "CVE-2020-15123": "missed",
-              "CVE-2020-15135": "missed",
-              "CVE-2020-15138": "missed",
-              "CVE-2020-15152": "missed",
-              "CVE-2020-15156": "missed",
-              "CVE-2020-15256": "missed",
-              "CVE-2020-26226": "missed",
-              "CVE-2020-26256": "missed",
-              "CVE-2020-27666": "not-recognized",
-              "CVE-2020-4051": "missed",
-              "CVE-2020-4059": "not-recognized",
-              "CVE-2020-4066": "recognized",
-              "CVE-2020-5251": "missed",
-              "CVE-2020-5258": "missed",
-              "CVE-2020-6836": "recognized",
-              "CVE-2020-7638": "recognized",
-              "CVE-2020-7656": "missed",
-              "CVE-2020-7660": "recognized",
-              "CVE-2020-7662": "missed",
-              "CVE-2020-7676": "missed",
-              "CVE-2020-7699": "missed",
-              "CVE-2020-7720": "missed",
-              "CVE-2020-7750": "missed",
-              "CVE-2020-7752": "missed",
-              "CVE-2020-7763": "missed",
-              "CVE-2020-8116": "missed",
-              "CVE-2020-8135": "missed",
-              "CVE-2020-8149": "recognized",
-              "CVE-2020-8192": "missed",
-              "CVE-2020-8203": "missed",
-              "CVE-2020-8205": "missed",
-              "CVE-2020-8244": "missed",
-              "CVE-2020-9038": "missed",
-              "CVE-2021-23344": "missed",
-              "CVE-2021-23364": "missed",
-              "CVE-2021-31712": "missed"
-            },
-            "span_match": {
-              "totals": {
-                "cves": 220,
-                "tp": 35,
-                "fn": 185,
-                "fp": 18,
-                "tn": 202,
-                "cwe_matched": 25,
-                "fp_fix_elsewhere": 3,
-                "file_flagged": 112,
-                "tpr": 0.1591,
-                "fpr": 0.0818,
-                "score": 0.0773,
-                "precision": 0.6604
-              }
-            },
-            "rules": 1188,
-            "semgrep_version": "1.174.0",
-            "semgrep_notifications": {
-              "timeouts": 64,
-              "syntax_errors": 6,
-              "other": 0
-            },
-            "sast_findings": 759,
-            "sast_findings_by_severity": {
-              "high": 142,
-              "low": 33,
-              "medium": 584
-            }
-          }
-        },
-        "all": {
-          "label": "Semgrep, p/default + every pack above (ceiling)",
-          "engines_enabled": [
-            "semgrep"
-          ],
-          "semgrep_rules": [
-            "default",
-            "p/javascript",
-            "p/typescript",
-            "p/nodejs",
-            "p/expressjs",
-            "p/react",
-            "p/nodejsscan",
-            "p/security-audit"
-          ],
-          "runtime_seconds": 235.6,
-          "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {},
-          "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:23:48Z",
-            "target": "filesystem",
-            "offline": false,
-            "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
-            },
-            "databases": {},
-            "scope": {
-              "mode": "full"
-            },
-            "timings": {
-              "engines": {
-                "semgrep": 233.7
-              },
-              "scanners_s": 234,
-              "collector_s": 0.1,
-              "total_s": 235
-            },
-            "checkov_frameworks": "none"
+          "brief": {
+            "bytes": 167867,
+            "approx_tokens": 41507,
+            "detailed": 117,
+            "one_line": 649,
+            "repeated": 268,
+            "low_confidence": 381,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -6506,26 +6535,526 @@
                 "precision": 0.6604
               }
             },
-            "rules": 1204,
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 14,
+                "fn": 206,
+                "fp": 10,
+                "tn": 210,
+                "cwe_matched": 9,
+                "fp_fix_elsewhere": 2,
+                "file_flagged": 66,
+                "tpr": 0.0636,
+                "fpr": 0.0455,
+                "score": 0.0181,
+                "precision": 0.5833
+              }
+            },
+            "low_confidence_findings": 381,
+            "rules": 1188,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
               "timeouts": 68,
               "syntax_errors": 6,
               "other": 0
             },
-            "sast_findings": 756,
+            "sast_findings": 766,
+            "sast_findings_by_severity": {
+              "high": 145,
+              "low": 33,
+              "medium": 588
+            }
+          }
+        },
+        "all": {
+          "label": "Semgrep, p/default + every pack above (ceiling)",
+          "engines_enabled": [
+            "semgrep"
+          ],
+          "semgrep_rules": [
+            "default",
+            "p/javascript",
+            "p/typescript",
+            "p/nodejs",
+            "p/expressjs",
+            "p/react",
+            "p/nodejsscan",
+            "p/security-audit"
+          ],
+          "runtime_seconds": 239.6,
+          "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
+          "provenance": {
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:07:52Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+            },
+            "databases": {},
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "semgrep": 237.6
+              },
+              "scanners_s": 238,
+              "collector_s": 0.4,
+              "total_s": 239
+            },
+            "repo_config": null,
+            "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 165484,
+            "approx_tokens": 40918,
+            "detailed": 114,
+            "one_line": 643,
+            "repeated": 260,
+            "low_confidence": 383,
+            "counted_only": 0
+          },
+          "score": {
+            "categories": {
+              "cmdi": {
+                "cves": 25,
+                "tp": 8,
+                "fn": 17,
+                "fp": 4,
+                "tn": 21,
+                "cwe_matched": 8,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 17,
+                "tpr": 0.32,
+                "fpr": 0.16,
+                "score": 0.16,
+                "precision": 0.6667
+              },
+              "codeinj": {
+                "cves": 14,
+                "tp": 1,
+                "fn": 13,
+                "fp": 0,
+                "tn": 14,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 3,
+                "tpr": 0.0714,
+                "fpr": 0.0,
+                "score": 0.0714,
+                "precision": 1.0
+              },
+              "other": {
+                "cves": 28,
+                "tp": 3,
+                "fn": 25,
+                "fp": 1,
+                "tn": 27,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 14,
+                "tpr": 0.1071,
+                "fpr": 0.0357,
+                "score": 0.0714,
+                "precision": 0.75
+              },
+              "pathtraver": {
+                "cves": 29,
+                "tp": 3,
+                "fn": 26,
+                "fp": 2,
+                "tn": 27,
+                "cwe_matched": 3,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 22,
+                "tpr": 0.1034,
+                "fpr": 0.069,
+                "score": 0.0344,
+                "precision": 0.6
+              },
+              "protopollution": {
+                "cves": 23,
+                "tp": 1,
+                "fn": 22,
+                "fp": 0,
+                "tn": 23,
+                "cwe_matched": 1,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 10,
+                "tpr": 0.0435,
+                "fpr": 0.0,
+                "score": 0.0435,
+                "precision": 1.0
+              },
+              "redirect": {
+                "cves": 7,
+                "tp": 0,
+                "fn": 7,
+                "fp": 0,
+                "tn": 7,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 3,
+                "tpr": 0.0,
+                "fpr": 0.0,
+                "score": 0.0,
+                "precision": null
+              },
+              "redos": {
+                "cves": 31,
+                "tp": 2,
+                "fn": 29,
+                "fp": 1,
+                "tn": 30,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 10,
+                "tpr": 0.0645,
+                "fpr": 0.0323,
+                "score": 0.0322,
+                "precision": 0.6667
+              },
+              "sqli": {
+                "cves": 4,
+                "tp": 1,
+                "fn": 3,
+                "fp": 1,
+                "tn": 3,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 2,
+                "tpr": 0.25,
+                "fpr": 0.25,
+                "score": 0.0,
+                "precision": 0.5
+              },
+              "ssrf": {
+                "cves": 3,
+                "tp": 1,
+                "fn": 2,
+                "fp": 1,
+                "tn": 2,
+                "cwe_matched": 1,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 1,
+                "tpr": 0.3333,
+                "fpr": 0.3333,
+                "score": 0.0,
+                "precision": 0.5
+              },
+              "xss": {
+                "cves": 56,
+                "tp": 9,
+                "fn": 47,
+                "fp": 5,
+                "tn": 51,
+                "cwe_matched": 8,
+                "fp_fix_elsewhere": 2,
+                "file_flagged": 29,
+                "tpr": 0.1607,
+                "fpr": 0.0893,
+                "score": 0.0714,
+                "precision": 0.6429
+              }
+            },
+            "totals": {
+              "cves": 220,
+              "tp": 29,
+              "fn": 191,
+              "fp": 15,
+              "tn": 205,
+              "cwe_matched": 21,
+              "fp_fix_elsewhere": 3,
+              "file_flagged": 111,
+              "tpr": 0.1318,
+              "fpr": 0.0682,
+              "score": 0.0636,
+              "precision": 0.6591
+            },
+            "match": "line",
+            "test_cases": 220,
+            "outcome": {
+              "CVE-2016-10735": "missed",
+              "CVE-2017-0931": "missed",
+              "CVE-2017-1000006": "missed",
+              "CVE-2017-1000219": "missed",
+              "CVE-2017-1000427": "missed",
+              "CVE-2017-1001004": "missed",
+              "CVE-2017-10910": "missed",
+              "CVE-2017-15010": "missed",
+              "CVE-2017-16003": "missed",
+              "CVE-2017-16006": "missed",
+              "CVE-2017-16011": "missed",
+              "CVE-2017-16014": "missed",
+              "CVE-2017-16018": "missed",
+              "CVE-2017-16023": "not-recognized",
+              "CVE-2017-16026": "missed",
+              "CVE-2017-16028": "recognized",
+              "CVE-2017-16029": "missed",
+              "CVE-2017-16030": "missed",
+              "CVE-2017-16031": "missed",
+              "CVE-2017-16034": "missed",
+              "CVE-2017-16042": "missed",
+              "CVE-2017-16043": "missed",
+              "CVE-2017-16082": "recognized",
+              "CVE-2017-16083": "missed",
+              "CVE-2017-16084": "missed",
+              "CVE-2017-16087": "missed",
+              "CVE-2017-16098": "missed",
+              "CVE-2017-16100": "not-recognized",
+              "CVE-2017-16107": "not-recognized",
+              "CVE-2017-16114": "missed",
+              "CVE-2017-16117": "missed",
+              "CVE-2017-16118": "missed",
+              "CVE-2017-16119": "missed",
+              "CVE-2017-16136": "missed",
+              "CVE-2017-16137": "missed",
+              "CVE-2017-16138": "missed",
+              "CVE-2017-16224": "missed",
+              "CVE-2017-16226": "missed",
+              "CVE-2017-16877": "missed",
+              "CVE-2017-17461": "missed",
+              "CVE-2017-18077": "missed",
+              "CVE-2017-18214": "missed",
+              "CVE-2017-18352": "missed",
+              "CVE-2017-18353": "missed",
+              "CVE-2017-18354": "not-recognized",
+              "CVE-2017-18355": "not-recognized",
+              "CVE-2017-18635": "missed",
+              "CVE-2017-5954": "missed",
+              "CVE-2018-1000086": "missed",
+              "CVE-2018-1000096": "missed",
+              "CVE-2018-1000620": "missed",
+              "CVE-2018-1002203": "recognized",
+              "CVE-2018-1002204": "missed",
+              "CVE-2018-11093": "missed",
+              "CVE-2018-11615": "recognized",
+              "CVE-2018-11798": "missed",
+              "CVE-2018-13797": "missed",
+              "CVE-2018-13863": "missed",
+              "CVE-2018-14040": "missed",
+              "CVE-2018-14041": "missed",
+              "CVE-2018-14042": "missed",
+              "CVE-2018-14380": "missed",
+              "CVE-2018-16460": "recognized",
+              "CVE-2018-16461": "missed",
+              "CVE-2018-16462": "missed",
+              "CVE-2018-16472": "missed",
+              "CVE-2018-16478": "missed",
+              "CVE-2018-16479": "missed",
+              "CVE-2018-16480": "missed",
+              "CVE-2018-16484": "not-recognized",
+              "CVE-2018-16485": "missed",
+              "CVE-2018-16487": "missed",
+              "CVE-2018-16489": "missed",
+              "CVE-2018-16490": "missed",
+              "CVE-2018-16491": "missed",
+              "CVE-2018-16492": "missed",
+              "CVE-2018-18282": "missed",
+              "CVE-2018-19048": "missed",
+              "CVE-2018-20164": "missed",
+              "CVE-2018-20676": "missed",
+              "CVE-2018-20677": "missed",
+              "CVE-2018-20801": "missed",
+              "CVE-2018-20834": "missed",
+              "CVE-2018-20835": "missed",
+              "CVE-2018-21036": "missed",
+              "CVE-2018-3712": "missed",
+              "CVE-2018-3713": "missed",
+              "CVE-2018-3718": "missed",
+              "CVE-2018-3719": "missed",
+              "CVE-2018-3721": "missed",
+              "CVE-2018-3722": "missed",
+              "CVE-2018-3725": "missed",
+              "CVE-2018-3726": "missed",
+              "CVE-2018-3728": "missed",
+              "CVE-2018-3731": "missed",
+              "CVE-2018-3732": "missed",
+              "CVE-2018-3733": "missed",
+              "CVE-2018-3736": "missed",
+              "CVE-2018-3737": "missed",
+              "CVE-2018-3738": "missed",
+              "CVE-2018-3743": "missed",
+              "CVE-2018-3746": "missed",
+              "CVE-2018-3747": "missed",
+              "CVE-2018-3750": "missed",
+              "CVE-2018-3752": "missed",
+              "CVE-2018-3757": "missed",
+              "CVE-2018-3770": "missed",
+              "CVE-2018-3772": "recognized",
+              "CVE-2018-3783": "not-recognized",
+              "CVE-2018-3786": "missed",
+              "CVE-2018-6184": "missed",
+              "CVE-2018-6333": "missed",
+              "CVE-2018-6341": "missed",
+              "CVE-2018-6342": "missed",
+              "CVE-2018-7560": "recognized",
+              "CVE-2018-7651": "missed",
+              "CVE-2019-10061": "missed",
+              "CVE-2019-10090": "missed",
+              "CVE-2019-1010091": "missed",
+              "CVE-2019-1010266": "missed",
+              "CVE-2019-1020012": "missed",
+              "CVE-2019-10742": "missed",
+              "CVE-2019-10744": "missed",
+              "CVE-2019-10745": "missed",
+              "CVE-2019-10746": "missed",
+              "CVE-2019-10747": "missed",
+              "CVE-2019-10750": "missed",
+              "CVE-2019-10757": "missed",
+              "CVE-2019-10758": "missed",
+              "CVE-2019-10759": "missed",
+              "CVE-2019-10761": "missed",
+              "CVE-2019-10765": "missed",
+              "CVE-2019-10767": "missed",
+              "CVE-2019-10771": "missed",
+              "CVE-2019-10775": "missed",
+              "CVE-2019-10776": "missed",
+              "CVE-2019-10777": "missed",
+              "CVE-2019-10778": "not-recognized",
+              "CVE-2019-10781": "missed",
+              "CVE-2019-10785": "recognized",
+              "CVE-2019-11358": "missed",
+              "CVE-2019-12043": "missed",
+              "CVE-2019-12313": "recognized",
+              "CVE-2019-13127": "missed",
+              "CVE-2019-13173": "missed",
+              "CVE-2019-13506": "missed",
+              "CVE-2019-14772": "not-recognized",
+              "CVE-2019-14862": "missed",
+              "CVE-2019-15478": "missed",
+              "CVE-2019-15479": "missed",
+              "CVE-2019-15482": "missed",
+              "CVE-2019-15532": "missed",
+              "CVE-2019-15657": "missed",
+              "CVE-2019-15658": "missed",
+              "CVE-2019-15782": "missed",
+              "CVE-2019-16763": "missed",
+              "CVE-2019-16769": "missed",
+              "CVE-2019-17495": "not-recognized",
+              "CVE-2019-17592": "missed",
+              "CVE-2019-18350": "missed",
+              "CVE-2019-18818": "missed",
+              "CVE-2019-18954": "missed",
+              "CVE-2019-19507": "missed",
+              "CVE-2019-20149": "missed",
+              "CVE-2019-20174": "missed",
+              "CVE-2019-5413": "missed",
+              "CVE-2019-5414": "missed",
+              "CVE-2019-5423": "missed",
+              "CVE-2019-5444": "missed",
+              "CVE-2019-5479": "not-recognized",
+              "CVE-2019-5483": "missed",
+              "CVE-2019-5484": "missed",
+              "CVE-2019-8331": "missed",
+              "CVE-2019-8903": "missed",
+              "CVE-2019-9844": "missed",
+              "CVE-2020-11021": "missed",
+              "CVE-2020-11022": "missed",
+              "CVE-2020-11059": "missed",
+              "CVE-2020-11079": "not-recognized",
+              "CVE-2020-12265": "missed",
+              "CVE-2020-14000": "missed",
+              "CVE-2020-15092": "missed",
+              "CVE-2020-15095": "missed",
+              "CVE-2020-15119": "not-recognized",
+              "CVE-2020-15123": "missed",
+              "CVE-2020-15135": "missed",
+              "CVE-2020-15138": "missed",
+              "CVE-2020-15152": "missed",
+              "CVE-2020-15156": "missed",
+              "CVE-2020-15256": "missed",
+              "CVE-2020-26226": "missed",
+              "CVE-2020-26256": "missed",
+              "CVE-2020-27666": "not-recognized",
+              "CVE-2020-4051": "missed",
+              "CVE-2020-4059": "not-recognized",
+              "CVE-2020-4066": "recognized",
+              "CVE-2020-5251": "missed",
+              "CVE-2020-5258": "missed",
+              "CVE-2020-6836": "recognized",
+              "CVE-2020-7638": "recognized",
+              "CVE-2020-7656": "missed",
+              "CVE-2020-7660": "recognized",
+              "CVE-2020-7662": "missed",
+              "CVE-2020-7676": "missed",
+              "CVE-2020-7699": "missed",
+              "CVE-2020-7720": "missed",
+              "CVE-2020-7750": "missed",
+              "CVE-2020-7752": "missed",
+              "CVE-2020-7763": "missed",
+              "CVE-2020-8116": "missed",
+              "CVE-2020-8135": "missed",
+              "CVE-2020-8149": "recognized",
+              "CVE-2020-8192": "missed",
+              "CVE-2020-8203": "missed",
+              "CVE-2020-8205": "missed",
+              "CVE-2020-8244": "missed",
+              "CVE-2020-9038": "missed",
+              "CVE-2021-23344": "missed",
+              "CVE-2021-23364": "missed",
+              "CVE-2021-31712": "missed"
+            },
+            "span_match": {
+              "totals": {
+                "cves": 220,
+                "tp": 35,
+                "fn": 185,
+                "fp": 18,
+                "tn": 202,
+                "cwe_matched": 25,
+                "fp_fix_elsewhere": 3,
+                "file_flagged": 111,
+                "tpr": 0.1591,
+                "fpr": 0.0818,
+                "score": 0.0773,
+                "precision": 0.6604
+              }
+            },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 14,
+                "fn": 206,
+                "fp": 10,
+                "tn": 210,
+                "cwe_matched": 9,
+                "fp_fix_elsewhere": 2,
+                "file_flagged": 66,
+                "tpr": 0.0636,
+                "fpr": 0.0455,
+                "score": 0.0181,
+                "precision": 0.5833
+              }
+            },
+            "low_confidence_findings": 383,
+            "rules": 1204,
+            "semgrep_version": "1.174.0",
+            "semgrep_notifications": {
+              "timeouts": 70,
+              "syntax_errors": 6,
+              "other": 0
+            },
+            "sast_findings": 757,
             "sast_findings_by_severity": {
               "high": 142,
               "low": 33,
-              "medium": 581
+              "medium": 582
             }
           }
         }
       },
       "measured": {
-        "generated": "2026-11-03T20:06:18Z",
-        "appsec_compose": "1.3.0",
-        "appsec_compose_commit": "46768d4ebad35f77924fd4690887ca06ca1bcb93"
+        "generated": "2026-11-07T11:47:21Z",
+        "appsec_compose": "1.4.0",
+        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
       }
     },
     "sast-python": {
@@ -6547,12 +7076,16 @@
           "semgrep_rules": [
             "default"
           ],
-          "runtime_seconds": 19.3,
+          "runtime_seconds": 19.2,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:24:09Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:49:14Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -6564,15 +7097,25 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 17.4
+                "semgrep": 17.3
               },
-              "scanners_s": 18,
-              "collector_s": 0.2,
-              "total_s": 19
+              "scanners_s": 17,
+              "collector_s": 0.4,
+              "total_s": 18
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 80920,
+            "approx_tokens": 19943,
+            "detailed": 37,
+            "one_line": 1263,
+            "repeated": 966,
+            "low_confidence": 297,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -6770,6 +7313,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.0764,
+                "fpr": 0.0847,
+                "score": -0.0083
+              },
+              "totals": {
+                "tp": 18,
+                "fp": 15,
+                "fn": 434,
+                "tn": 763,
+                "tpr": 0.0398,
+                "fpr": 0.0193,
+                "precision": 0.5455
+              }
+            },
+            "low_confidence_findings": 297,
             "rules": 1074,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -6793,12 +7353,16 @@
             "default",
             "auto"
           ],
-          "runtime_seconds": 19.6,
+          "runtime_seconds": 19.8,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:24:28Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:49:34Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -6810,15 +7374,25 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 17.8
+                "semgrep": 17.9
               },
               "scanners_s": 18,
-              "collector_s": 0.2,
+              "collector_s": 0.4,
               "total_s": 19
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 84432,
+            "approx_tokens": 20809,
+            "detailed": 40,
+            "one_line": 1277,
+            "repeated": 980,
+            "low_confidence": 297,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -7016,6 +7590,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.0764,
+                "fpr": 0.0847,
+                "score": -0.0083
+              },
+              "totals": {
+                "tp": 18,
+                "fp": 15,
+                "fn": 434,
+                "tn": 763,
+                "tpr": 0.0398,
+                "fpr": 0.0193,
+                "precision": 0.5455
+              }
+            },
+            "low_confidence_findings": 297,
             "rules": 1105,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -7038,12 +7629,16 @@
           "semgrep_rules": [
             "p/python"
           ],
-          "runtime_seconds": 8.0,
+          "runtime_seconds": 8.1,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:24:37Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:49:42Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -7055,15 +7650,25 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 6.5
+                "semgrep": 6.4
               },
               "scanners_s": 7,
-              "collector_s": 0.0,
-              "total_s": 8
+              "collector_s": 0.2,
+              "total_s": 7
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 48512,
+            "approx_tokens": 11989,
+            "detailed": 37,
+            "one_line": 147,
+            "repeated": 147,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -7261,6 +7866,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.0764,
+                "fpr": 0.0847,
+                "score": -0.0083
+              },
+              "totals": {
+                "tp": 18,
+                "fp": 15,
+                "fn": 434,
+                "tn": 763,
+                "tpr": 0.0398,
+                "fpr": 0.0193,
+                "precision": 0.5455
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 151,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -7283,12 +7905,16 @@
           "semgrep_rules": [
             "p/flask"
           ],
-          "runtime_seconds": 5.4,
+          "runtime_seconds": 5.5,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:24:42Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:49:48Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -7302,13 +7928,23 @@
               "engines": {
                 "semgrep": 3.9
               },
-              "scanners_s": 5,
-              "collector_s": 0.0,
+              "scanners_s": 4,
+              "collector_s": 0.1,
               "total_s": 5
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 9294,
+            "approx_tokens": 2305,
+            "detailed": 6,
+            "one_line": 13,
+            "repeated": 13,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -7506,6 +8142,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.011,
+                "fpr": 0.0,
+                "score": 0.011
+              },
+              "totals": {
+                "tp": 2,
+                "fp": 0,
+                "fn": 450,
+                "tn": 778,
+                "tpr": 0.0044,
+                "fpr": 0.0,
+                "precision": 1.0
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 18,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -7530,10 +8183,14 @@
           ],
           "runtime_seconds": 8.1,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:24:50Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:49:56Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -7547,13 +8204,23 @@
               "engines": {
                 "semgrep": 6.4
               },
-              "scanners_s": 7,
-              "collector_s": 0.1,
-              "total_s": 7
+              "scanners_s": 6,
+              "collector_s": 0.3,
+              "total_s": 8
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 25101,
+            "approx_tokens": 6206,
+            "detailed": 14,
+            "one_line": 850,
+            "repeated": 850,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -7751,6 +8418,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.0181,
+                "fpr": 0.0054,
+                "score": 0.0127
+              },
+              "totals": {
+                "tp": 6,
+                "fp": 4,
+                "fn": 446,
+                "tn": 774,
+                "tpr": 0.0133,
+                "fpr": 0.0051,
+                "precision": 0.6
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 28,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -7773,12 +8457,16 @@
           "semgrep_rules": [
             "p/security-audit"
           ],
-          "runtime_seconds": 7.4,
+          "runtime_seconds": 7.5,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:24:58Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:50:04Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -7793,12 +8481,22 @@
                 "semgrep": 5.8
               },
               "scanners_s": 6,
-              "collector_s": 0.1,
+              "collector_s": 0.2,
               "total_s": 7
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 42603,
+            "approx_tokens": 10480,
+            "detailed": 15,
+            "one_line": 394,
+            "repeated": 52,
+            "low_confidence": 342,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -7996,6 +8694,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.0742,
+                "fpr": 0.0833,
+                "score": -0.0092
+              },
+              "totals": {
+                "tp": 16,
+                "fp": 13,
+                "fn": 436,
+                "tn": 765,
+                "tpr": 0.0354,
+                "fpr": 0.0167,
+                "precision": 0.5517
+              }
+            },
+            "low_confidence_findings": 342,
             "rules": 225,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -8018,12 +8733,16 @@
           "semgrep_rules": [
             "p/owasp-top-ten"
           ],
-          "runtime_seconds": 12.7,
+          "runtime_seconds": 13.0,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:25:10Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:50:17Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -8035,15 +8754,25 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 11.1
+                "semgrep": 11.3
               },
-              "scanners_s": 11,
-              "collector_s": 0.0,
-              "total_s": 12
+              "scanners_s": 12,
+              "collector_s": 0.2,
+              "total_s": 13
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 48512,
+            "approx_tokens": 11989,
+            "detailed": 37,
+            "one_line": 147,
+            "repeated": 147,
+            "low_confidence": 0,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -8241,6 +8970,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.0764,
+                "fpr": 0.0847,
+                "score": -0.0083
+              },
+              "totals": {
+                "tp": 18,
+                "fp": 15,
+                "fn": 434,
+                "tn": 763,
+                "tpr": 0.0398,
+                "fpr": 0.0193,
+                "precision": 0.5455
+              }
+            },
+            "low_confidence_findings": 0,
             "rules": 560,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -8268,12 +9014,16 @@
             "p/security-audit",
             "p/owasp-top-ten"
           ],
-          "runtime_seconds": 22.5,
+          "runtime_seconds": 22.3,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
-          "db_dates_on_disk_after_run": {},
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-04T01:28:23.13686565Z",
+            "grype": "2026-11-04T00:19:46Z"
+          },
+          "attempts": 1,
           "provenance": {
-            "appsec_compose": "1.3.0",
-            "generated": "2026-11-03T20:25:33Z",
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T11:50:39Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
@@ -8285,15 +9035,25 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 20.7
+                "semgrep": 20.4
               },
-              "scanners_s": 21,
-              "collector_s": 0.2,
+              "scanners_s": 20,
+              "collector_s": 0.4,
               "total_s": 22
             },
+            "repo_config": null,
             "checkov_frameworks": [
               "openapi"
             ]
+          },
+          "brief": {
+            "bytes": 90256,
+            "approx_tokens": 22234,
+            "detailed": 40,
+            "one_line": 1390,
+            "repeated": 980,
+            "low_confidence": 410,
+            "counted_only": 0
           },
           "score": {
             "categories": {
@@ -8491,6 +9251,23 @@
                 }
               }
             },
+            "at_min_confidence_medium": {
+              "average": {
+                "tpr": 0.0764,
+                "fpr": 0.0847,
+                "score": -0.0083
+              },
+              "totals": {
+                "tp": 18,
+                "fp": 15,
+                "fn": 434,
+                "tn": 763,
+                "tpr": 0.0398,
+                "fpr": 0.0193,
+                "precision": 0.5455
+              }
+            },
+            "low_confidence_findings": 410,
             "rules": 1157,
             "semgrep_version": "1.174.0",
             "semgrep_notifications": {
@@ -8507,9 +9284,9 @@
         }
       },
       "measured": {
-        "generated": "2026-11-03T20:06:18Z",
-        "appsec_compose": "1.3.0",
-        "appsec_compose_commit": "46768d4ebad35f77924fd4690887ca06ca1bcb93"
+        "generated": "2026-11-07T11:47:21Z",
+        "appsec_compose": "1.4.0",
+        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
       }
     }
   }

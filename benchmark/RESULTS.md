@@ -239,8 +239,8 @@ Corpus: [OWASP-Benchmark/BenchmarkJava](https://github.com/OWASP-Benchmark/Bench
 
 | Profile | Rules loaded | Avg TPR | Avg FPR | Benchmark score | Precision (all cases) | SAST findings | Runtime |
 |---|--:|--:|--:|--:|--:|--:|--:|
-| Semgrep, p/default (shipped default) | 1074 | 88.1% | 44.1% | **+44.0** | 69.3% | 3252 | 81 s |
-| Semgrep, p/default + `auto` stack packs (opt-in) | 1076 | 88.1% | 44.1% | **+44.0** | 69.3% | 3252 | 108 s |
+| Semgrep, p/default (shipped default) | 1074 | 88.1% | 44.1% | **+44.0** | 69.3% | 3252 | 48 s |
+| Semgrep, p/default + `auto` stack packs (opt-in) | 1076 | 88.1% | 44.1% | **+44.0** | 69.3% | 3252 | 46 s |
 
 **Semgrep, p/default (shipped default)** — per category:
 
@@ -259,7 +259,7 @@ Corpus: [OWASP-Benchmark/BenchmarkJava](https://github.com/OWASP-Benchmark/Bench
 | Cross-site scripting (CWE-79) | 202 | 44 | 108 | 101 | 82.1% | 51.7% | +30.4 |
 | **All (micro)** | 1248 | 167 | 552 | 773 | 88.2% | 41.7% | +46.5 |
 
-SAST findings in the whole report: 3252 (by severity: medium 3252).
+SAST findings in the whole report: 3252 (by severity: high 572, medium 2680).
 
 **Semgrep, p/default + `auto` stack packs (opt-in)** — per category:
 
@@ -278,7 +278,7 @@ SAST findings in the whole report: 3252 (by severity: medium 3252).
 | Cross-site scripting (CWE-79) | 202 | 44 | 108 | 101 | 82.1% | 51.7% | +30.4 |
 | **All (micro)** | 1248 | 167 | 552 | 773 | 88.2% | 41.7% | +46.5 |
 
-SAST findings in the whole report: 3252 (by severity: medium 3252).
+SAST findings in the whole report: 3252 (by severity: high 572, medium 2680).
 
 ### SAST — OWASP Benchmark for Python 0.1
 
@@ -289,9 +289,9 @@ Corpus: [OWASP-Benchmark/BenchmarkPython](https://github.com/OWASP-Benchmark/Ben
 | Semgrep, p/default (shipped default) | 1074 | 26.0% | 19.1% | **+6.9** | 51.8% | +10.7 | 1300 | 19 s |
 | Semgrep, p/default + `auto` stack packs (opt-in) | 1105 | 26.0% | 19.1% | **+6.9** | 51.8% | +12.4 | 1317 | 20 s |
 | Semgrep, p/python alone | 151 | 7.6% | 8.5% | **-0.8** | 54.5% | +4.6 | 184 | 8 s |
-| Semgrep, p/flask alone | 18 | 1.1% | 0.0% | **+1.1** | 100.0% | +1.1 | 19 | 5 s |
+| Semgrep, p/flask alone | 18 | 1.1% | 0.0% | **+1.1** | 100.0% | +1.1 | 19 | 6 s |
 | Semgrep, p/django alone (control: not a Django app) | 28 | 1.8% | 0.5% | **+1.3** | 60.0% | +1.3 | 864 | 8 s |
-| Semgrep, p/security-audit alone | 225 | 25.8% | 24.1% | **+1.7** | 51.3% | +5.4 | 409 | 7 s |
+| Semgrep, p/security-audit alone | 225 | 25.8% | 24.1% | **+1.7** | 51.3% | +5.4 | 409 | 8 s |
 | Semgrep, p/owasp-top-ten alone | 560 | 7.6% | 8.5% | **-0.8** | 54.5% | +4.6 | 184 | 13 s |
 | Semgrep, p/default + every pack above (ceiling) | 1157 | 33.2% | 26.3% | **+6.9** | 47.1% | +12.4 | 1430 | 22 s |
 
@@ -366,16 +366,16 @@ Not scored (labelled file not fetchable at a pinned commit): CVE-2016-1000229 (`
 
 | Profile | Rules loaded | TPR (detected) | FPR (fix still flagged) | Score (fixes recognized) | Precision | Span match: TPR / score | Detected, CWE agrees | SAST findings | Runtime |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| Semgrep, p/default (shipped default) | 1074 | 10.9% (24) | 5.9% (13) | **+5.0** | 64.9% | 11.4% / +5.5 | 19 | 526 | 124 s |
-| Semgrep, p/default + `auto` stack packs (opt-in) | 1075 | 10.9% (24) | 5.9% (13) | **+5.0** | 64.9% | 11.4% / +5.5 | 19 | 507 | 111 s |
-| Semgrep, p/javascript alone (= p/typescript) | 74 | 3.2% (7) | 2.7% (6) | **+0.4** | 53.8% | 3.6% / +0.9 | 6 | 62 | 61 s |
-| Semgrep, p/nodejs alone | 36 | 0.0% (0) | 0.0% (0) | **+0.0** | — | 0.0% / +0.0 | 0 | 34 | 47 s |
-| Semgrep, p/expressjs alone | 71 | 3.2% (7) | 2.7% (6) | **+0.4** | 53.8% | 3.6% / +0.9 | 6 | 62 | 59 s |
-| Semgrep, p/react alone | 4 | 2.3% (5) | 1.8% (4) | **+0.4** | 55.6% | 2.3% / +0.4 | 5 | 13 | 12 s |
-| Semgrep, p/nodejsscan alone | 114 | 3.2% (7) | 1.8% (4) | **+1.4** | 63.6% | 5.9% / +2.3 | 3 | 327 | 149 s |
-| Semgrep, p/security-audit alone | 225 | 4.5% (10) | 2.7% (6) | **+1.8** | 62.5% | 4.5% / +1.8 | 10 | 51 | 22 s |
-| Semgrep, p/default + p/nodejsscan | 1188 | 13.2% (29) | 6.8% (15) | **+6.4** | 65.9% | 15.9% / +7.7 | 21 | 759 | 228 s |
-| Semgrep, p/default + every pack above (ceiling) | 1204 | 13.2% (29) | 6.8% (15) | **+6.4** | 65.9% | 15.9% / +7.7 | 21 | 756 | 236 s |
+| Semgrep, p/default (shipped default) | 1074 | 10.9% (24) | 5.9% (13) | **+5.0** | 64.9% | 11.4% / +5.5 | 19 | 504 | 101 s |
+| Semgrep, p/default + `auto` stack packs (opt-in) | 1075 | 10.9% (24) | 5.9% (13) | **+5.0** | 64.9% | 11.4% / +5.5 | 19 | 509 | 113 s |
+| Semgrep, p/javascript alone (= p/typescript) | 74 | 3.2% (7) | 2.7% (6) | **+0.4** | 53.8% | 3.6% / +0.9 | 6 | 62 | 63 s |
+| Semgrep, p/nodejs alone | 36 | 0.0% (0) | 0.0% (0) | **+0.0** | — | 0.0% / +0.0 | 0 | 34 | 49 s |
+| Semgrep, p/expressjs alone | 71 | 3.2% (7) | 2.7% (6) | **+0.4** | 53.8% | 3.6% / +0.9 | 6 | 62 | 56 s |
+| Semgrep, p/react alone | 4 | 2.3% (5) | 1.8% (4) | **+0.4** | 55.6% | 2.3% / +0.4 | 5 | 13 | 13 s |
+| Semgrep, p/nodejsscan alone | 114 | 3.2% (7) | 1.8% (4) | **+1.4** | 63.6% | 5.9% / +2.3 | 3 | 313 | 153 s |
+| Semgrep, p/security-audit alone | 225 | 4.5% (10) | 2.7% (6) | **+1.8** | 62.5% | 4.5% / +1.8 | 10 | 51 | 24 s |
+| Semgrep, p/default + p/nodejsscan | 1188 | 13.2% (29) | 6.8% (15) | **+6.4** | 65.9% | 15.9% / +7.7 | 21 | 766 | 221 s |
+| Semgrep, p/default + every pack above (ceiling) | 1204 | 13.2% (29) | 6.8% (15) | **+6.4** | 65.9% | 15.9% / +7.7 | 21 | 757 | 240 s |
 
 Per category — detected / fix recognized, of CVEs:
 
@@ -398,13 +398,13 @@ Corpus: `benchmark/synthetic_secrets.py` v1, seed 20261102: 17 files, 26 labelle
 
 | Profile | Recall | Precision | Decoys flagged | Unlabelled FPs | Runtime |
 |---|--:|--:|--:|--:|--:|
-| Gitleaks + Trivy (shipped default) | 88.5% (23/26) | 95.8% | 1/20 | 0 | 5 s |
+| Gitleaks + Trivy (shipped default) | 88.5% (23/26) | 92.0% | 2/20 | 0 | 18 s |
 | ↳ gitleaks alone | 88.5% (23/26) | 95.8% | 1/20 | 0 |  |
-| ↳ trivy secrets (filed under `sca`, not counted above) | 57.7% (15/26) | 100.0% | 0/20 | 0 |  |
-| Gitleaks + Trivy + TruffleHog (opt-in) | 92.3% (24/26) | 96.0% | 1/20 | 0 | 8 s |
+| ↳ trivy alone | 57.7% (15/26) | 93.8% | 1/20 | 0 |  |
+| Gitleaks + Trivy + TruffleHog (opt-in) | 92.3% (24/26) | 92.3% | 2/20 | 0 | 3 s |
 | ↳ gitleaks alone | 88.5% (23/26) | 95.8% | 1/20 | 0 |  |
+| ↳ trivy alone | 57.7% (15/26) | 93.8% | 1/20 | 0 |  |
 | ↳ trufflehog alone | 53.8% (14/26) | 100.0% | 0/20 | 0 |  |
-| ↳ trivy secrets (filed under `sca`, not counted above) | 57.7% (15/26) | 100.0% | 0/20 | 0 |  |
 
 Detected per kind (a decoy "detected" is a false positive):
 
@@ -436,7 +436,7 @@ Detected per kind (a decoy "detected" is a false positive):
 | masked | decoy | 0/1 | 0/1 |
 | npm-token | secret | 1/1 | 1/1 |
 | openai-api-key | secret | 1/1 | 1/1 |
-| placeholder | decoy | 0/2 | 0/2 |
+| placeholder | decoy | 1/2 | 1/2 |
 | public-key | decoy | 0/1 | 0/1 |
 | rsa-private-key | secret | 1/1 | 1/1 |
 | sendgrid-api-key | secret | 1/1 | 1/1 |
@@ -459,23 +459,27 @@ Corpus: 26 packages pinned in `go/go.mod`, `jvm/gradle.lockfile`, `node/package-
 | Maven | 5 | 100.0% (83/83) | 100.0% (83/83) |
 | PyPI | 7 | 98.5% (128/130) | 100.0% (130/130) |
 | RubyGems | 3 | 100.0% (80/80) | 100.0% (80/80) |
-| npm | 6 | 100.0% (39/39) | 100.0% (39/39) |
-| **All** | 26 | **99.4%** (343/345) | **100.0%** (345/345) |
+| npm | 6 | 97.4% (38/39) | 97.4% (38/39) |
+| **All** | 26 | **99.1%** (342/345) | **99.7%** (344/345) |
 
-- **Trivy (shipped default)**: 350 SCA findings, 7 not in the OSV snapshot, 2 expected advisories missed; runtime 3 s.
-- **Trivy + Grype + OSV-Scanner (opt-in)**: 469 SCA findings, 10 not in the OSV snapshot, 0 expected advisories missed; runtime 9 s.
+- **Trivy (shipped default)**: 354 SCA findings, 12 not in the OSV snapshot, 3 expected advisories missed; runtime 2 s.
+- **Trivy + Grype + OSV-Scanner (opt-in)**: 390 SCA findings, 15 not in the OSV snapshot, 1 expected advisories missed; runtime 116 s.
+
+### Reading cost
+
+What `review-brief.md` costs a reader (≈ tokens; findings with code, and one line each), and what `min_confidence: medium` — dropping LOW-confidence rules from the gate — would trade on the SAST suites.
+
+| Suite | Brief | With code | One line | Low-confidence | With `min_confidence: medium` |
+|---|--:|--:|--:|--:|--:|
+| sast | ~41,292 | 42 | 3210 | 591 | score +44.0 → +26.8, TPR 88.1% → 68.9%, FPR 44.1% → 42.1% |
+| secrets | ~3,550 | 29 | 3 | — | — |
+| sca | ~10,677 | 0 | 0 | — | — |
+| sast-js | ~19,864 | 39 | 465 | 442 | detected 24 → 7 |
+| sast-python | ~19,943 | 37 | 1263 | 297 | score +6.9 → -0.8, TPR 26.0% → 7.6%, FPR 19.1% → 8.5% |
 
 ### Provenance
 
-Generated 2026-11-03T20:25:43Z by appsec-compose 1.3.0 (commit `46768d4ebad3`) on macOS-27.0.1-arm64-arm-64bit-Mach-O, Docker 28.2.2.
-
-Suites not re-run in this run keep their earlier numbers:
-
-- `sast` was measured earlier, 2026-11-03T05:15:34Z by appsec-compose 1.2.0 (commit `38eb0ff7a891`).
-- `secrets` was measured earlier, 2026-11-03T05:15:34Z by appsec-compose 1.2.0 (commit `38eb0ff7a891`).
-- `sca` was measured earlier, 2026-11-03T05:15:34Z by appsec-compose 1.2.0 (commit `38eb0ff7a891`).
-- `sast-js` was measured earlier, 2026-11-03T20:06:18Z by appsec-compose 1.3.0 (commit `46768d4ebad3`).
-- `sast-python` was measured earlier, 2026-11-03T20:06:18Z by appsec-compose 1.3.0 (commit `46768d4ebad3`).
+Generated 2026-11-07T11:47:21Z by appsec-compose 1.4.0 (commit `b8ac5b50389a`) on macOS-27.0.1-arm64-arm-64bit-Mach-O, Docker 28.2.2.
 
 | Engine | Image (digest-pinned) |
 |---|--:|
@@ -488,12 +492,30 @@ Suites not re-run in this run keep their earlier numbers:
 
 Vulnerability DB dates:
 
-- sast/default: findings.json provenance says `{'trivy': '2026-11-02T13:15:56.44112656Z'}`; cache after the run: `{}`
-- sast/auto: findings.json provenance says `{'trivy': '2026-11-02T13:15:56.44112656Z'}`; cache after the run: `{}`
-- secrets/default: findings.json provenance says `{'trivy': '2026-11-02T13:15:56.44112656Z'}`; cache after the run: `{'trivy': '2026-11-02T13:15:56.44112656Z'}`
-- secrets/trufflehog: findings.json provenance says `{'trivy': '2026-11-02T13:15:56.44112656Z'}`; cache after the run: `{'trivy': '2026-11-02T13:15:56.44112656Z'}`
-- sca/default: findings.json provenance says `{'trivy': '2026-11-02T13:15:56.44112656Z'}`; cache after the run: `{'trivy': '2026-11-02T13:15:56.44112656Z'}`
-- sca/all: findings.json provenance says `{'trivy': '2026-11-02T13:15:56.44112656Z'}`; cache after the run: `{'trivy': '2026-11-02T13:15:56.44112656Z', 'grype': '2026-11-02T00:22:47Z'}`
+- sast/default: findings.json provenance says `{}`; cache after the run: `{}`
+- sast/auto: findings.json provenance says `{}`; cache after the run: `{}`
+- secrets/default: findings.json provenance says `{'trivy': '2026-11-07T06:54:25.084761873Z'}`; cache after the run: `{'trivy': '2026-11-07T06:54:25.084761873Z'}`
+- secrets/trufflehog: findings.json provenance says `{'trivy': '2026-11-07T06:54:25.084761873Z'}`; cache after the run: `{'trivy': '2026-11-07T06:54:25.084761873Z'}`
+- sca/default: findings.json provenance says `{'trivy': '2026-11-07T06:54:25.084761873Z'}`; cache after the run: `{'trivy': '2026-11-07T06:54:25.084761873Z'}`
+- sca/all: findings.json provenance says `{'trivy': '2026-11-07T06:54:25.084761873Z', 'grype': '2026-11-07T00:20:09Z'}`; cache after the run: `{'trivy': '2026-11-07T06:54:25.084761873Z', 'grype': '2026-11-07T00:20:09Z'}`
+- sast-js/default: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/auto: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/javascript: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/nodejs: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/expressjs: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/react: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/nodejsscan: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/security-audit: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/default-nodejsscan: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-js/all: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/default: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/auto: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/python: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/flask: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/django: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/security-audit: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/owasp-top-ten: findings.json provenance says `{}`; cache after the run: `{}`
+- sast-python/all: findings.json provenance says `{}`; cache after the run: `{}`
 
 <!-- results:end -->
 
