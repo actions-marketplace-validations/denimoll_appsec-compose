@@ -73,3 +73,25 @@ number yet: no labelled corpus maps onto these engines.
 ```bash
 python3 benchmark/bench.py        # re-run everything (Docker + network; ~40 min)
 ```
+
+## Keeping engines current
+
+Engine versions are pinned (and their images pinned by digest), so nothing
+changes under you, and nothing improves either. `.github/workflows/engine-updates.yml`
+runs weekly and opens one pull request against `develop` that moves each engine
+to its newest stable release **at least a week old** (a hijacked release is
+usually caught within days), re-pins the digests, and reports the tests, the
+smoke test and the benchmark against the previous numbers. A major version is
+flagged, since that is where command lines change. A failing check does not
+stop the pull request; it is titled `[failing]` instead, so a broken upgrade is
+seen rather than silently skipped.
+
+```bash
+python3 scripts/update-engines.py           # what would move, and why not
+python3 scripts/update-engines.py --apply   # move scan-config.yml, render-env and compose together
+```
+
+The three places that name a version must agree; `tests/test_engine_versions.py`
+fails if they drift. The collector's base image and the Python dependencies are
+Dependabot's, with the same one-week cooldown.
+

@@ -139,6 +139,13 @@ the first step of an AI agent's security review. CI integrations come later.
       actions from zizmor, Semgrep and Checkov merge where their regions
       overlap; distinct steps stay distinct, baselines keep working.
 
+## Maintenance
+
+- [x] **Engines kept current** — weekly pull request moving every engine to its
+      newest week-old release, re-pinned, with tests, smoke test and benchmark
+      deltas in the description; Dependabot for the collector's image and
+      Python dependencies.
+
 ## CI integrations (later — current versions work)
 
 - [x] Run the GitHub Action in a real pipeline (`uses: ./`, gate included) and
