@@ -153,9 +153,12 @@ low-confidence ones one line each, without code. A finding whose engine states
 no confidence (Gitleaks, Trivy, Checkov) always gates — a missing signal never
 takes a finding off the gate. `--min-confidence L` sets it for one run.
 
-`medium` is the setting for a first look at a large or legacy codebase, and
-for an AI agent's first pass: the gate and the brief then hold the findings
-the rules are sure of.
+It is a trade, and a steep one: Semgrep's LOW-confidence rules find a large
+share of the real issues. On the [benchmark](../benchmark/RESULTS.md#reading-cost)
+`medium` cuts Java detection from 88% to 69% while the false-positive rate
+barely moves (44% → 42%), Python from 26% to 8%, and JS from 24 to 7 known CVEs. Leave it at `low` unless you want only the
+findings rules are sure of and accept missing real ones — a legacy backlog
+gate, say; the brief folds non-gating low-confidence findings either way.
 
 ## Failing loudly (`strict`)
 

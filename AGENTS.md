@@ -36,12 +36,12 @@ counts, and a clean result means little. If the brief's blind spots say the
 repository set or suppressed something itself, tell the user. Add `--diff origin/main` to check only what a branch changed
 (the target must be a git repository with that ref fetched).
 
-**Spend tokens on what the rules are sure of.** Add `--min-confidence medium`
-for a first pass — always on a large or legacy codebase, and whenever the
-user has not asked for an exhaustive review. Semgrep marks ~40% of its rules
-LOW confidence; with this flag they are still reported but do not gate, and
-the brief lists them one line each instead of with code. Tell the user you
-used it. Drop it only when they want every lead.
+**Do not add `--min-confidence medium` on your own.** It keeps Semgrep's
+LOW-confidence rules off the gate and out of the brief's code, and those rules
+find a large share of the real issues: on the benchmark it cuts Java detection
+from 88% to 69%, Python from 26% to 8%, and JS from 24 to 7 known CVEs. Use it only when the user asks
+for high-signal findings only and accepts missing real issues — and say so in
+the report. The brief already saves tokens without it (below).
 
 - **The first run takes several minutes** (vulnerability databases, ~2 GB, and
   the collector image are downloaded or built once). Use a long command
@@ -58,9 +58,8 @@ used it. Drop it only when they want every lead.
 
 - Reports land in `./appsec-reports/` (the JSON gives the absolute paths).
 - `metrics` in the JSON says what reading costs before you read:
-  `metrics.brief.approx_tokens` is the brief's size. Over ~20k, rerun with
-  `--min-confidence medium` (if you had not), or `--diff`, or read the brief
-  in parts as below.
+  `metrics.brief.approx_tokens` is the brief's size. Over ~20k, read it in
+  parts as below (gating findings first); for a change, `--diff` is smaller.
 
 ## 3. Read the results — in this order
 
@@ -86,7 +85,7 @@ Do not parse `native/*.sarif`; those are for ASPM upload.
 Lead with the verdict, then what to do. A good report, in this order:
 
 1. **Verdict** — pass / fail, how many findings gate, against which threshold
-   (and `--min-confidence`, if you used it).
+   (and `--min-confidence`, if the user asked for it).
 2. **Dependencies** — the vulnerable components, worst first:
    `package@version → upgrade to X` (or "no fix known"), how many
    vulnerabilities and the worst severity. A malicious package is not

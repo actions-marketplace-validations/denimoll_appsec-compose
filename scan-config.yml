@@ -143,8 +143,10 @@ unknown_severity: medium   # how to rank findings that carry no severity
 min_confidence: low        # low | medium | high: findings from rules less sure
                            # than this are reported, but do not gate. Semgrep
                            # marks ~40% of its rules LOW confidence; `medium`
-                           # gates on the rest. A finding whose engine states
-                           # no confidence always gates. (--min-confidence L)
+                           # gates on the rest — and loses a large share of
+                           # real findings (benchmark: Java TPR 88% -> 69%).
+                           # A finding whose engine states no confidence
+                           # always gates. (--min-confidence L)
 dedup: true                # merge duplicate findings across tools
                            # (e.g. Trivy CVE == Grype GHSA via aliases)
 strict: false              # true => a scanner that ran but produced no readable

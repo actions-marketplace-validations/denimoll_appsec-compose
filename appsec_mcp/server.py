@@ -85,10 +85,11 @@ async def scan(
         description="Override the gate threshold for this run (default: the project "
                     "config, normally `high`). `none` reports without gating.")] = None,
     min_confidence: Annotated[Literal["low", "medium", "high"] | None, Field(
-        description="Gate only on findings from rules at least this confident "
-                    "(`medium` drops Semgrep's LOW-confidence rules from the gate; "
-                    "they are still reported). Default: the project config, "
-                    "normally `low` = everything gates.")] = None,
+        description="Gate only on findings from rules at least this confident. "
+                    "Leave unset unless the user asks: `medium` drops Semgrep's "
+                    "LOW-confidence rules from the gate, and with them a large share of "
+                    "real findings (Java detection 88% -> 69% on the benchmark). "
+                    "Default: the project config, normally `low` = everything gates.")] = None,
 ) -> str:
     """Scan a repository for security issues (SAST, vulnerable dependencies,
     secrets, IaC misconfigurations). Use it first, before reviewing a codebase or

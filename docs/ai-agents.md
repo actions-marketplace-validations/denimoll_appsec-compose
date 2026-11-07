@@ -54,7 +54,7 @@ JSON result, `brief_tokens` from the MCP `scan`). From there:
 
 | Setting | Effect | When |
 |---|---|---|
-| `--min-confidence medium` (`min_confidence:` in config, `min_confidence` on MCP `scan`) | Semgrep's LOW-confidence rules stop gating and move to one-line entries | a first pass; a large or legacy codebase; whenever the brief is long |
+| `--min-confidence medium` (`min_confidence:` in config, `min_confidence` on MCP `scan`) | Semgrep's LOW-confidence rules stop gating and move to one-line entries — and a large share of real findings with them (Java detection 88% → 69% on the [benchmark](../benchmark/RESULTS.md#reading-cost)) | only when the user wants high-signal findings and accepts misses |
 | `--diff origin/main` | only what the branch changed is scanned, gated and briefed | reviewing a change, re-checking a fix |
 | baseline (`--update-baseline` once) | gate on new findings only; the backlog is marked, not re-triaged | a codebase with a known backlog |
 | `fail_on:` per category | e.g. `iac: none` keeps lint-grade IaC off the gate | a category the review does not cover |

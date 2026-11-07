@@ -85,7 +85,6 @@ what differs — it is laid over the defaults:
 
 ```yaml
 fail_on: { secrets: low, default: high }   # gate per category
-min_confidence: medium                     # Semgrep's LOW-confidence rules report, but don't gate
 exclude: [vendor, fixtures]
 ignore:
   - fingerprint: 3f9a…                     # one finding, from findings.json
