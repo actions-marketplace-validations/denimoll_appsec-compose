@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-07T11:47:21Z",
+  "generated": "2026-11-07T12:39:02Z",
   "appsec_compose": "1.4.0",
-  "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb",
+  "appsec_compose_commit": "88b1b3977a775e2c33810d747fe80afa3b1169b7",
   "host": {
     "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
     "machine": "arm64",
@@ -27,20 +27,20 @@
           "semgrep_rules": [
             "default"
           ],
-          "runtime_seconds": 47.7,
+          "runtime_seconds": 156.8,
           "corpus_tree_sha256": "201e75c419ff03dec1b883d8a609985a643f909c71bddeb45cc1f9111f882aba",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:48:09Z",
+            "generated": "2026-11-07T12:41:38Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -48,11 +48,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 42.9
+                "semgrep": 152.7
               },
-              "scanners_s": 44,
-              "collector_s": 0.8,
-              "total_s": 47
+              "scanners_s": 153,
+              "collector_s": 1.5,
+              "total_s": 156
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -62,11 +62,11 @@
             ]
           },
           "brief": {
-            "bytes": 167340,
+            "bytes": 167339,
             "approx_tokens": 41292,
             "detailed": 42,
-            "one_line": 3210,
-            "repeated": 2619,
+            "one_line": 3209,
+            "repeated": 2618,
             "low_confidence": 591,
             "counted_only": 0
           },
@@ -216,15 +216,15 @@
             },
             "low_confidence_findings": 591,
             "rules": 1074,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
               "other": 0
             },
-            "sast_findings": 3252,
+            "sast_findings": 3251,
             "sast_findings_by_severity": {
-              "high": 572,
+              "high": 571,
               "medium": 2680
             }
           }
@@ -238,20 +238,20 @@
             "default",
             "auto"
           ],
-          "runtime_seconds": 45.8,
+          "runtime_seconds": 193.2,
           "corpus_tree_sha256": "201e75c419ff03dec1b883d8a609985a643f909c71bddeb45cc1f9111f882aba",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:48:55Z",
+            "generated": "2026-11-07T12:44:52Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -259,11 +259,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 43.4
+                "semgrep": 189.2
               },
-              "scanners_s": 43,
-              "collector_s": 0.8,
-              "total_s": 46
+              "scanners_s": 190,
+              "collector_s": 1.4,
+              "total_s": 192
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -427,7 +427,7 @@
             },
             "low_confidence_findings": 591,
             "rules": 1076,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -442,9 +442,9 @@
         }
       },
       "measured": {
-        "generated": "2026-11-07T11:47:21Z",
+        "generated": "2026-11-07T12:39:02Z",
         "appsec_compose": "1.4.0",
-        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
+        "appsec_compose_commit": "88b1b3977a775e2c33810d747fe80afa3b1169b7"
       }
     },
     "secrets": {
@@ -466,20 +466,20 @@
             "trivy"
           ],
           "semgrep_rules": null,
-          "runtime_seconds": 18.5,
+          "runtime_seconds": 2.3,
           "corpus_tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b",
           "db_dates_on_disk_after_run": {
             "trivy": "2026-11-07T06:54:25.084761873Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T12:08:10Z",
+            "generated": "2026-11-07T13:03:31Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969",
+              "trivy": "aquasec/trivy@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c",
               "gitleaks": "zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f"
             },
             "databases": {
@@ -490,12 +490,12 @@
             },
             "timings": {
               "engines": {
-                "trivy": 16.9,
+                "trivy": 0.7,
                 "gitleaks": 0.1
               },
-              "scanners_s": 17,
-              "collector_s": 0.0,
-              "total_s": 19
+              "scanners_s": 1,
+              "collector_s": 0.1,
+              "total_s": 2
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -505,9 +505,9 @@
             ]
           },
           "brief": {
-            "bytes": 14331,
-            "approx_tokens": 3550,
-            "detailed": 29,
+            "bytes": 13913,
+            "approx_tokens": 3446,
+            "detailed": 28,
             "one_line": 3,
             "repeated": 3,
             "low_confidence": 0,
@@ -517,12 +517,686 @@
             "merged": {
               "tp": 23,
               "fn": 3,
-              "fp_decoy": 2,
-              "tn": 18,
+              "fp_decoy": 1,
+              "tn": 19,
               "fp_unlabeled": 0,
               "recall": 0.8846,
-              "precision": 0.92,
-              "decoy_fpr": 0.1,
+              "precision": 0.9583,
+              "decoy_fpr": 0.05,
+              "findings": 27,
+              "by_kind": {
+                "anthropic-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-access-key-id": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "aws-docs-example": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "aws-secret-access-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "azure-storage-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "checksum": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "commit-sha": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "connection-string-password": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "data-uri": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "django-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 0
+                },
+                "env-reference": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "gcp-service-account-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-api-secret": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "generic-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 2
+                },
+                "github-fine-grained-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "github-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "gitlab-pat": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "google-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "integrity-hash": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "jwt": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "k8s-secret-base64": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "keyword-not-secret": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "low-entropy-password": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "masked": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "npm-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "openai-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "placeholder": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "public-key": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                },
+                "rsa-private-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "sendgrid-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-bot-token": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "slack-webhook": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "stripe-secret-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "template-variable": {
+                  "label": "decoy",
+                  "total": 2,
+                  "hit": 0
+                },
+                "test-vector": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 1
+                },
+                "twilio-api-key": {
+                  "label": "secret",
+                  "total": 1,
+                  "hit": 1
+                },
+                "url-embedded-password": {
+                  "label": "secret",
+                  "total": 2,
+                  "hit": 0
+                },
+                "uuid": {
+                  "label": "decoy",
+                  "total": 1,
+                  "hit": 0
+                }
+              },
+              "unlabeled": []
+            },
+            "per_tool": {
+              "gitleaks": {
+                "tp": 23,
+                "fn": 3,
+                "fp_decoy": 1,
+                "tn": 19,
+                "fp_unlabeled": 0,
+                "recall": 0.8846,
+                "precision": 0.9583,
+                "decoy_fpr": 0.05,
+                "findings": 25,
+                "by_kind": {
+                  "anthropic-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-access-key-id": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-docs-example": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "aws-secret-access-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "azure-storage-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "checksum": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "commit-sha": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "connection-string-password": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "data-uri": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "django-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "env-reference": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "gcp-service-account-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-api-secret": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 2
+                  },
+                  "github-fine-grained-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "github-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "gitlab-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "google-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "integrity-hash": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "jwt": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "k8s-secret-base64": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "keyword-not-secret": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "low-entropy-password": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "masked": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "npm-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "openai-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "placeholder": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "public-key": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "rsa-private-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "sendgrid-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-bot-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-webhook": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "stripe-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "template-variable": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "test-vector": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "twilio-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "url-embedded-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "uuid": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  }
+                },
+                "unlabeled": []
+              },
+              "trivy": {
+                "tp": 15,
+                "fn": 11,
+                "fp_decoy": 0,
+                "tn": 20,
+                "fp_unlabeled": 0,
+                "recall": 0.5769,
+                "precision": 1.0,
+                "decoy_fpr": 0.0,
+                "findings": 16,
+                "by_kind": {
+                  "anthropic-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "aws-access-key-id": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "aws-docs-example": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "aws-secret-access-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "azure-storage-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "checksum": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "commit-sha": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "connection-string-password": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "data-uri": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "django-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "env-reference": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "gcp-service-account-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "generic-api-secret": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "generic-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "github-fine-grained-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "github-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "gitlab-pat": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "google-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "integrity-hash": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "jwt": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "k8s-secret-base64": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "keyword-not-secret": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "low-entropy-password": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "masked": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "npm-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "openai-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "placeholder": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "public-key": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "rsa-private-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "sendgrid-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-bot-token": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "slack-webhook": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "stripe-secret-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "template-variable": {
+                    "label": "decoy",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "test-vector": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  },
+                  "twilio-api-key": {
+                    "label": "secret",
+                    "total": 1,
+                    "hit": 1
+                  },
+                  "url-embedded-password": {
+                    "label": "secret",
+                    "total": 2,
+                    "hit": 0
+                  },
+                  "uuid": {
+                    "label": "decoy",
+                    "total": 1,
+                    "hit": 0
+                  }
+                },
+                "unlabeled": []
+              }
+            }
+          }
+        },
+        "trufflehog": {
+          "label": "Gitleaks + Trivy + TruffleHog (opt-in)",
+          "engines_enabled": [
+            "gitleaks",
+            "trivy",
+            "trufflehog"
+          ],
+          "semgrep_rules": null,
+          "runtime_seconds": 2.7,
+          "corpus_tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
+          },
+          "attempts": 1,
+          "provenance": {
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T13:03:34Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "trivy": "aquasec/trivy@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c",
+              "gitleaks": "zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f",
+              "trufflehog": "trufflesecurity/trufflehog@sha256:0d003fc3abc4e1565eca8462b992001314de51451e96e3c44de80d116794d5d1"
+            },
+            "databases": {
+              "trivy": "2026-11-07T06:54:25.084761873Z"
+            },
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "trufflehog": 1.1,
+                "trivy": 0.7,
+                "gitleaks": 0.1
+              },
+              "scanners_s": 2,
+              "collector_s": 0.0,
+              "total_s": 2
+            },
+            "repo_config": null,
+            "checkov_frameworks": [
+              "gitlab_ci",
+              "kubernetes",
+              "terraform"
+            ]
+          },
+          "brief": {
+            "bytes": 14385,
+            "approx_tokens": 3564,
+            "detailed": 29,
+            "one_line": 3,
+            "repeated": 3,
+            "low_confidence": 0,
+            "counted_only": 0
+          },
+          "score": {
+            "merged": {
+              "tp": 24,
+              "fn": 2,
+              "fp_decoy": 1,
+              "tn": 19,
+              "fp_unlabeled": 0,
+              "recall": 0.9231,
+              "precision": 0.96,
+              "decoy_fpr": 0.05,
               "findings": 28,
               "by_kind": {
                 "anthropic-api-key": {
@@ -658,681 +1332,7 @@
                 "placeholder": {
                   "label": "decoy",
                   "total": 2,
-                  "hit": 1
-                },
-                "public-key": {
-                  "label": "decoy",
-                  "total": 1,
                   "hit": 0
-                },
-                "rsa-private-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "sendgrid-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "slack-bot-token": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "slack-webhook": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "stripe-secret-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "template-variable": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "test-vector": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 1
-                },
-                "twilio-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "url-embedded-password": {
-                  "label": "secret",
-                  "total": 2,
-                  "hit": 0
-                },
-                "uuid": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                }
-              },
-              "unlabeled": []
-            },
-            "per_tool": {
-              "gitleaks": {
-                "tp": 23,
-                "fn": 3,
-                "fp_decoy": 1,
-                "tn": 19,
-                "fp_unlabeled": 0,
-                "recall": 0.8846,
-                "precision": 0.9583,
-                "decoy_fpr": 0.05,
-                "findings": 25,
-                "by_kind": {
-                  "anthropic-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "aws-access-key-id": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "aws-docs-example": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "aws-secret-access-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "azure-storage-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "checksum": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "commit-sha": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "connection-string-password": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "data-uri": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "django-secret-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "env-reference": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "gcp-service-account-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "generic-api-secret": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "generic-password": {
-                    "label": "secret",
-                    "total": 2,
-                    "hit": 2
-                  },
-                  "github-fine-grained-pat": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "github-pat": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "gitlab-pat": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "google-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "integrity-hash": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "jwt": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "k8s-secret-base64": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "keyword-not-secret": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "low-entropy-password": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "masked": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "npm-token": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "openai-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "placeholder": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "public-key": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "rsa-private-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "sendgrid-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "slack-bot-token": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "slack-webhook": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "stripe-secret-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "template-variable": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "test-vector": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "twilio-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "url-embedded-password": {
-                    "label": "secret",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "uuid": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  }
-                },
-                "unlabeled": []
-              },
-              "trivy": {
-                "tp": 15,
-                "fn": 11,
-                "fp_decoy": 1,
-                "tn": 19,
-                "fp_unlabeled": 0,
-                "recall": 0.5769,
-                "precision": 0.9375,
-                "decoy_fpr": 0.05,
-                "findings": 17,
-                "by_kind": {
-                  "anthropic-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "aws-access-key-id": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "aws-docs-example": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "aws-secret-access-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "azure-storage-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "checksum": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "commit-sha": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "connection-string-password": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "data-uri": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "django-secret-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "env-reference": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "gcp-service-account-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "generic-api-secret": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "generic-password": {
-                    "label": "secret",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "github-fine-grained-pat": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "github-pat": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "gitlab-pat": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "google-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "integrity-hash": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "jwt": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "k8s-secret-base64": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "keyword-not-secret": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "low-entropy-password": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "masked": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "npm-token": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "openai-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "placeholder": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 1
-                  },
-                  "public-key": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "rsa-private-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "sendgrid-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "slack-bot-token": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "slack-webhook": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "stripe-secret-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "template-variable": {
-                    "label": "decoy",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "test-vector": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  },
-                  "twilio-api-key": {
-                    "label": "secret",
-                    "total": 1,
-                    "hit": 1
-                  },
-                  "url-embedded-password": {
-                    "label": "secret",
-                    "total": 2,
-                    "hit": 0
-                  },
-                  "uuid": {
-                    "label": "decoy",
-                    "total": 1,
-                    "hit": 0
-                  }
-                },
-                "unlabeled": []
-              }
-            }
-          }
-        },
-        "trufflehog": {
-          "label": "Gitleaks + Trivy + TruffleHog (opt-in)",
-          "engines_enabled": [
-            "gitleaks",
-            "trivy",
-            "trufflehog"
-          ],
-          "semgrep_rules": null,
-          "runtime_seconds": 3.2,
-          "corpus_tree_sha256": "14bdfdfa2eefe102a245591837baa1e752349310f9b8db146e088c91cb9f1c9b",
-          "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-07T06:54:25.084761873Z",
-            "grype": "2026-11-04T00:19:46Z"
-          },
-          "attempts": 1,
-          "provenance": {
-            "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T12:08:14Z",
-            "target": "filesystem",
-            "offline": false,
-            "engines": {
-              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969",
-              "gitleaks": "zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f",
-              "trufflehog": "trufflesecurity/trufflehog@sha256:ff4c95e9df7d645daf2140e3ca1039031c63106268d5fbb25feb43ceca1bcc33"
-            },
-            "databases": {
-              "trivy": "2026-11-07T06:54:25.084761873Z"
-            },
-            "scope": {
-              "mode": "full"
-            },
-            "timings": {
-              "engines": {
-                "trufflehog": 1.6,
-                "trivy": 0.9,
-                "gitleaks": 0.1
-              },
-              "scanners_s": 2,
-              "collector_s": 0.0,
-              "total_s": 3
-            },
-            "repo_config": null,
-            "checkov_frameworks": [
-              "gitlab_ci",
-              "kubernetes",
-              "terraform"
-            ]
-          },
-          "brief": {
-            "bytes": 14803,
-            "approx_tokens": 3667,
-            "detailed": 30,
-            "one_line": 3,
-            "repeated": 3,
-            "low_confidence": 0,
-            "counted_only": 0
-          },
-          "score": {
-            "merged": {
-              "tp": 24,
-              "fn": 2,
-              "fp_decoy": 2,
-              "tn": 18,
-              "fp_unlabeled": 0,
-              "recall": 0.9231,
-              "precision": 0.9231,
-              "decoy_fpr": 0.1,
-              "findings": 29,
-              "by_kind": {
-                "anthropic-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "aws-access-key-id": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "aws-docs-example": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "aws-secret-access-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "azure-storage-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "checksum": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "commit-sha": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "connection-string-password": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "data-uri": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "django-secret-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 0
-                },
-                "env-reference": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "gcp-service-account-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "generic-api-secret": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "generic-password": {
-                  "label": "secret",
-                  "total": 2,
-                  "hit": 2
-                },
-                "github-fine-grained-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "github-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "gitlab-pat": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "google-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "integrity-hash": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "jwt": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "k8s-secret-base64": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "keyword-not-secret": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 0
-                },
-                "low-entropy-password": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "masked": {
-                  "label": "decoy",
-                  "total": 1,
-                  "hit": 0
-                },
-                "npm-token": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "openai-api-key": {
-                  "label": "secret",
-                  "total": 1,
-                  "hit": 1
-                },
-                "placeholder": {
-                  "label": "decoy",
-                  "total": 2,
-                  "hit": 1
                 },
                 "public-key": {
                   "label": "decoy",
@@ -1600,13 +1600,13 @@
               "trivy": {
                 "tp": 15,
                 "fn": 11,
-                "fp_decoy": 1,
-                "tn": 19,
+                "fp_decoy": 0,
+                "tn": 20,
                 "fp_unlabeled": 0,
                 "recall": 0.5769,
-                "precision": 0.9375,
-                "decoy_fpr": 0.05,
-                "findings": 17,
+                "precision": 1.0,
+                "decoy_fpr": 0.0,
+                "findings": 16,
                 "by_kind": {
                   "anthropic-api-key": {
                     "label": "secret",
@@ -1741,7 +1741,7 @@
                   "placeholder": {
                     "label": "decoy",
                     "total": 2,
-                    "hit": 1
+                    "hit": 0
                   },
                   "public-key": {
                     "label": "decoy",
@@ -2010,9 +2010,9 @@
         }
       },
       "measured": {
-        "generated": "2026-11-07T11:47:21Z",
+        "generated": "2026-11-07T12:39:02Z",
         "appsec_compose": "1.4.0",
-        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
+        "appsec_compose_commit": "88b1b3977a775e2c33810d747fe80afa3b1169b7"
       }
     },
     "sca": {
@@ -2038,20 +2038,20 @@
             "trivy"
           ],
           "semgrep_rules": null,
-          "runtime_seconds": 2.3,
+          "runtime_seconds": 2.2,
           "corpus_tree_sha256": "7c5c1e9b79cb007e2fa98c9af71f9590f162012c9a56cb34591b61879cdfca8a",
           "db_dates_on_disk_after_run": {
             "trivy": "2026-11-07T06:54:25.084761873Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T12:08:16Z",
+            "generated": "2026-11-07T13:03:36Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969"
+              "trivy": "aquasec/trivy@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c"
             },
             "databases": {
               "trivy": "2026-11-07T06:54:25.084761873Z"
@@ -2065,7 +2065,7 @@
               },
               "scanners_s": 1,
               "collector_s": 0.1,
-              "total_s": 2
+              "total_s": 1
             },
             "repo_config": null,
             "checkov_frameworks": "none"
@@ -2146,7 +2146,7 @@
             "osv"
           ],
           "semgrep_rules": null,
-          "runtime_seconds": 115.8,
+          "runtime_seconds": 8.0,
           "corpus_tree_sha256": "7c5c1e9b79cb007e2fa98c9af71f9590f162012c9a56cb34591b61879cdfca8a",
           "db_dates_on_disk_after_run": {
             "trivy": "2026-11-07T06:54:25.084761873Z",
@@ -2155,13 +2155,13 @@
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T12:10:12Z",
+            "generated": "2026-11-07T13:03:44Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "trivy": "aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969",
-              "grype": "anchore/grype@sha256:ddf9e9f204049f3a4a0955ef70873cabab6a31432125ad4f20a490b54950a253",
-              "osv": "ghcr.io/google/osv-scanner@sha256:8108ae94eadea5a02c9bec6e646909d5b790b44bd62d7f5b7f0b1d6d0ffc7734"
+              "trivy": "aquasec/trivy@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c",
+              "grype": "anchore/grype@sha256:621d56d1d68106b787022c81546f7e0a36202a25d1239f0c20195fab8c16f7ea",
+              "osv": "ghcr.io/google/osv-scanner@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0"
             },
             "databases": {
               "trivy": "2026-11-07T06:54:25.084761873Z",
@@ -2172,13 +2172,13 @@
             },
             "timings": {
               "engines": {
-                "grype": 113.7,
-                "osv": 10.5,
-                "trivy": 0.8
+                "osv": 6.2,
+                "grype": 4.9,
+                "trivy": 1.3
               },
-              "scanners_s": 114,
+              "scanners_s": 7,
               "collector_s": 0.2,
-              "total_s": 115
+              "total_s": 7
             },
             "repo_config": null,
             "checkov_frameworks": "none"
@@ -2254,9 +2254,9 @@
         }
       },
       "measured": {
-        "generated": "2026-11-07T11:47:21Z",
+        "generated": "2026-11-07T12:39:02Z",
         "appsec_compose": "1.4.0",
-        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
+        "appsec_compose_commit": "88b1b3977a775e2c33810d747fe80afa3b1169b7"
       }
     },
     "sast-js": {
@@ -2298,20 +2298,20 @@
           "semgrep_rules": [
             "default"
           ],
-          "runtime_seconds": 101.1,
+          "runtime_seconds": 109.9,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:52:20Z",
+            "generated": "2026-11-07T12:48:28Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -2319,495 +2319,18 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 99.1
+                "semgrep": 108.0
               },
-              "scanners_s": 100,
+              "scanners_s": 109,
               "collector_s": 0.3,
-              "total_s": 100
+              "total_s": 109
             },
             "repo_config": null,
             "checkov_frameworks": "none"
           },
           "brief": {
-            "bytes": 80423,
-            "approx_tokens": 19864,
-            "detailed": 39,
-            "one_line": 465,
-            "repeated": 23,
-            "low_confidence": 442,
-            "counted_only": 0
-          },
-          "score": {
-            "categories": {
-              "cmdi": {
-                "cves": 25,
-                "tp": 8,
-                "fn": 17,
-                "fp": 4,
-                "tn": 21,
-                "cwe_matched": 8,
-                "fp_fix_elsewhere": 1,
-                "file_flagged": 16,
-                "tpr": 0.32,
-                "fpr": 0.16,
-                "score": 0.16,
-                "precision": 0.6667
-              },
-              "codeinj": {
-                "cves": 14,
-                "tp": 1,
-                "fn": 13,
-                "fp": 0,
-                "tn": 14,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 5,
-                "tpr": 0.0714,
-                "fpr": 0.0,
-                "score": 0.0714,
-                "precision": 1.0
-              },
-              "other": {
-                "cves": 28,
-                "tp": 1,
-                "fn": 27,
-                "fp": 1,
-                "tn": 27,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 8,
-                "tpr": 0.0357,
-                "fpr": 0.0357,
-                "score": 0.0,
-                "precision": 0.5
-              },
-              "pathtraver": {
-                "cves": 29,
-                "tp": 2,
-                "fn": 27,
-                "fp": 1,
-                "tn": 28,
-                "cwe_matched": 2,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 20,
-                "tpr": 0.069,
-                "fpr": 0.0345,
-                "score": 0.0345,
-                "precision": 0.6667
-              },
-              "protopollution": {
-                "cves": 23,
-                "tp": 1,
-                "fn": 22,
-                "fp": 0,
-                "tn": 23,
-                "cwe_matched": 1,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 12,
-                "tpr": 0.0435,
-                "fpr": 0.0,
-                "score": 0.0435,
-                "precision": 1.0
-              },
-              "redirect": {
-                "cves": 7,
-                "tp": 0,
-                "fn": 7,
-                "fp": 0,
-                "tn": 7,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 3,
-                "tpr": 0.0,
-                "fpr": 0.0,
-                "score": 0.0,
-                "precision": null
-              },
-              "redos": {
-                "cves": 31,
-                "tp": 2,
-                "fn": 29,
-                "fp": 1,
-                "tn": 30,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 7,
-                "tpr": 0.0645,
-                "fpr": 0.0323,
-                "score": 0.0322,
-                "precision": 0.6667
-              },
-              "sqli": {
-                "cves": 4,
-                "tp": 0,
-                "fn": 4,
-                "fp": 0,
-                "tn": 4,
-                "cwe_matched": 0,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 0,
-                "tpr": 0.0,
-                "fpr": 0.0,
-                "score": 0.0,
-                "precision": null
-              },
-              "ssrf": {
-                "cves": 3,
-                "tp": 1,
-                "fn": 2,
-                "fp": 1,
-                "tn": 2,
-                "cwe_matched": 1,
-                "fp_fix_elsewhere": 0,
-                "file_flagged": 1,
-                "tpr": 0.3333,
-                "fpr": 0.3333,
-                "score": 0.0,
-                "precision": 0.5
-              },
-              "xss": {
-                "cves": 56,
-                "tp": 8,
-                "fn": 48,
-                "fp": 5,
-                "tn": 51,
-                "cwe_matched": 7,
-                "fp_fix_elsewhere": 1,
-                "file_flagged": 19,
-                "tpr": 0.1429,
-                "fpr": 0.0893,
-                "score": 0.0536,
-                "precision": 0.6154
-              }
-            },
-            "totals": {
-              "cves": 220,
-              "tp": 24,
-              "fn": 196,
-              "fp": 13,
-              "tn": 207,
-              "cwe_matched": 19,
-              "fp_fix_elsewhere": 2,
-              "file_flagged": 91,
-              "tpr": 0.1091,
-              "fpr": 0.0591,
-              "score": 0.05,
-              "precision": 0.6486
-            },
-            "match": "line",
-            "test_cases": 220,
-            "outcome": {
-              "CVE-2016-10735": "missed",
-              "CVE-2017-0931": "missed",
-              "CVE-2017-1000006": "missed",
-              "CVE-2017-1000219": "missed",
-              "CVE-2017-1000427": "missed",
-              "CVE-2017-1001004": "missed",
-              "CVE-2017-10910": "missed",
-              "CVE-2017-15010": "missed",
-              "CVE-2017-16003": "missed",
-              "CVE-2017-16006": "missed",
-              "CVE-2017-16011": "missed",
-              "CVE-2017-16014": "missed",
-              "CVE-2017-16018": "missed",
-              "CVE-2017-16023": "not-recognized",
-              "CVE-2017-16026": "missed",
-              "CVE-2017-16028": "missed",
-              "CVE-2017-16029": "missed",
-              "CVE-2017-16030": "missed",
-              "CVE-2017-16031": "missed",
-              "CVE-2017-16034": "missed",
-              "CVE-2017-16042": "missed",
-              "CVE-2017-16043": "missed",
-              "CVE-2017-16082": "recognized",
-              "CVE-2017-16083": "missed",
-              "CVE-2017-16084": "missed",
-              "CVE-2017-16087": "missed",
-              "CVE-2017-16098": "missed",
-              "CVE-2017-16100": "not-recognized",
-              "CVE-2017-16107": "missed",
-              "CVE-2017-16114": "missed",
-              "CVE-2017-16117": "missed",
-              "CVE-2017-16118": "missed",
-              "CVE-2017-16119": "missed",
-              "CVE-2017-16136": "missed",
-              "CVE-2017-16137": "missed",
-              "CVE-2017-16138": "missed",
-              "CVE-2017-16224": "missed",
-              "CVE-2017-16226": "missed",
-              "CVE-2017-16877": "missed",
-              "CVE-2017-17461": "missed",
-              "CVE-2017-18077": "missed",
-              "CVE-2017-18214": "missed",
-              "CVE-2017-18352": "missed",
-              "CVE-2017-18353": "missed",
-              "CVE-2017-18354": "not-recognized",
-              "CVE-2017-18355": "not-recognized",
-              "CVE-2017-18635": "missed",
-              "CVE-2017-5954": "missed",
-              "CVE-2018-1000086": "missed",
-              "CVE-2018-1000096": "missed",
-              "CVE-2018-1000620": "missed",
-              "CVE-2018-1002203": "recognized",
-              "CVE-2018-1002204": "missed",
-              "CVE-2018-11093": "missed",
-              "CVE-2018-11615": "not-recognized",
-              "CVE-2018-11798": "missed",
-              "CVE-2018-13797": "missed",
-              "CVE-2018-13863": "missed",
-              "CVE-2018-14040": "missed",
-              "CVE-2018-14041": "missed",
-              "CVE-2018-14042": "missed",
-              "CVE-2018-14380": "missed",
-              "CVE-2018-16460": "recognized",
-              "CVE-2018-16461": "missed",
-              "CVE-2018-16462": "missed",
-              "CVE-2018-16472": "missed",
-              "CVE-2018-16478": "missed",
-              "CVE-2018-16479": "missed",
-              "CVE-2018-16480": "missed",
-              "CVE-2018-16484": "missed",
-              "CVE-2018-16485": "missed",
-              "CVE-2018-16487": "missed",
-              "CVE-2018-16489": "missed",
-              "CVE-2018-16490": "missed",
-              "CVE-2018-16491": "missed",
-              "CVE-2018-16492": "missed",
-              "CVE-2018-18282": "missed",
-              "CVE-2018-19048": "missed",
-              "CVE-2018-20164": "missed",
-              "CVE-2018-20676": "missed",
-              "CVE-2018-20677": "missed",
-              "CVE-2018-20801": "missed",
-              "CVE-2018-20834": "missed",
-              "CVE-2018-20835": "missed",
-              "CVE-2018-21036": "missed",
-              "CVE-2018-3712": "missed",
-              "CVE-2018-3713": "missed",
-              "CVE-2018-3718": "missed",
-              "CVE-2018-3719": "missed",
-              "CVE-2018-3721": "missed",
-              "CVE-2018-3722": "missed",
-              "CVE-2018-3725": "missed",
-              "CVE-2018-3726": "missed",
-              "CVE-2018-3728": "missed",
-              "CVE-2018-3731": "missed",
-              "CVE-2018-3732": "missed",
-              "CVE-2018-3733": "missed",
-              "CVE-2018-3736": "missed",
-              "CVE-2018-3737": "missed",
-              "CVE-2018-3738": "missed",
-              "CVE-2018-3743": "missed",
-              "CVE-2018-3746": "missed",
-              "CVE-2018-3747": "missed",
-              "CVE-2018-3750": "missed",
-              "CVE-2018-3752": "missed",
-              "CVE-2018-3757": "missed",
-              "CVE-2018-3770": "missed",
-              "CVE-2018-3772": "recognized",
-              "CVE-2018-3783": "missed",
-              "CVE-2018-3786": "missed",
-              "CVE-2018-6184": "missed",
-              "CVE-2018-6333": "missed",
-              "CVE-2018-6341": "missed",
-              "CVE-2018-6342": "missed",
-              "CVE-2018-7560": "recognized",
-              "CVE-2018-7651": "missed",
-              "CVE-2019-10061": "missed",
-              "CVE-2019-10090": "missed",
-              "CVE-2019-1010091": "missed",
-              "CVE-2019-1010266": "missed",
-              "CVE-2019-1020012": "missed",
-              "CVE-2019-10742": "missed",
-              "CVE-2019-10744": "missed",
-              "CVE-2019-10745": "missed",
-              "CVE-2019-10746": "missed",
-              "CVE-2019-10747": "missed",
-              "CVE-2019-10750": "missed",
-              "CVE-2019-10757": "missed",
-              "CVE-2019-10758": "missed",
-              "CVE-2019-10759": "missed",
-              "CVE-2019-10761": "missed",
-              "CVE-2019-10765": "missed",
-              "CVE-2019-10767": "missed",
-              "CVE-2019-10771": "missed",
-              "CVE-2019-10775": "missed",
-              "CVE-2019-10776": "missed",
-              "CVE-2019-10777": "missed",
-              "CVE-2019-10778": "not-recognized",
-              "CVE-2019-10781": "missed",
-              "CVE-2019-10785": "recognized",
-              "CVE-2019-11358": "missed",
-              "CVE-2019-12043": "missed",
-              "CVE-2019-12313": "recognized",
-              "CVE-2019-13127": "missed",
-              "CVE-2019-13173": "missed",
-              "CVE-2019-13506": "missed",
-              "CVE-2019-14772": "not-recognized",
-              "CVE-2019-14862": "missed",
-              "CVE-2019-15478": "missed",
-              "CVE-2019-15479": "missed",
-              "CVE-2019-15482": "missed",
-              "CVE-2019-15532": "missed",
-              "CVE-2019-15657": "missed",
-              "CVE-2019-15658": "missed",
-              "CVE-2019-15782": "missed",
-              "CVE-2019-16763": "missed",
-              "CVE-2019-16769": "missed",
-              "CVE-2019-17495": "not-recognized",
-              "CVE-2019-17592": "missed",
-              "CVE-2019-18350": "missed",
-              "CVE-2019-18818": "missed",
-              "CVE-2019-18954": "missed",
-              "CVE-2019-19507": "missed",
-              "CVE-2019-20149": "missed",
-              "CVE-2019-20174": "missed",
-              "CVE-2019-5413": "missed",
-              "CVE-2019-5414": "missed",
-              "CVE-2019-5423": "missed",
-              "CVE-2019-5444": "missed",
-              "CVE-2019-5479": "not-recognized",
-              "CVE-2019-5483": "missed",
-              "CVE-2019-5484": "missed",
-              "CVE-2019-8331": "missed",
-              "CVE-2019-8903": "missed",
-              "CVE-2019-9844": "missed",
-              "CVE-2020-11021": "missed",
-              "CVE-2020-11022": "missed",
-              "CVE-2020-11059": "missed",
-              "CVE-2020-11079": "not-recognized",
-              "CVE-2020-12265": "missed",
-              "CVE-2020-14000": "missed",
-              "CVE-2020-15092": "missed",
-              "CVE-2020-15095": "missed",
-              "CVE-2020-15119": "not-recognized",
-              "CVE-2020-15123": "missed",
-              "CVE-2020-15135": "missed",
-              "CVE-2020-15138": "missed",
-              "CVE-2020-15152": "missed",
-              "CVE-2020-15156": "missed",
-              "CVE-2020-15256": "missed",
-              "CVE-2020-26226": "missed",
-              "CVE-2020-26256": "missed",
-              "CVE-2020-27666": "not-recognized",
-              "CVE-2020-4051": "missed",
-              "CVE-2020-4059": "not-recognized",
-              "CVE-2020-4066": "recognized",
-              "CVE-2020-5251": "missed",
-              "CVE-2020-5258": "missed",
-              "CVE-2020-6836": "recognized",
-              "CVE-2020-7638": "recognized",
-              "CVE-2020-7656": "missed",
-              "CVE-2020-7660": "missed",
-              "CVE-2020-7662": "missed",
-              "CVE-2020-7676": "missed",
-              "CVE-2020-7699": "missed",
-              "CVE-2020-7720": "missed",
-              "CVE-2020-7750": "missed",
-              "CVE-2020-7752": "missed",
-              "CVE-2020-7763": "missed",
-              "CVE-2020-8116": "missed",
-              "CVE-2020-8135": "missed",
-              "CVE-2020-8149": "recognized",
-              "CVE-2020-8192": "missed",
-              "CVE-2020-8203": "missed",
-              "CVE-2020-8205": "missed",
-              "CVE-2020-8244": "missed",
-              "CVE-2020-9038": "missed",
-              "CVE-2021-23344": "missed",
-              "CVE-2021-23364": "missed",
-              "CVE-2021-31712": "missed"
-            },
-            "span_match": {
-              "totals": {
-                "cves": 220,
-                "tp": 25,
-                "fn": 195,
-                "fp": 13,
-                "tn": 207,
-                "cwe_matched": 20,
-                "fp_fix_elsewhere": 2,
-                "file_flagged": 91,
-                "tpr": 0.1136,
-                "fpr": 0.0591,
-                "score": 0.0545,
-                "precision": 0.6579
-              }
-            },
-            "at_min_confidence_medium": {
-              "totals": {
-                "cves": 220,
-                "tp": 7,
-                "fn": 213,
-                "fp": 6,
-                "tn": 214,
-                "cwe_matched": 6,
-                "fp_fix_elsewhere": 1,
-                "file_flagged": 17,
-                "tpr": 0.0318,
-                "fpr": 0.0273,
-                "score": 0.0045,
-                "precision": 0.5385
-              }
-            },
-            "low_confidence_findings": 442,
-            "rules": 1074,
-            "semgrep_version": "1.174.0",
-            "semgrep_notifications": {
-              "timeouts": 16,
-              "syntax_errors": 6,
-              "other": 0
-            },
-            "sast_findings": 504,
-            "sast_findings_by_severity": {
-              "high": 48,
-              "low": 21,
-              "medium": 435
-            }
-          }
-        },
-        "auto": {
-          "label": "Semgrep, p/default + `auto` stack packs (opt-in)",
-          "engines_enabled": [
-            "semgrep"
-          ],
-          "semgrep_rules": [
-            "default",
-            "auto"
-          ],
-          "runtime_seconds": 113.0,
-          "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
-          "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
-          },
-          "attempts": 1,
-          "provenance": {
-            "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:54:13Z",
-            "target": "filesystem",
-            "offline": false,
-            "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
-            },
-            "databases": {},
-            "scope": {
-              "mode": "full"
-            },
-            "timings": {
-              "engines": {
-                "semgrep": 111.1
-              },
-              "scanners_s": 112,
-              "collector_s": 0.4,
-              "total_s": 113
-            },
-            "repo_config": null,
-            "checkov_frameworks": "none"
-          },
-          "brief": {
-            "bytes": 80428,
-            "approx_tokens": 19866,
+            "bytes": 80455,
+            "approx_tokens": 19872,
             "detailed": 39,
             "one_line": 470,
             "repeated": 23,
@@ -2908,6 +2431,483 @@
                 "tn": 30,
                 "cwe_matched": 0,
                 "fp_fix_elsewhere": 0,
+                "file_flagged": 8,
+                "tpr": 0.0645,
+                "fpr": 0.0323,
+                "score": 0.0322,
+                "precision": 0.6667
+              },
+              "sqli": {
+                "cves": 4,
+                "tp": 0,
+                "fn": 4,
+                "fp": 0,
+                "tn": 4,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 0,
+                "tpr": 0.0,
+                "fpr": 0.0,
+                "score": 0.0,
+                "precision": null
+              },
+              "ssrf": {
+                "cves": 3,
+                "tp": 1,
+                "fn": 2,
+                "fp": 1,
+                "tn": 2,
+                "cwe_matched": 1,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 1,
+                "tpr": 0.3333,
+                "fpr": 0.3333,
+                "score": 0.0,
+                "precision": 0.5
+              },
+              "xss": {
+                "cves": 56,
+                "tp": 8,
+                "fn": 48,
+                "fp": 5,
+                "tn": 51,
+                "cwe_matched": 7,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 19,
+                "tpr": 0.1429,
+                "fpr": 0.0893,
+                "score": 0.0536,
+                "precision": 0.6154
+              }
+            },
+            "totals": {
+              "cves": 220,
+              "tp": 24,
+              "fn": 196,
+              "fp": 13,
+              "tn": 207,
+              "cwe_matched": 19,
+              "fp_fix_elsewhere": 2,
+              "file_flagged": 92,
+              "tpr": 0.1091,
+              "fpr": 0.0591,
+              "score": 0.05,
+              "precision": 0.6486
+            },
+            "match": "line",
+            "test_cases": 220,
+            "outcome": {
+              "CVE-2016-10735": "missed",
+              "CVE-2017-0931": "missed",
+              "CVE-2017-1000006": "missed",
+              "CVE-2017-1000219": "missed",
+              "CVE-2017-1000427": "missed",
+              "CVE-2017-1001004": "missed",
+              "CVE-2017-10910": "missed",
+              "CVE-2017-15010": "missed",
+              "CVE-2017-16003": "missed",
+              "CVE-2017-16006": "missed",
+              "CVE-2017-16011": "missed",
+              "CVE-2017-16014": "missed",
+              "CVE-2017-16018": "missed",
+              "CVE-2017-16023": "not-recognized",
+              "CVE-2017-16026": "missed",
+              "CVE-2017-16028": "missed",
+              "CVE-2017-16029": "missed",
+              "CVE-2017-16030": "missed",
+              "CVE-2017-16031": "missed",
+              "CVE-2017-16034": "missed",
+              "CVE-2017-16042": "missed",
+              "CVE-2017-16043": "missed",
+              "CVE-2017-16082": "recognized",
+              "CVE-2017-16083": "missed",
+              "CVE-2017-16084": "missed",
+              "CVE-2017-16087": "missed",
+              "CVE-2017-16098": "missed",
+              "CVE-2017-16100": "not-recognized",
+              "CVE-2017-16107": "missed",
+              "CVE-2017-16114": "missed",
+              "CVE-2017-16117": "missed",
+              "CVE-2017-16118": "missed",
+              "CVE-2017-16119": "missed",
+              "CVE-2017-16136": "missed",
+              "CVE-2017-16137": "missed",
+              "CVE-2017-16138": "missed",
+              "CVE-2017-16224": "missed",
+              "CVE-2017-16226": "missed",
+              "CVE-2017-16877": "missed",
+              "CVE-2017-17461": "missed",
+              "CVE-2017-18077": "missed",
+              "CVE-2017-18214": "missed",
+              "CVE-2017-18352": "missed",
+              "CVE-2017-18353": "missed",
+              "CVE-2017-18354": "not-recognized",
+              "CVE-2017-18355": "not-recognized",
+              "CVE-2017-18635": "missed",
+              "CVE-2017-5954": "missed",
+              "CVE-2018-1000086": "missed",
+              "CVE-2018-1000096": "missed",
+              "CVE-2018-1000620": "missed",
+              "CVE-2018-1002203": "recognized",
+              "CVE-2018-1002204": "missed",
+              "CVE-2018-11093": "missed",
+              "CVE-2018-11615": "not-recognized",
+              "CVE-2018-11798": "missed",
+              "CVE-2018-13797": "missed",
+              "CVE-2018-13863": "missed",
+              "CVE-2018-14040": "missed",
+              "CVE-2018-14041": "missed",
+              "CVE-2018-14042": "missed",
+              "CVE-2018-14380": "missed",
+              "CVE-2018-16460": "recognized",
+              "CVE-2018-16461": "missed",
+              "CVE-2018-16462": "missed",
+              "CVE-2018-16472": "missed",
+              "CVE-2018-16478": "missed",
+              "CVE-2018-16479": "missed",
+              "CVE-2018-16480": "missed",
+              "CVE-2018-16484": "missed",
+              "CVE-2018-16485": "missed",
+              "CVE-2018-16487": "missed",
+              "CVE-2018-16489": "missed",
+              "CVE-2018-16490": "missed",
+              "CVE-2018-16491": "missed",
+              "CVE-2018-16492": "missed",
+              "CVE-2018-18282": "missed",
+              "CVE-2018-19048": "missed",
+              "CVE-2018-20164": "missed",
+              "CVE-2018-20676": "missed",
+              "CVE-2018-20677": "missed",
+              "CVE-2018-20801": "missed",
+              "CVE-2018-20834": "missed",
+              "CVE-2018-20835": "missed",
+              "CVE-2018-21036": "missed",
+              "CVE-2018-3712": "missed",
+              "CVE-2018-3713": "missed",
+              "CVE-2018-3718": "missed",
+              "CVE-2018-3719": "missed",
+              "CVE-2018-3721": "missed",
+              "CVE-2018-3722": "missed",
+              "CVE-2018-3725": "missed",
+              "CVE-2018-3726": "missed",
+              "CVE-2018-3728": "missed",
+              "CVE-2018-3731": "missed",
+              "CVE-2018-3732": "missed",
+              "CVE-2018-3733": "missed",
+              "CVE-2018-3736": "missed",
+              "CVE-2018-3737": "missed",
+              "CVE-2018-3738": "missed",
+              "CVE-2018-3743": "missed",
+              "CVE-2018-3746": "missed",
+              "CVE-2018-3747": "missed",
+              "CVE-2018-3750": "missed",
+              "CVE-2018-3752": "missed",
+              "CVE-2018-3757": "missed",
+              "CVE-2018-3770": "missed",
+              "CVE-2018-3772": "recognized",
+              "CVE-2018-3783": "missed",
+              "CVE-2018-3786": "missed",
+              "CVE-2018-6184": "missed",
+              "CVE-2018-6333": "missed",
+              "CVE-2018-6341": "missed",
+              "CVE-2018-6342": "missed",
+              "CVE-2018-7560": "recognized",
+              "CVE-2018-7651": "missed",
+              "CVE-2019-10061": "missed",
+              "CVE-2019-10090": "missed",
+              "CVE-2019-1010091": "missed",
+              "CVE-2019-1010266": "missed",
+              "CVE-2019-1020012": "missed",
+              "CVE-2019-10742": "missed",
+              "CVE-2019-10744": "missed",
+              "CVE-2019-10745": "missed",
+              "CVE-2019-10746": "missed",
+              "CVE-2019-10747": "missed",
+              "CVE-2019-10750": "missed",
+              "CVE-2019-10757": "missed",
+              "CVE-2019-10758": "missed",
+              "CVE-2019-10759": "missed",
+              "CVE-2019-10761": "missed",
+              "CVE-2019-10765": "missed",
+              "CVE-2019-10767": "missed",
+              "CVE-2019-10771": "missed",
+              "CVE-2019-10775": "missed",
+              "CVE-2019-10776": "missed",
+              "CVE-2019-10777": "missed",
+              "CVE-2019-10778": "not-recognized",
+              "CVE-2019-10781": "missed",
+              "CVE-2019-10785": "recognized",
+              "CVE-2019-11358": "missed",
+              "CVE-2019-12043": "missed",
+              "CVE-2019-12313": "recognized",
+              "CVE-2019-13127": "missed",
+              "CVE-2019-13173": "missed",
+              "CVE-2019-13506": "missed",
+              "CVE-2019-14772": "not-recognized",
+              "CVE-2019-14862": "missed",
+              "CVE-2019-15478": "missed",
+              "CVE-2019-15479": "missed",
+              "CVE-2019-15482": "missed",
+              "CVE-2019-15532": "missed",
+              "CVE-2019-15657": "missed",
+              "CVE-2019-15658": "missed",
+              "CVE-2019-15782": "missed",
+              "CVE-2019-16763": "missed",
+              "CVE-2019-16769": "missed",
+              "CVE-2019-17495": "not-recognized",
+              "CVE-2019-17592": "missed",
+              "CVE-2019-18350": "missed",
+              "CVE-2019-18818": "missed",
+              "CVE-2019-18954": "missed",
+              "CVE-2019-19507": "missed",
+              "CVE-2019-20149": "missed",
+              "CVE-2019-20174": "missed",
+              "CVE-2019-5413": "missed",
+              "CVE-2019-5414": "missed",
+              "CVE-2019-5423": "missed",
+              "CVE-2019-5444": "missed",
+              "CVE-2019-5479": "not-recognized",
+              "CVE-2019-5483": "missed",
+              "CVE-2019-5484": "missed",
+              "CVE-2019-8331": "missed",
+              "CVE-2019-8903": "missed",
+              "CVE-2019-9844": "missed",
+              "CVE-2020-11021": "missed",
+              "CVE-2020-11022": "missed",
+              "CVE-2020-11059": "missed",
+              "CVE-2020-11079": "not-recognized",
+              "CVE-2020-12265": "missed",
+              "CVE-2020-14000": "missed",
+              "CVE-2020-15092": "missed",
+              "CVE-2020-15095": "missed",
+              "CVE-2020-15119": "not-recognized",
+              "CVE-2020-15123": "missed",
+              "CVE-2020-15135": "missed",
+              "CVE-2020-15138": "missed",
+              "CVE-2020-15152": "missed",
+              "CVE-2020-15156": "missed",
+              "CVE-2020-15256": "missed",
+              "CVE-2020-26226": "missed",
+              "CVE-2020-26256": "missed",
+              "CVE-2020-27666": "not-recognized",
+              "CVE-2020-4051": "missed",
+              "CVE-2020-4059": "not-recognized",
+              "CVE-2020-4066": "recognized",
+              "CVE-2020-5251": "missed",
+              "CVE-2020-5258": "missed",
+              "CVE-2020-6836": "recognized",
+              "CVE-2020-7638": "recognized",
+              "CVE-2020-7656": "missed",
+              "CVE-2020-7660": "missed",
+              "CVE-2020-7662": "missed",
+              "CVE-2020-7676": "missed",
+              "CVE-2020-7699": "missed",
+              "CVE-2020-7720": "missed",
+              "CVE-2020-7750": "missed",
+              "CVE-2020-7752": "missed",
+              "CVE-2020-7763": "missed",
+              "CVE-2020-8116": "missed",
+              "CVE-2020-8135": "missed",
+              "CVE-2020-8149": "recognized",
+              "CVE-2020-8192": "missed",
+              "CVE-2020-8203": "missed",
+              "CVE-2020-8205": "missed",
+              "CVE-2020-8244": "missed",
+              "CVE-2020-9038": "missed",
+              "CVE-2021-23344": "missed",
+              "CVE-2021-23364": "missed",
+              "CVE-2021-31712": "missed"
+            },
+            "span_match": {
+              "totals": {
+                "cves": 220,
+                "tp": 25,
+                "fn": 195,
+                "fp": 13,
+                "tn": 207,
+                "cwe_matched": 20,
+                "fp_fix_elsewhere": 2,
+                "file_flagged": 92,
+                "tpr": 0.1136,
+                "fpr": 0.0591,
+                "score": 0.0545,
+                "precision": 0.6579
+              }
+            },
+            "at_min_confidence_medium": {
+              "totals": {
+                "cves": 220,
+                "tp": 7,
+                "fn": 213,
+                "fp": 6,
+                "tn": 214,
+                "cwe_matched": 6,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 17,
+                "tpr": 0.0318,
+                "fpr": 0.0273,
+                "score": 0.0045,
+                "precision": 0.5385
+              }
+            },
+            "low_confidence_findings": 447,
+            "rules": 1074,
+            "semgrep_version": "1.183.0",
+            "semgrep_notifications": {
+              "timeouts": 14,
+              "syntax_errors": 6,
+              "other": 0
+            },
+            "sast_findings": 509,
+            "sast_findings_by_severity": {
+              "high": 48,
+              "low": 21,
+              "medium": 440
+            }
+          }
+        },
+        "auto": {
+          "label": "Semgrep, p/default + `auto` stack packs (opt-in)",
+          "engines_enabled": [
+            "semgrep"
+          ],
+          "semgrep_rules": [
+            "default",
+            "auto"
+          ],
+          "runtime_seconds": 103.6,
+          "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
+          "db_dates_on_disk_after_run": {
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
+          },
+          "attempts": 1,
+          "provenance": {
+            "appsec_compose": "1.4.0",
+            "generated": "2026-11-07T12:50:12Z",
+            "target": "filesystem",
+            "offline": false,
+            "engines": {
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
+            },
+            "databases": {},
+            "scope": {
+              "mode": "full"
+            },
+            "timings": {
+              "engines": {
+                "semgrep": 101.8
+              },
+              "scanners_s": 102,
+              "collector_s": 0.3,
+              "total_s": 103
+            },
+            "repo_config": null,
+            "checkov_frameworks": "none"
+          },
+          "brief": {
+            "bytes": 80427,
+            "approx_tokens": 19865,
+            "detailed": 39,
+            "one_line": 468,
+            "repeated": 23,
+            "low_confidence": 445,
+            "counted_only": 0
+          },
+          "score": {
+            "categories": {
+              "cmdi": {
+                "cves": 25,
+                "tp": 8,
+                "fn": 17,
+                "fp": 4,
+                "tn": 21,
+                "cwe_matched": 8,
+                "fp_fix_elsewhere": 1,
+                "file_flagged": 16,
+                "tpr": 0.32,
+                "fpr": 0.16,
+                "score": 0.16,
+                "precision": 0.6667
+              },
+              "codeinj": {
+                "cves": 14,
+                "tp": 1,
+                "fn": 13,
+                "fp": 0,
+                "tn": 14,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 5,
+                "tpr": 0.0714,
+                "fpr": 0.0,
+                "score": 0.0714,
+                "precision": 1.0
+              },
+              "other": {
+                "cves": 28,
+                "tp": 1,
+                "fn": 27,
+                "fp": 1,
+                "tn": 27,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 8,
+                "tpr": 0.0357,
+                "fpr": 0.0357,
+                "score": 0.0,
+                "precision": 0.5
+              },
+              "pathtraver": {
+                "cves": 29,
+                "tp": 2,
+                "fn": 27,
+                "fp": 1,
+                "tn": 28,
+                "cwe_matched": 2,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 20,
+                "tpr": 0.069,
+                "fpr": 0.0345,
+                "score": 0.0345,
+                "precision": 0.6667
+              },
+              "protopollution": {
+                "cves": 23,
+                "tp": 1,
+                "fn": 22,
+                "fp": 0,
+                "tn": 23,
+                "cwe_matched": 1,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 12,
+                "tpr": 0.0435,
+                "fpr": 0.0,
+                "score": 0.0435,
+                "precision": 1.0
+              },
+              "redirect": {
+                "cves": 7,
+                "tp": 0,
+                "fn": 7,
+                "fp": 0,
+                "tn": 7,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
+                "file_flagged": 3,
+                "tpr": 0.0,
+                "fpr": 0.0,
+                "score": 0.0,
+                "precision": null
+              },
+              "redos": {
+                "cves": 31,
+                "tp": 2,
+                "fn": 29,
+                "fp": 1,
+                "tn": 30,
+                "cwe_matched": 0,
+                "fp_fix_elsewhere": 0,
                 "file_flagged": 7,
                 "tpr": 0.0645,
                 "fpr": 0.0323,
@@ -3227,19 +3227,19 @@
                 "precision": 0.5385
               }
             },
-            "low_confidence_findings": 447,
+            "low_confidence_findings": 445,
             "rules": 1075,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
-              "timeouts": 16,
+              "timeouts": 15,
               "syntax_errors": 6,
               "other": 0
             },
-            "sast_findings": 509,
+            "sast_findings": 507,
             "sast_findings_by_severity": {
               "high": 48,
               "low": 21,
-              "medium": 440
+              "medium": 438
             }
           }
         },
@@ -3251,20 +3251,20 @@
           "semgrep_rules": [
             "p/javascript"
           ],
-          "runtime_seconds": 63.2,
+          "runtime_seconds": 51.6,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:55:17Z",
+            "generated": "2026-11-07T12:51:04Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -3272,11 +3272,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 61.4
+                "semgrep": 49.9
               },
-              "scanners_s": 62,
+              "scanners_s": 50,
               "collector_s": 0.2,
-              "total_s": 63
+              "total_s": 51
             },
             "repo_config": null,
             "checkov_frameworks": "none"
@@ -3705,7 +3705,7 @@
             },
             "low_confidence_findings": 0,
             "rules": 74,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 6,
               "syntax_errors": 4,
@@ -3725,20 +3725,20 @@
           "semgrep_rules": [
             "p/nodejs"
           ],
-          "runtime_seconds": 48.8,
+          "runtime_seconds": 46.0,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:56:05Z",
+            "generated": "2026-11-07T12:51:50Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -3746,11 +3746,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 47.1
+                "semgrep": 44.2
               },
-              "scanners_s": 47,
+              "scanners_s": 44,
               "collector_s": 0.2,
-              "total_s": 49
+              "total_s": 46
             },
             "repo_config": null,
             "checkov_frameworks": "none"
@@ -4179,9 +4179,9 @@
             },
             "low_confidence_findings": 0,
             "rules": 36,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
-              "timeouts": 2,
+              "timeouts": 0,
               "syntax_errors": 2,
               "other": 0
             },
@@ -4199,20 +4199,20 @@
           "semgrep_rules": [
             "p/expressjs"
           ],
-          "runtime_seconds": 55.8,
+          "runtime_seconds": 51.5,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:57:01Z",
+            "generated": "2026-11-07T12:52:41Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -4220,11 +4220,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 54.0
+                "semgrep": 49.7
               },
-              "scanners_s": 55,
+              "scanners_s": 50,
               "collector_s": 0.2,
-              "total_s": 55
+              "total_s": 51
             },
             "repo_config": null,
             "checkov_frameworks": "none"
@@ -4653,7 +4653,7 @@
             },
             "low_confidence_findings": 0,
             "rules": 71,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 6,
               "syntax_errors": 4,
@@ -4673,20 +4673,20 @@
           "semgrep_rules": [
             "p/react"
           ],
-          "runtime_seconds": 13.3,
+          "runtime_seconds": 12.4,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:57:15Z",
+            "generated": "2026-11-07T12:52:54Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -4694,11 +4694,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 11.6
+                "semgrep": 10.7
               },
-              "scanners_s": 12,
+              "scanners_s": 11,
               "collector_s": 0.2,
-              "total_s": 13
+              "total_s": 12
             },
             "repo_config": null,
             "checkov_frameworks": "none"
@@ -5127,9 +5127,9 @@
             },
             "low_confidence_findings": 0,
             "rules": 4,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
-              "timeouts": 1,
+              "timeouts": 2,
               "syntax_errors": 2,
               "other": 0
             },
@@ -5147,20 +5147,20 @@
           "semgrep_rules": [
             "p/nodejsscan"
           ],
-          "runtime_seconds": 152.9,
+          "runtime_seconds": 145.9,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:59:47Z",
+            "generated": "2026-11-07T12:55:20Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -5168,21 +5168,21 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 151.0
+                "semgrep": 144.0
               },
-              "scanners_s": 151,
+              "scanners_s": 144,
               "collector_s": 0.3,
-              "total_s": 153
+              "total_s": 146
             },
             "repo_config": null,
             "checkov_frameworks": "none"
           },
           "brief": {
-            "bytes": 89300,
-            "approx_tokens": 22097,
-            "detailed": 75,
-            "one_line": 238,
-            "repeated": 238,
+            "bytes": 92010,
+            "approx_tokens": 22766,
+            "detailed": 78,
+            "one_line": 245,
+            "repeated": 245,
             "low_confidence": 0,
             "counted_only": 0
           },
@@ -5210,7 +5210,7 @@
                 "tn": 14,
                 "cwe_matched": 0,
                 "fp_fix_elsewhere": 0,
-                "file_flagged": 1,
+                "file_flagged": 2,
                 "tpr": 0.0,
                 "fpr": 0.0,
                 "score": 0.0,
@@ -5337,7 +5337,7 @@
               "tn": 216,
               "cwe_matched": 3,
               "fp_fix_elsewhere": 1,
-              "file_flagged": 55,
+              "file_flagged": 56,
               "tpr": 0.0318,
               "fpr": 0.0182,
               "score": 0.0136,
@@ -5576,7 +5576,7 @@
                 "tn": 212,
                 "cwe_matched": 7,
                 "fp_fix_elsewhere": 1,
-                "file_flagged": 55,
+                "file_flagged": 56,
                 "tpr": 0.0591,
                 "fpr": 0.0364,
                 "score": 0.0227,
@@ -5592,7 +5592,7 @@
                 "tn": 216,
                 "cwe_matched": 3,
                 "fp_fix_elsewhere": 1,
-                "file_flagged": 55,
+                "file_flagged": 56,
                 "tpr": 0.0318,
                 "fpr": 0.0182,
                 "score": 0.0136,
@@ -5601,17 +5601,17 @@
             },
             "low_confidence_findings": 0,
             "rules": 114,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
-              "timeouts": 74,
+              "timeouts": 69,
               "syntax_errors": 4,
               "other": 0
             },
-            "sast_findings": 313,
+            "sast_findings": 323,
             "sast_findings_by_severity": {
-              "high": 94,
+              "high": 97,
               "low": 12,
-              "medium": 207
+              "medium": 214
             }
           }
         },
@@ -5623,20 +5623,20 @@
           "semgrep_rules": [
             "p/security-audit"
           ],
-          "runtime_seconds": 23.8,
+          "runtime_seconds": 23.6,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T12:00:11Z",
+            "generated": "2026-11-07T12:55:43Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -5644,9 +5644,9 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 22.0
+                "semgrep": 21.8
               },
-              "scanners_s": 23,
+              "scanners_s": 22,
               "collector_s": 0.2,
               "total_s": 23
             },
@@ -6077,9 +6077,9 @@
             },
             "low_confidence_findings": 43,
             "rules": 225,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
-              "timeouts": 13,
+              "timeouts": 10,
               "syntax_errors": 4,
               "other": 0
             },
@@ -6099,20 +6099,20 @@
             "default",
             "p/nodejsscan"
           ],
-          "runtime_seconds": 220.8,
+          "runtime_seconds": 221.1,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T12:03:52Z",
+            "generated": "2026-11-07T12:59:24Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -6120,22 +6120,22 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 218.9
+                "semgrep": 219.2
               },
-              "scanners_s": 219,
+              "scanners_s": 220,
               "collector_s": 0.4,
-              "total_s": 220
+              "total_s": 221
             },
             "repo_config": null,
             "checkov_frameworks": "none"
           },
           "brief": {
-            "bytes": 167867,
-            "approx_tokens": 41507,
-            "detailed": 117,
-            "one_line": 649,
-            "repeated": 268,
-            "low_confidence": 381,
+            "bytes": 170221,
+            "approx_tokens": 42088,
+            "detailed": 118,
+            "one_line": 665,
+            "repeated": 278,
+            "low_confidence": 387,
             "counted_only": 0
           },
           "score": {
@@ -6162,7 +6162,7 @@
                 "tn": 14,
                 "cwe_matched": 0,
                 "fp_fix_elsewhere": 0,
-                "file_flagged": 3,
+                "file_flagged": 4,
                 "tpr": 0.0714,
                 "fpr": 0.0,
                 "score": 0.0714,
@@ -6289,7 +6289,7 @@
               "tn": 205,
               "cwe_matched": 21,
               "fp_fix_elsewhere": 3,
-              "file_flagged": 111,
+              "file_flagged": 112,
               "tpr": 0.1318,
               "fpr": 0.0682,
               "score": 0.0636,
@@ -6528,7 +6528,7 @@
                 "tn": 202,
                 "cwe_matched": 25,
                 "fp_fix_elsewhere": 3,
-                "file_flagged": 111,
+                "file_flagged": 112,
                 "tpr": 0.1591,
                 "fpr": 0.0818,
                 "score": 0.0773,
@@ -6544,26 +6544,26 @@
                 "tn": 210,
                 "cwe_matched": 9,
                 "fp_fix_elsewhere": 2,
-                "file_flagged": 66,
+                "file_flagged": 67,
                 "tpr": 0.0636,
                 "fpr": 0.0455,
                 "score": 0.0181,
                 "precision": 0.5833
               }
             },
-            "low_confidence_findings": 381,
+            "low_confidence_findings": 387,
             "rules": 1188,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
-              "timeouts": 68,
+              "timeouts": 65,
               "syntax_errors": 6,
               "other": 0
             },
-            "sast_findings": 766,
+            "sast_findings": 783,
             "sast_findings_by_severity": {
-              "high": 145,
+              "high": 148,
               "low": 33,
-              "medium": 588
+              "medium": 602
             }
           }
         },
@@ -6582,20 +6582,20 @@
             "p/nodejsscan",
             "p/security-audit"
           ],
-          "runtime_seconds": 239.6,
+          "runtime_seconds": 244.2,
           "corpus_tree_sha256": "57e8981c781812a28569f28d1609a65b195b7030c552ced699bd8d35457b4e75",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T12:07:52Z",
+            "generated": "2026-11-07T13:03:29Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -6603,18 +6603,18 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 237.6
+                "semgrep": 242.3
               },
-              "scanners_s": 238,
-              "collector_s": 0.4,
-              "total_s": 239
+              "scanners_s": 243,
+              "collector_s": 0.3,
+              "total_s": 244
             },
             "repo_config": null,
             "checkov_frameworks": "none"
           },
           "brief": {
-            "bytes": 165484,
-            "approx_tokens": 40918,
+            "bytes": 165588,
+            "approx_tokens": 40944,
             "detailed": 114,
             "one_line": 643,
             "repeated": 260,
@@ -7036,9 +7036,9 @@
             },
             "low_confidence_findings": 383,
             "rules": 1204,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
-              "timeouts": 70,
+              "timeouts": 67,
               "syntax_errors": 6,
               "other": 0
             },
@@ -7052,9 +7052,9 @@
         }
       },
       "measured": {
-        "generated": "2026-11-07T11:47:21Z",
+        "generated": "2026-11-07T12:39:02Z",
         "appsec_compose": "1.4.0",
-        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
+        "appsec_compose_commit": "88b1b3977a775e2c33810d747fe80afa3b1169b7"
       }
     },
     "sast-python": {
@@ -7076,20 +7076,20 @@
           "semgrep_rules": [
             "default"
           ],
-          "runtime_seconds": 19.2,
+          "runtime_seconds": 21.8,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:49:14Z",
+            "generated": "2026-11-07T12:45:14Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -7097,11 +7097,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 17.3
+                "semgrep": 19.2
               },
-              "scanners_s": 17,
+              "scanners_s": 20,
               "collector_s": 0.4,
-              "total_s": 18
+              "total_s": 22
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -7331,7 +7331,7 @@
             },
             "low_confidence_findings": 297,
             "rules": 1074,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -7353,20 +7353,20 @@
             "default",
             "auto"
           ],
-          "runtime_seconds": 19.8,
+          "runtime_seconds": 19.2,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:49:34Z",
+            "generated": "2026-11-07T12:45:34Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -7374,7 +7374,7 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 17.9
+                "semgrep": 17.3
               },
               "scanners_s": 18,
               "collector_s": 0.4,
@@ -7608,7 +7608,7 @@
             },
             "low_confidence_findings": 297,
             "rules": 1105,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -7629,20 +7629,20 @@
           "semgrep_rules": [
             "p/python"
           ],
-          "runtime_seconds": 8.1,
+          "runtime_seconds": 7.8,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:49:42Z",
+            "generated": "2026-11-07T12:45:42Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -7650,11 +7650,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 6.4
+                "semgrep": 6.2
               },
-              "scanners_s": 7,
-              "collector_s": 0.2,
-              "total_s": 7
+              "scanners_s": 6,
+              "collector_s": 0.1,
+              "total_s": 8
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -7884,7 +7884,7 @@
             },
             "low_confidence_findings": 0,
             "rules": 151,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -7905,20 +7905,20 @@
           "semgrep_rules": [
             "p/flask"
           ],
-          "runtime_seconds": 5.5,
+          "runtime_seconds": 5.9,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:49:48Z",
+            "generated": "2026-11-07T12:45:48Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -7926,11 +7926,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 3.9
+                "semgrep": 4.2
               },
               "scanners_s": 4,
               "collector_s": 0.1,
-              "total_s": 5
+              "total_s": 6
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -8160,7 +8160,7 @@
             },
             "low_confidence_findings": 0,
             "rules": 18,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -8181,20 +8181,20 @@
           "semgrep_rules": [
             "p/django"
           ],
-          "runtime_seconds": 8.1,
+          "runtime_seconds": 8.0,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:49:56Z",
+            "generated": "2026-11-07T12:45:56Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -8202,7 +8202,7 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 6.4
+                "semgrep": 6.2
               },
               "scanners_s": 6,
               "collector_s": 0.3,
@@ -8436,7 +8436,7 @@
             },
             "low_confidence_findings": 0,
             "rules": 28,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -8457,20 +8457,20 @@
           "semgrep_rules": [
             "p/security-audit"
           ],
-          "runtime_seconds": 7.5,
+          "runtime_seconds": 7.7,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:50:04Z",
+            "generated": "2026-11-07T12:46:03Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -8478,7 +8478,7 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 5.8
+                "semgrep": 6.0
               },
               "scanners_s": 6,
               "collector_s": 0.2,
@@ -8712,7 +8712,7 @@
             },
             "low_confidence_findings": 342,
             "rules": 225,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -8733,20 +8733,20 @@
           "semgrep_rules": [
             "p/owasp-top-ten"
           ],
-          "runtime_seconds": 13.0,
+          "runtime_seconds": 12.5,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:50:17Z",
+            "generated": "2026-11-07T12:46:16Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -8754,11 +8754,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 11.3
+                "semgrep": 10.8
               },
-              "scanners_s": 12,
-              "collector_s": 0.2,
-              "total_s": 13
+              "scanners_s": 11,
+              "collector_s": 0.1,
+              "total_s": 12
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -8988,7 +8988,7 @@
             },
             "low_confidence_findings": 0,
             "rules": 560,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -9014,20 +9014,20 @@
             "p/security-audit",
             "p/owasp-top-ten"
           ],
-          "runtime_seconds": 22.3,
+          "runtime_seconds": 22.0,
           "corpus_tree_sha256": "f60f2d3de30431f2e6ce76e1ffe664ccfd2c6e06fd9804fc259ca9102e6db179",
           "db_dates_on_disk_after_run": {
-            "trivy": "2026-11-04T01:28:23.13686565Z",
-            "grype": "2026-11-04T00:19:46Z"
+            "trivy": "2026-11-07T06:54:25.084761873Z",
+            "grype": "2026-11-07T00:20:09Z"
           },
           "attempts": 1,
           "provenance": {
             "appsec_compose": "1.4.0",
-            "generated": "2026-11-07T11:50:39Z",
+            "generated": "2026-11-07T12:46:38Z",
             "target": "filesystem",
             "offline": false,
             "engines": {
-              "semgrep": "semgrep/semgrep@sha256:f1f7b71861c7b28b6e0f661225a2c4f58a484f5d0f182465c6d6b3b22f972ade"
+              "semgrep": "semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0"
             },
             "databases": {},
             "scope": {
@@ -9035,11 +9035,11 @@
             },
             "timings": {
               "engines": {
-                "semgrep": 20.4
+                "semgrep": 20.1
               },
               "scanners_s": 20,
               "collector_s": 0.4,
-              "total_s": 22
+              "total_s": 21
             },
             "repo_config": null,
             "checkov_frameworks": [
@@ -9269,7 +9269,7 @@
             },
             "low_confidence_findings": 410,
             "rules": 1157,
-            "semgrep_version": "1.174.0",
+            "semgrep_version": "1.183.0",
             "semgrep_notifications": {
               "timeouts": 0,
               "syntax_errors": 0,
@@ -9284,9 +9284,9 @@
         }
       },
       "measured": {
-        "generated": "2026-11-07T11:47:21Z",
+        "generated": "2026-11-07T12:39:02Z",
         "appsec_compose": "1.4.0",
-        "appsec_compose_commit": "b8ac5b50389aa10bd44086b74af30fa2ba776fdb"
+        "appsec_compose_commit": "88b1b3977a775e2c33810d747fe80afa3b1169b7"
       }
     }
   }
