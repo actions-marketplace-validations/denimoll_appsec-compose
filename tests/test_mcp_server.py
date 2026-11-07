@@ -643,3 +643,14 @@ def test_no_repo_config_passes_neither_the_config_nor_the_baseline(tool, repo):
     argv = core.build_argv(core.detect_cli(), repo, repo / "r", no_repo_config=True)
     assert "--no-repo-config" in argv
     assert "--repo-config" not in argv and "--baseline" not in argv
+
+
+def test_the_servers_gate_honours_min_confidence(tmp_path):
+    doc = {"policy": {"fail_on": "high", "min_confidence": "medium"}}
+    report = views.Report(tmp_path, {}, doc, [], [])
+    low = {"category": "sast", "severity": "high", "confidence": "low"}
+    assert not report.gates(low)
+    assert report.gates({**low, "confidence": ""}) and report.gates({**low, "confidence": "medium"})
+    argv = core.build_argv(core.Cli(["appsec-compose", "scan"], "cli", True, True),
+                           tmp_path, tmp_path / "r", min_confidence="medium")
+    assert argv[argv.index("--min-confidence") + 1] == "medium"

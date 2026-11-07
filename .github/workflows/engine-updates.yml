@@ -1,0 +1,122 @@
+name: engine updates
+
+# Weekly: move every engine to its newest stable release that is at least a
+# week old (scripts/update-engines.py), re-pin the image digests, run the
+# tests, the smoke test and the benchmark, and open one pull request that says
+# what changed and what it did to the numbers. Nothing merges by itself.
+#
+# A failing step does not stop the pull request: the point is to see a CLI
+# change or a recall drop before merging, so the PR carries the outcome and is
+# titled [failing]. Pull requests opened with the workflow token do not trigger
+# other workflows, which is why the checks run here.
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the update branch
+      pull-requests: write   # open the pull request
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with: { ref: develop, persist-credentials: false }
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
+        with: { python-version: "3.14" }
+      - run: pip install -r tests/requirements.txt
+
+      - name: Choose versions
+        id: plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cp benchmark/results.json "$RUNNER_TEMP/results.before.json"
+          python3 scripts/update-engines.py --apply > "$RUNNER_TEMP/plan.json"
+          python3 - "$RUNNER_TEMP/plan.json" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          plan = json.load(open(sys.argv[1]))
+          print(f"changed={'true' if plan['changes'] else 'false'}")
+          PY
+
+      - name: Re-pin digests
+        if: steps.plan.outputs.changed == 'true'
+        run: ./pin.sh
+
+      - name: Tests
+        id: tests
+        if: steps.plan.outputs.changed == 'true'
+        continue-on-error: true
+        run: python -m pytest tests -q
+
+      - name: Smoke test
+        id: smoke
+        if: steps.plan.outputs.changed == 'true'
+        continue-on-error: true
+        run: ./scripts/smoke-test.sh
+
+      - name: Benchmark
+        id: bench
+        if: steps.plan.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          # Every profile: a suite is re-measured whole, so a default-only run
+          # would drop the other profiles' numbers from RESULTS.md.
+          python3 benchmark/bench.py --suite sast --suite sast-python --suite sast-js \
+            --suite secrets --suite sca
+
+      - name: Describe
+        id: describe
+        if: steps.plan.outputs.changed == 'true'
+        env:
+          TESTS: ${{ steps.tests.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+          BENCH: ${{ steps.bench.outcome }}
+        run: |
+          python3 - "$RUNNER_TEMP/plan.json" > "$RUNNER_TEMP/body.md" <<'PY'
+          import json, os, sys
+          plan = json.load(open(sys.argv[1]))
+          print("Engine upgrades, each to its newest stable release at least a week old.\n")
+          print("| Engine | From | To | |\n|---|---|---|---|")
+          for c in plan["changes"]:
+              major = "**major: check its command line**" if c.get("major") else ""
+              print(f"| {c['engine']} | {c['from']} | [{c['to']}]({c['release_url']}) | {major} |")
+          held = [c for c in plan["all"] if not c["to"] and c["note"] != "up to date"]
+          if held:
+              print("\nNot moved: " + "; ".join(f"{c['engine']} ({c['note']})" for c in held) + ".")
+          print("\n| Check | Outcome |\n|---|---|")
+          for name in ("TESTS", "SMOKE", "BENCH"):
+              print(f"| {name.lower()} | {os.environ[name]} |")
+          PY
+          {
+            echo; echo "Benchmark, shipped defaults:"; echo
+            python3 benchmark/compare.py "$RUNNER_TEMP/results.before.json" benchmark/results.json
+          } >> "$RUNNER_TEMP/body.md"
+          failing=false
+          for o in "$TESTS" "$SMOKE" "$BENCH"; do
+            [ "$o" = success ] || failing=true
+          done
+          echo "prefix=$([ "$failing" = true ] && echo '[failing] ')" >> "$GITHUB_OUTPUT"
+
+      - name: Open the pull request
+        if: steps.plan.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        with:
+          token: ${{ github.token }}
+          base: develop
+          branch: engine-updates
+          delete-branch: true
+          title: "${{ steps.describe.outputs.prefix }}Upgrade scanner engines"
+          commit-message: "Upgrade scanner engines to their newest week-old releases"
+          body-path: ${{ runner.temp }}/body.md
+          add-paths: |
+            scan-config.yml
+            scripts/render-env.py
+            docker-compose.yml
+            image-digests.lock
+            benchmark/results.json
+            benchmark/RESULTS.md

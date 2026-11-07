@@ -24,7 +24,7 @@ Needs Docker with Compose v2, Python 3.9+ with PyYAML, and bash.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
-# or pin a release:  bash install.sh --ref v.1.4.0
+# or pin a release:  bash install.sh --ref v.1.5.0
 ```
 
 ```bash
@@ -63,7 +63,9 @@ and merged across engines: [engines](docs/engines.md).
 | `findings.json` | tools and agents: a versioned contract ([schema](schemas/findings.schema.json)), stable fingerprints |
 | `native/*.sarif`, `sbom.*.json` | ASPM upload (DefectDojo, Dependency-Track, GitHub code scanning, …) |
 
-Every report records the tool version, engine images and database dates.
+Every report records the tool version, engine images and database dates, and
+every run ends with a few lines of metrics — where the time went, how far
+merging cut the raw output, what the brief costs to read (~tokens).
 [Reports](docs/reports.md).
 
 ## Exit codes
@@ -113,7 +115,7 @@ a human to review with the code. [AI agents](docs/ai-agents.md) ·
 
 ## In CI
 
-`uses: denimoll/appsec-compose@v.1.4.0` in GitHub Actions, or an `include:` of
+`uses: denimoll/appsec-compose@v.1.5.0` in GitHub Actions, or an `include:` of
 the GitLab template: [CI/CD](docs/ci.md).
 
 ## Documentation

@@ -139,6 +139,28 @@ the first step of an AI agent's security review. CI integrations come later.
       actions from zizmor, Semgrep and Checkov merge where their regions
       overlap; distinct steps stay distinct, baselines keep working.
 
+## Fewer tokens per review
+
+- [x] **Rule confidence** — every finding carries its rule's stated
+      confidence; `min_confidence` (`--min-confidence`) keeps less sure rules
+      off the gate.
+- [x] **A compact brief** — repeats of one rule after the third, and
+      non-gating low-confidence rules, are one line each, without code.
+- [x] **`--secrets-history`** — the git history as a second Gitleaks pass,
+      one flag away (it used to replace the working-tree pass).
+- [x] **`.gitignore` respected** — untracked ignored paths (caches,
+      virtualenvs, build output) are skipped by every engine, not just Semgrep.
+- [x] **Run metrics** — time, reports, raw → unique → reported, the brief's
+      size in ~tokens and database age, at the end of every run and in
+      `findings.json`.
+
+## Maintenance
+
+- [x] **Engines kept current** — weekly pull request moving every engine to its
+      newest week-old release, re-pinned, with tests, smoke test and benchmark
+      deltas in the description; Dependabot for the collector's image and
+      Python dependencies.
+
 ## CI integrations (later — current versions work)
 
 - [x] Run the GitHub Action in a real pipeline (`uses: ./`, gate included) and

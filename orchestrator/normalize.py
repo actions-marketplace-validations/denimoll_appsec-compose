@@ -121,6 +121,11 @@ class Finding:
     # SCA: the advisory says the package itself is malware (a hijacked release,
     # a typosquat), not that it has a bug. Always critical; see _malicious.
     malicious: bool = False
+    # How sure the rule's author is that a match is a real issue: "high",
+    # "medium" or "low", when the engine says (Semgrep's rule metadata, zizmor's
+    # per-result confidence); "" when it does not. A low-confidence rule is a
+    # lead to check, not a verdict, and `min_confidence` can keep it off the gate.
+    confidence: str = ""
 
     def __post_init__(self):
         if not self.tools:
@@ -319,6 +324,23 @@ def _source_suppression(res: dict) -> str | None:
     return None
 
 
+_CONFIDENCE_TAG = re.compile(r"^(low|medium|high) confidence$", re.I)
+CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
+
+
+def _confidence(rule: dict, res: dict) -> str:
+    """The engine's own confidence: zizmor states it per result, Semgrep per
+    rule, as a "LOW CONFIDENCE" tag. Anything else is "" — not stated."""
+    stated = str((res.get("properties") or {}).get(_RESULT_CONFIDENCE_KEY) or "").lower()
+    if stated in CONFIDENCE_RANK:
+        return stated
+    for tag in (rule.get("properties") or {}).get("tags") or []:
+        m = _CONFIDENCE_TAG.match(str(tag).strip())
+        if m:
+            return m.group(1).lower()
+    return ""
+
+
 def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
     """Parse one SARIF file. Raises ValueError if the file is not valid SARIF."""
     try:
@@ -365,9 +387,10 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
                        else floor)
 
             msg = ((res.get("message") or {}).get("text") or "").strip()
-            confidence = str((res.get("properties") or {}).get(_RESULT_CONFIDENCE_KEY) or "")
-            if msg and confidence and confidence.lower() != "high":
-                msg += f" (confidence: {confidence.lower()})"
+            confidence = _confidence(rule, res)
+            doubt = str((res.get("properties") or {}).get(_RESULT_CONFIDENCE_KEY) or "")
+            if msg and doubt and doubt.lower() != "high":
+                msg += f" (confidence: {doubt.lower()})"   # zizmor's doubt, read in place
 
             # Description: rule's full text/help/short description (whichever first).
             description = (
@@ -400,7 +423,7 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
                 severity_stated=stated is not None,
                 end_line=region.get("endLine"), column=region.get("startColumn"),
                 end_column=region.get("endColumn"), cwe=_cwes(rule, res),
-                fixed_version=fixed,
+                fixed_version=fixed, confidence=confidence,
             )
             # The advisory title is the rule's short description (Trivy:
             # "pkg: title", OSV: "ID: title"); OSV names MAL- aliases only in

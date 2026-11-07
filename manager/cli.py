@@ -55,6 +55,8 @@ def _parser() -> argparse.ArgumentParser:
     scan.add_argument("--all", action="store_true", help="every project, then write index.html")
     scan.add_argument("--jobs", type=int, default=1, help="with --all: projects at once (default 1)")
     scan.add_argument("--fail-on", metavar="L")
+    scan.add_argument("--min-confidence", metavar="L")
+    scan.add_argument("--secrets-history", action="store_true")
     scan.add_argument("--strict", action="store_true")
     scan.add_argument("--require-pinned", action="store_true")
     scan.add_argument("--update-baseline", action="store_true")
@@ -95,6 +97,10 @@ def _extra(args) -> list[str]:
     extra = []
     if args.fail_on:
         extra += ["--fail-on", args.fail_on]
+    if args.min_confidence:
+        extra += ["--min-confidence", args.min_confidence]
+    if args.secrets_history:
+        extra.append("--secrets-history")
     extra += [flag for flag, on in (("--strict", args.strict),
                                     ("--require-pinned", args.require_pinned),
                                     ("--update-baseline", args.update_baseline)) if on]

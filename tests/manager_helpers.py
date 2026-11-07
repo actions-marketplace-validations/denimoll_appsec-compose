@@ -47,7 +47,8 @@ exit 0
 GIT = r"""#!/bin/sh
 for a in "$@"; do printf '%s\036' "$a"; done >> "$STUB_DUMP/git-calls"
 echo >> "$STUB_DUMP/git-calls"
-env | grep '^GIT_' > "$STUB_DUMP/git-env"
+# The clone's environment: run.sh's own git calls (.gitignore) come later.
+case " $* " in *" clone "*) env | grep '^GIT_' > "$STUB_DUMP/git-env" ;; esac
 [ -n "$STUB_GIT_FAIL" ] && { echo "fatal: could not read from remote" >&2; exit 128; }
 for a in "$@"; do last="$a"; done
 case " $* " in

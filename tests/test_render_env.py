@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -282,3 +283,44 @@ def test_checkov_skips_the_guideline_download_unless_asked(tmp_path):
                         "--out-dir", str(tmp_path / "run")], check=True, capture_output=True,
                        env={**os.environ, "ASS_CONFIG_FILE": str(path)})
         assert f"CHECKOV_DOWNLOAD={flag}" in (tmp_path / "run" / ".env").read_text()
+
+
+def _git(cwd, *args):
+    subprocess.run(["git", "-C", str(cwd), *args], check=True, capture_output=True)
+
+
+def test_untracked_ignored_paths_are_excluded_tracked_ones_never(renv, tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "cache" / "db").mkdir(parents=True)
+    (repo / "cache" / "db" / "big.db").write_text("x")
+    (repo / "src" / "build").mkdir(parents=True)
+    (repo / "src" / "build" / "keep.py").write_text("tracked")   # tracked, under an ignored name
+    (repo / "build").mkdir()
+    (repo / "build" / "out.js").write_text("generated")
+    (repo / "odd name").mkdir()
+    (repo / "odd name" / "f").write_text("x")
+    (repo / ".env").write_text("LOCAL=1")
+    (repo / ".gitignore").write_text("cache/\nbuild/\n.env\nodd name/\n")
+    _git(repo, "init", "-q")
+    _git(repo, "add", "-f", ".gitignore", "src/build/keep.py")
+    entries, note = renv.gitignored(str(repo))
+    assert "cache" in entries and ".env" in entries
+    assert "build" not in entries            # would also exclude the tracked src/build
+    assert "odd name" not in entries         # not one word: it would split on a command line
+    assert "2 ignored path(s) are scanned anyway" in note
+    assert renv.gitignored(str(tmp_path / "not-a-repo")) == ([], "")
+
+
+def test_history_is_a_second_pass_and_needs_a_repository(tmp_path):
+    repo, plain = tmp_path / "repo", tmp_path / "plain"
+    (repo / ".git").mkdir(parents=True)
+    plain.mkdir()
+    rendered = _render(tmp_path, "secrets_history: true\n", SCAN_TARGET=str(repo))
+    # The working tree is still read: history adds a pass, it replaces nothing.
+    assert "GITLEAKS_CMD='dir'" in rendered and "ASS_SECRETS_HISTORY='1'" in rendered
+    rendered = _render(tmp_path, "offline: false\n", SCAN_TARGET=str(repo), ASS_SECRETS_HISTORY="1")
+    assert "ASS_SECRETS_HISTORY='1'" in rendered                     # --secrets-history
+    rendered = _render(tmp_path, "secrets_history: true\n", SCAN_TARGET=str(plain))
+    assert "ASS_SECRETS_HISTORY=''" in rendered                      # no .git, no history
+    rendered = _render(tmp_path, 'secrets_history_range: "a..b"\n', SCAN_TARGET=str(repo))
+    assert "GITLEAKS_LOG_OPTS='--log-opts=a..b'" in rendered and "ASS_SECRETS_HISTORY='1'" in rendered

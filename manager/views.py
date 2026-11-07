@@ -150,6 +150,17 @@ def new_project(token: str, values: dict | None = None, error: str | None = None
     return page("Add a project", body)
 
 
+def took_text(run: dict) -> str:
+    took = f"{run.get('duration_s')} s"
+    return f"{took} (slowest: {run['slowest_engine']})" if run.get("slowest_engine") else took
+
+
+def brief_text(tokens) -> str:
+    if not isinstance(tokens, int):
+        return ""
+    return f"~{tokens / 1000:.1f}k tokens" if tokens >= 1000 else f"~{tokens} tokens"
+
+
 def project_page(project: store.Project, scans, token: str, error: str | None = None) -> bytes:
     name = project.name
     link = h("/projects/{}", url(name))
@@ -158,9 +169,11 @@ def project_page(project: store.Project, scans, token: str, error: str | None = 
     state = scans.state(name)
     report_links = join((h('<a href="{}/reports/{}">{}</a>', link, url(f), f)
                          for f in listed_reports(name)), " · ")
-    rows = join(h("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+    rows = join(h("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>"
+                  "<td>{}</td></tr>",
                   r.get("finished"), badge(r.get("verdict")), counts_text(r.get("severity_counts")),
-                  r.get("trigger"), f"{r.get('duration_s')} s", r.get("error") or "")
+                  r.get("trigger"), took_text(r), brief_text(r.get("brief_tokens")),
+                  r.get("error") or "")
                 for r in reversed(history))
     body = h("""<h1>{name} {status}</h1>{error}
 <p>{scan} <a href="{link}/status.json">status.json</a></p>
@@ -168,7 +181,7 @@ def project_page(project: store.Project, scans, token: str, error: str | None = 
 {attention}{spots}
 <h2>Latest reports</h2><p>{reports}</p>
 <h2>Runs</h2><div class="tablewrap"><table><thead><tr><th>Finished</th><th>Verdict</th><th>Severity</th><th>Trigger</th>
-<th>Took</th><th>Error</th></tr></thead><tbody>{rows}</tbody></table></div>
+<th>Took</th><th title="What review-brief.md costs an AI agent to read">Brief</th><th>Error</th></tr></thead><tbody>{rows}</tbody></table></div>
 <h2>Edit</h2><form method="post" action="{link}">{csrf}{fields}<p><button>Save</button></p></form>
 <h2>Delete</h2><form method="post" action="{link}/delete">{csrf}
 <label><input type="checkbox" name="confirm" value="1" required> Also deletes this project's reports,

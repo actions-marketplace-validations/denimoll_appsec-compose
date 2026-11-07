@@ -277,3 +277,45 @@ def test_strict_fails_when_an_engine_died_mid_run(run):
     assert "**Incomplete report:**" in (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
     run.config.write_text("strict: true\n")
     assert run()[0] == main.EXIT_SCAN
+
+
+def _semgrep(results, rules):
+    (Path(main.NATIVE_DIR) / "semgrep.sarif").write_text(json.dumps(_sarif(results, rules)))
+
+
+def test_repeats_and_low_confidence_rules_are_one_line_each(run):
+    (run.code / "app.py").write_text("import os\n" + "".join(
+        f"os.system(cmd{n})\n" for n in range(6)) + "eval(x)\n")
+    _semgrep([{"ruleId": "py.exec", "level": "error", "message": {"text": "exec"},
+               "locations": _loc("/code/app.py", n)} for n in range(2, 8)]
+             + [{"ruleId": "py.eval", "level": "error", "message": {"text": "eval"},
+                 "locations": _loc("/code/app.py", 8)}],
+             [{"id": "py.exec", "properties": {"tags": ["HIGH CONFIDENCE"]}},
+              {"id": "py.eval", "properties": {"tags": ["LOW CONFIDENCE"]}}])
+    run.config.write_text("min_confidence: medium\n")
+    _, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    sast = [f for f in doc["findings"] if f["category"] == "sast"]
+    assert {f["confidence"] for f in sast} == {"high", "low"}
+    assert doc["policy"]["min_confidence"] == "medium"
+    # Six exec matches gate; the low-confidence eval is reported, not gated.
+    assert doc["policy"]["breaching"] == 6 + 2      # + the secret and the CVE
+    brief = (Path(main.REPORTS_DIR) / "review-brief.md").read_text()
+    assert brief.count("#### `app.py:") == 3        # three exec with code
+    assert "### More of the same rules" in brief and "#### py.exec — 3" in brief
+    assert "### Low-confidence rules (not gating)" in brief and "#### py.eval — 1" in brief
+    assert ">   8 | eval(x)" not in brief            # one line, no code
+    m = doc["metrics"]
+    assert m["brief"]["repeated"] == 3 and m["brief"]["low_confidence"] == 1
+    assert m["brief"]["approx_tokens"] > 0
+    assert m["findings"]["low_confidence"] == 1 and m["findings"]["gating"] == 8
+
+
+def test_every_run_ends_with_its_metrics(run, capsys):
+    _, doc = run()
+    out = capsys.readouterr().out
+    assert "Run metrics" in out and "brief     :" in out and "findings  :" in out
+    m = doc["metrics"]
+    assert m["reports"] == {"read": 4, "missing": 0, "errored": 0}
+    assert m["findings"]["reported"] == len(doc["findings"])
+    assert SECRET not in json.dumps(m)

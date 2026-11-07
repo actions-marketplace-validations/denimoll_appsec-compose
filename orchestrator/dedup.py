@@ -24,7 +24,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from normalize import Finding, _SEVERITY_RANK, _max_severity
+from normalize import CONFIDENCE_RANK, Finding, _SEVERITY_RANK, _max_severity
 
 # Cross-tool IaC rule equivalence. Trivy, Checkov and Hadolint each use their
 # own id for the same Dockerfile policy, so keying on the rule id alone leaves
@@ -129,6 +129,11 @@ def _merge_group(group: list[Finding]) -> Finding:
     if malicious:
         severity = "critical"
     marked = next((f for f in group if f.malicious), rep)
+    # Engines that agree are a confidence of their own: the merged finding is
+    # as sure as its surest engine, and one that states none is not "low".
+    stated = [f.confidence for f in group]
+    confidence = ("" if "" in stated
+                  else max(stated, key=lambda c: CONFIDENCE_RANK.get(c, 0)))
 
     return Finding(
         tool=rep.tool, category=rep.category, rule_id=rule_id, severity=severity,
@@ -138,7 +143,7 @@ def _merge_group(group: list[Finding]) -> Finding:
         aliases=aliases, tools=tools, description=description, url=url,
         severity_stated=bool(verdicts), end_line=span.end_line,
         column=span.column, end_column=span.end_column, cwe=cwe,
-        fixed_version=fixed_version,
+        fixed_version=fixed_version, confidence=confidence,
     )
 
 

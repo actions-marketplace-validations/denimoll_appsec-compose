@@ -126,6 +126,8 @@ def scan_project(name: str, extra: list[str] | None = None, trigger: str = "manu
                 "severity_counts": summary["severity_counts"], "breaching": summary["breaching"],
                 "top_component": summary["top_component"],
                 "attention": summary["attention"],
+                "slowest_engine": summary["slowest_engine"],
+                "brief_tokens": summary["brief_tokens"],
                 "has_reports": bool(result["findings_json"]), "error": result["error"]})
             return result
     except runs.ProjectBusy:

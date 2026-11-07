@@ -57,7 +57,7 @@ suppressions and the baseline still act on each vulnerability.
 ### `findings.json` contract
 
 `findings.json` is the machine-readable interface for ASPM imports, CI scripts
-and AI agents, and it is versioned: `schema_version` (`1.1`) refers to
+and AI agents, and it is versioned: `schema_version` (`1.5`) refers to
 [`schemas/findings.schema.json`](../schemas/findings.schema.json). The major only
 changes when a field is removed, renamed or changes meaning; additions bump the
 minor, so ignore fields you do not know.
@@ -66,8 +66,9 @@ Each finding carries a `fingerprint` (stable across runs, see
 [Baseline](configuration.md#baseline-gate-on-new-findings)), its full location (`line`,
 `end_line`, `column`, `end_column`), the `cwe` ids its rule declares, every
 engine that reported it (`tools`), whether the severity was stated by an engine
-or derived from CVSS (`severity_stated`), and for SCA the `fixed_version` the
-engine knows of.
+or derived from CVSS (`severity_stated`), the rule's own `confidence`
+([`min_confidence`](configuration.md#rule-confidence-min_confidence)), and for
+SCA the `fixed_version` the engine knows of.
 
 ### `review-brief.md` — hand-off to a reviewer
 
@@ -84,10 +85,43 @@ compact enough to go straight into its context:
   evidence, and the reviewer is told so.
 - **Findings** — gating first, then new, then by severity, each with its
   fingerprint and the flagged code in context (secrets masked; no secret value
-  reaches any of the collector's reports). The first 150 are detailed, the rest
-  counted.
+  reaches any of the collector's reports). What earns code is kept short, so
+  the brief costs a reader few tokens:
+  - one rule matching in many places is one decision: its first 3 matches are
+    shown with code, the rest **one line each** (`file:line`, severity,
+    fingerprint) under *More of the same rules*;
+  - findings from LOW-confidence rules that do not gate are listed one line
+    each under *Low-confidence rules* (they gate unless
+    [`min_confidence`](configuration.md#rule-confidence-min_confidence) says
+    otherwise; then they come after the rest);
+  - the first 150 that remain are detailed, any beyond that counted.
+
+  Nothing is dropped: every finding is still in `findings.json`, and its size
+  is in the run metrics below.
 - **Recording a verdict** — a false positive or accepted risk goes into
   `ignore:` by fingerprint, with a reason and an expiry.
+
+## Run metrics
+
+Every run ends with a short block on the console, and the same numbers in
+`findings.json` under `metrics` (and in the `--json` result):
+
+```text
+Run metrics (also in findings.json; include them when reporting a problem):
+  time      : 41 s total — scanners 38 s (semgrep 38 s, checkov 13 s, trivy 5 s) — collector 1.9 s
+  reports   : 6 read
+  findings  : 512 raw -> 230 unique (282 merged) -> 12 ignored -> 218 reported, 14 gating; 9 suppressed in the code
+  confidence: 61 from low-confidence rules
+  brief     : 48 KB, ~12.3k tokens — 98 with code, 120 one line each (59 repeats, 61 low-confidence)
+  databases : trivy 1 d old
+```
+
+They say how much a result holds and what reading it costs (`brief`: size
+and approximate tokens), where the time went, and how far merging and
+suppression cut the raw output. Counts only — no paths, no code, nothing
+leaves the machine — so they are safe to paste into an issue when a run looks
+wrong: an engine that took unusually long, a report missing or incomplete, a
+stale database.
 
 ## Provenance
 

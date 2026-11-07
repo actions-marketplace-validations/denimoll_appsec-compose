@@ -83,3 +83,21 @@ def test_default_excludes_match_the_renderer():
     renv = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(renv)
     assert pp.DEFAULT_EXCLUDES == renv.DEFAULT_EXCLUDES
+
+
+def test_history_is_advised_once_and_a_shallow_clone_is_called_out(tmp_path):
+    import subprocess
+    import projectprofile as pp
+    run = lambda *a: subprocess.run(["git", "-C", str(tmp_path), *a], check=True,
+                                    capture_output=True)
+    assert pp.git_history(str(tmp_path)) is None and pp.run_once(None) == []
+    run("init", "-q")
+    for n in range(2):
+        (tmp_path / "f").write_text(str(n))
+        run("add", "f")
+        run("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", f"c{n}")
+    history = pp.git_history(str(tmp_path))
+    assert history == {"commits": 2, "shallow": False}
+    assert "--secrets-history" in pp.run_once(history)[0]
+    assert "shallow clone" in pp.run_once({"commits": 5, "shallow": True})[0]
+    assert pp.run_once({"commits": 1, "shallow": False}) == []

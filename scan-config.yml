@@ -13,7 +13,7 @@ scanners:
   # -- SAST -----------------------------------------------------------
   semgrep:                 # source code vulnerabilities
     enabled: true
-    version: "1.174.0"
+    version: "1.183.0"
     # Optional rule sources (each becomes a `--config`). Omit for the default
     # pack. Entries: "default" (curated pack), "auto" (detect the repo's stack
     # and pull matching registry packs), a registry ref ("p/python", "r/..."),
@@ -24,13 +24,13 @@ scanners:
   # -- SCA  (dependency vulnerabilities) — Trivy / Grype / OSV ---------
   trivy:                   # also covers IaC (config) + SBOM (see below)
     enabled: true
-    version: "0.74.0"
+    version: "0.76.1"
   grype:                   # alternative SCA engine (Anchore)
     enabled: false
-    version: "v0.117.0"
+    version: "v0.121.0"
   osv:                     # alternative SCA engine (Google OSV) — needs network
     enabled: false
-    version: "v2.5.1"
+    version: "v2.7.0"
 
   # -- Secrets — Gitleaks and/or TruffleHog ---------------------------
   gitleaks:                # fast pattern-based secret scanning
@@ -38,7 +38,7 @@ scanners:
     version: "v8.30.1"
   trufflehog:              # detector-based, can verify secrets
     enabled: false
-    version: "3.97.0"
+    version: "3.99.7"
     verify: false          # true => send each candidate secret to its issuer's
                            # API to check it is live (outbound; opt in knowingly)
 
@@ -49,7 +49,7 @@ scanners:
                            # for (terraform, dockerfile, kubernetes, ...)
     # guidelines: true     # fetch Prisma Cloud doc links per finding (~25 s
                            # of network per scan; findings are the same)
-    version: "3.3.13"
+    version: "3.4.0"
   hadolint:                # Dockerfile linter / best-practices
     enabled: false
     version: "v2.15.1-alpine"
@@ -62,13 +62,15 @@ scanners:
   # -- SBOM generator — Syft (Trivy also emits one via `sbom:` below) --
   syft:                    # CycloneDX SBOM (Anchore) -> reports/sbom.syft.cdx.json
     enabled: false
-    version: "v1.51.0"
+    version: "v1.55.0"
 
 # ---- Extra artifacts -------------------------------------------------
 sbom: true                 # generate an SBOM via Trivy (when `trivy` is enabled)
 sbom_formats: [cyclonedx]  # any of: cyclonedx, spdx -> reports/sbom.trivy.<fmt>.json
                            # (Syft, if enabled, always emits both formats)
-secrets_history: false     # true => Gitleaks also scans git history (needs .git)
+secrets_history: false     # true => Gitleaks also scans git history, as a second
+                           # pass after the working tree (needs .git;
+                           # --secrets-history for one run)
 secrets_history_range: ""  # limit the history scan to a commit range, e.g.
                            # "origin/main..HEAD" (implies secrets_history) — in
                            # CI this scans the branch's own commits, not all of
@@ -91,6 +93,11 @@ secrets_history_range: ""  # limit the history scan to a commit range, e.g.
 #   - .gradle
 #   - .tox
 #   - .mypy_cache
+respect_gitignore: true    # also skip untracked paths the repo's .gitignore
+                           # covers (caches, virtualenvs, local DBs, build
+                           # output): they are not the repository. A tracked
+                           # file is never skipped this way. false => scan the
+                           # whole working tree, e.g. to find a local .env.
 
 # ---- Dependency licenses (opt-in) ------------------------------------
 # A dependency whose license the policy denies becomes an SCA finding with
@@ -140,6 +147,13 @@ fail_on: high              # critical | high | medium | low | none  (none = repo
                            #   default: high      # categories not listed
                            # (./run.sh --fail-on L overrides the whole map.)
 unknown_severity: medium   # how to rank findings that carry no severity
+min_confidence: low        # low | medium | high: findings from rules less sure
+                           # than this are reported, but do not gate. Semgrep
+                           # marks ~40% of its rules LOW confidence; `medium`
+                           # gates on the rest — and loses a large share of
+                           # real findings (benchmark: Java TPR 88% -> 69%).
+                           # A finding whose engine states no confidence
+                           # always gates. (--min-confidence L)
 dedup: true                # merge duplicate findings across tools
                            # (e.g. Trivy CVE == Grype GHSA via aliases)
 strict: false              # true => a scanner that ran but produced no readable

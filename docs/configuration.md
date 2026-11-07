@@ -11,10 +11,10 @@ enabled scanners.
 
 ```yaml
 scanners:
-  semgrep:  { enabled: true, version: "1.174.0" }    # SAST
-  trivy:    { enabled: true, version: "0.74.0" }     # SCA + IaC + SBOM
+  semgrep:  { enabled: true, version: "1.183.0" }    # SAST
+  trivy:    { enabled: true, version: "0.76.1" }     # SCA + IaC + SBOM
   gitleaks: { enabled: true, version: "v8.30.1" }    # secrets
-  checkov:  { enabled: true, version: "3.3.13" }     # IaC
+  checkov:  { enabled: true, version: "3.4.0" }     # IaC
 
 sbom: true                 # SBOM via Trivy
 sbom_formats: [cyclonedx]  # any of: cyclonedx, spdx
@@ -47,8 +47,12 @@ instead of freezing a copy. To turn a default engine off, say so with
 
 Disable a check by setting `enabled: false` — that scanner won't run and the
 collector won't expect its report. Upgrade a tool by changing its `version`.
-Set `secrets_history: true` to have Gitleaks scan the full **git history**
-(needs a `.git` in the repo), not just the working tree. In CI that is usually
+Set `secrets_history: true` (or pass `--secrets-history` for one run) to have
+Gitleaks also scan the full **git history** — a second pass, so the working
+tree, uncommitted files included, is still read. A credential deleted from the
+code stays in the history and keeps working until it is rotated, so run it at
+least once on your own repository. It needs a `.git`: without one the run says
+so and searches the files only. In CI that is usually
 more than you need — `secrets_history_range: "origin/main..HEAD"` limits it to
 the branch's own commits, which is orders of magnitude faster and still catches
 a secret that was committed and then removed within the branch.
@@ -84,7 +88,7 @@ or let it pick rules for the repo's stack via `scanners.semgrep.rules`:
 scanners:
   semgrep:
     enabled: true
-    version: "1.174.0"
+    version: "1.183.0"
     rules:
       - default                      # the curated p/default pack
       - auto                         # detect the stack -> matching registry packs
@@ -118,6 +122,25 @@ into each engine's own mechanism (`--exclude`, `--skip-dirs`, `--skip-path`, a
 generated Gitleaks allowlist, a TruffleHog regex file, a pruned input list for
 zizmor, …), so one list covers all ten.
 
+### What git ignores (`respect_gitignore`)
+
+In a git repository, untracked paths that its `.gitignore` covers — caches,
+virtualenvs, local databases, build output, a local `.env` — are skipped too,
+on top of `exclude:`. They are not the repository: Semgrep already looked only
+at tracked files, while Gitleaks, Trivy and Checkov walked the whole working
+tree, and one ignored 1.7 GB cache once turned a 16-second scan into an
+11-minute one, full of "secrets" from a vulnerability database.
+
+Only untracked paths qualify, so a repository cannot hide a committed file
+this way; a path whose name a tracked file shares (an ignored `build/` next to
+a tracked `src/build/`) is scanned anyway, since an exclude entry matches its
+name anywhere. The brief lists what was skipped. To scan the whole working
+tree — say, to check local `.env` files for live credentials:
+
+```yaml
+respect_gitignore: false
+```
+
 ## Policy per category
 
 `fail_on` may be a single level or a map, so each practice gets the gate it
@@ -134,6 +157,31 @@ fail_on:
 
 Each finding is compared against the threshold for its own category.
 `./run.sh --fail-on <level>` overrides the whole map with a single level.
+
+## Rule confidence (`min_confidence`)
+
+Rule authors say how often their rule is right. Semgrep marks each rule
+`HIGH`, `MEDIUM` or `LOW` confidence — about 40% of its default rules are
+`LOW`: a pattern worth a look, often a false positive — and zizmor rates each
+result. Every finding carries that as `confidence` (`""` when its engine
+states none).
+
+```yaml
+min_confidence: medium   # low (default) | medium | high
+```
+
+Findings from rules less sure than `min_confidence` are still reported, in
+every report, but **do not gate**; the review brief lists the non-gating
+low-confidence ones one line each, without code. A finding whose engine states
+no confidence (Gitleaks, Trivy, Checkov) always gates — a missing signal never
+takes a finding off the gate. `--min-confidence L` sets it for one run.
+
+It is a trade, and a steep one: Semgrep's LOW-confidence rules find a large
+share of the real issues. On the [benchmark](../benchmark/RESULTS.md#reading-cost)
+`medium` cuts Java detection from 88% to 69% while the false-positive rate
+barely moves (44% → 42%), Python from 26% to 8%, and JS from 24 to 7 known CVEs. Leave it at `low` unless you want only the
+findings rules are sure of and accept missing real ones — a legacy backlog
+gate, say; the brief folds non-gating low-confidence findings either way.
 
 ## Failing loudly (`strict`)
 

@@ -400,7 +400,9 @@ def test_a_second_scan_updates_in_place(box):
     (box.dump / "git-origin").write_text(URL + "\n")
     (box.dump / "git-calls").unlink()
     assert box.cli("project", "scan", "g").returncode == 0
-    verbs = [c[c.index("-C") + 2] for c in box.git_calls() if "-C" in c]
+    # The manager's own calls; run.sh's ls-files (.gitignore) is not one.
+    verbs = [c[c.index("-C") + 2] for c in box.git_calls()
+             if "-C" in c and "ls-files" not in c]
     assert verbs == ["remote", "fetch", "reset", "clean"]
     fetch = next(c for c in box.git_calls() if "fetch" in c)
     assert fetch[-3:] == ["--", "origin", "HEAD"] and "--depth" in fetch
@@ -780,3 +782,19 @@ def test_a_quoted_path_from_a_terminal_is_accepted(tmp_path):
     assert targets.normalize(f"'{folder}'") == expected
     assert targets.normalize(f'"{folder}"') == expected
     assert targets.normalize(f"  {folder}  ") == expected
+
+
+def test_a_runs_entry_keeps_its_slowest_engine_and_brief_size(tmp_path):
+    doc = tmp_path / "findings.json"
+    doc.write_text(json.dumps({"metrics": {
+        "time_s": {"engines": {"gitleaks": 639.8, "trivy": 22.6}},
+        "brief": {"approx_tokens": 4321}}}))
+    got = runs.summarize(doc)
+    assert got["slowest_engine"] == "gitleaks 639.8 s" and got["brief_tokens"] == 4321
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps({"severity_counts": {}}))      # before 1.5: no metrics
+    assert runs.summarize(old)["brief_tokens"] is None
+    from manager import views
+    assert views.brief_text(4321) == "~4.3k tokens" and views.brief_text(None) == ""
+    assert views.took_text({"duration_s": 656, "slowest_engine": "gitleaks 639.8 s"}) \
+        == "656 s (slowest: gitleaks 639.8 s)"

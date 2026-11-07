@@ -114,7 +114,8 @@ def _top_component(components: object) -> str | None:
 
 def summarize(findings_json: object) -> dict:
     """What a run's history entry keeps from findings.json. Tolerates any shape."""
-    empty = {"severity_counts": None, "breaching": None, "top_component": None, "attention": []}
+    empty = {"severity_counts": None, "breaching": None, "top_component": None, "attention": [],
+             "slowest_engine": None, "brief_tokens": None}
     if not findings_json:
         return empty
     try:
@@ -133,7 +134,21 @@ def summarize(findings_json: object) -> dict:
         "breaching": breaching if isinstance(breaching, int) else None,
         "top_component": _top_component(data.get("components")),
         "attention": _attention(data),
+        **_cost(data),
     }
+
+
+def _cost(data: dict) -> dict:
+    """Where a run's time went and what its brief costs to read (metrics, 1.5)."""
+    metrics = data.get("metrics") if isinstance(data.get("metrics"), dict) else {}
+    engines = ((metrics.get("time_s") or {}).get("engines") or {}) if isinstance(
+        metrics.get("time_s"), dict) else {}
+    slowest = next(((str(k), v) for k, v in engines.items()
+                    if isinstance(v, (int, float))), None) if isinstance(engines, dict) else None
+    tokens = (metrics.get("brief") or {}).get("approx_tokens") if isinstance(
+        metrics.get("brief"), dict) else None
+    return {"slowest_engine": f"{slowest[0]} {slowest[1]:g} s" if slowest else None,
+            "brief_tokens": tokens if isinstance(tokens, int) else None}
 
 
 def _attention(data: dict) -> list[str]:

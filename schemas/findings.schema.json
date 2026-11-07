@@ -56,6 +56,7 @@
         "fail_on_by_category": {"type": "object", "additionalProperties": {"$ref": "#/$defs/threshold"}},
         "fail_on_exploitable": {"type": "boolean"},
         "strict": {"type": "boolean"},
+        "min_confidence": {"type": "string", "enum": ["low", "medium", "high"], "description": "1.5: findings from rules that state a lower confidence are reported but do not gate; \"low\" gates on everything."},
         "breaching": {"type": "integer", "minimum": 0},
         "exploitable_breaching": {"type": "integer", "minimum": 0},
         "exit_code": {"type": "integer", "enum": [0, 1], "description": "0 = pass, 1 = the policy gate failed."}
@@ -134,6 +135,31 @@
     "reports_found": {"type": "array", "items": {"type": "string"}},
     "reports_missing": {"type": "array", "items": {"type": "string"}},
     "reports_errored": {"type": "array", "items": {"type": "string"}},
+    "metrics": {
+      "type": "object",
+      "description": "1.5: what the run did, in numbers: time, reports, how the findings were reduced, the size of review-brief.md and the age of the databases. Counts only, never content.",
+      "properties": {
+        "time_s": {"type": "object", "properties": {
+          "total": {"type": ["integer", "null"]}, "scanners": {"type": ["integer", "null"]},
+          "collector": {"type": ["number", "null"]},
+          "engines": {"type": "object", "additionalProperties": {"type": "number"}}}},
+        "reports": {"type": "object", "properties": {
+          "read": {"type": "integer"}, "missing": {"type": "integer"}, "errored": {"type": "integer"}}},
+        "findings": {"type": "object", "properties": {
+          "raw": {"type": "integer"}, "unique": {"type": "integer"}, "merged": {"type": "integer"},
+          "ignored": {"type": "integer", "description": "removed by ignore: entries"},
+          "suppressed_in_source": {"type": "integer", "description": "suppressed by comments in the code; never part of raw or unique"},
+          "placeholders": {"type": "integer", "description": "secret findings whose value is a placeholder (one repeated character, `your_api_key`, ...); moved to `suppressed` with that reason"},
+          "reported": {"type": "integer"},
+          "gating": {"type": "integer"}, "low_confidence": {"type": "integer"}}},
+        "brief": {"type": "object", "description": "review-brief.md: its size, and how many findings it shows with code, on one line each (further matches of a rule already shown; low-confidence rules that do not gate) or only counts.", "properties": {
+          "bytes": {"type": "integer"}, "approx_tokens": {"type": "integer"},
+          "detailed": {"type": "integer"}, "one_line": {"type": "integer"},
+          "repeated": {"type": "integer"}, "low_confidence": {"type": "integer"},
+          "counted_only": {"type": "integer"}}},
+        "database_age_days": {"type": "object", "additionalProperties": {"type": "integer"}}
+      }
+    },
     "components": {
       "type": "array",
       "description": "1.2: SCA findings grouped by package. A view over `findings`: each finding is still gated, suppressed and baselined on its own.",
@@ -215,6 +241,7 @@
         "severity_stated": {"type": "boolean",
                             "description": "True when an engine stated the severity; false when derived from CVSS or the SARIF level."},
         "scanner_severity": {"type": "string", "description": "The engines' severity before it was raised (malicious package) or replaced (CVE-PaaS reprioritization), if either happened."},
+        "confidence": {"type": "string", "enum": ["", "low", "medium", "high"], "description": "1.5: how sure the rule is that a match is a real issue, as the engine states it (Semgrep's rule metadata, zizmor per result); \"\" when it states none. A merged finding takes its surest engine's, or \"\" when any engine states none."},
         "malicious": {"type": "boolean", "description": "SCA: the advisory says the package itself is malware (an OpenSSF MAL- id, CWE-506 or a GitHub malware advisory). Always severity critical. Added in 1.1."},
         "message": {"type": "string"},
         "description": {"type": "string"},

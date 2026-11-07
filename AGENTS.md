@@ -19,9 +19,10 @@ installing Docker is the user's decision. If only PyYAML is missing:
 ## 2. Run the scan
 
 Optional, instant: `bin/appsec-compose profile /path/to/project` says what the
-project is (languages, frameworks, IaC, dependencies and lock files) and which
+project is (languages, frameworks, IaC, dependencies and lock files), which
 config changes fit it, with reasons — useful to mention to the user, never
-applied without their agreement.
+applied without their agreement — and one-off scans worth running ("Run
+once", e.g. `--secrets-history`).
 
 From a checkout of this repository (cloning is enough, nothing to install):
 
@@ -35,6 +36,19 @@ link, say), add `--no-repo-config`**: otherwise its authors' config decides what
 counts, and a clean result means little. If the brief's blind spots say the
 repository set or suppressed something itself, tell the user. Add `--diff origin/main` to check only what a branch changed
 (the target must be a git repository with that ref fetched).
+
+**Do not add `--min-confidence medium` on your own.** It keeps Semgrep's
+LOW-confidence rules off the gate and out of the brief's code, and those rules
+find a large share of the real issues: on the benchmark it cuts Java detection
+from 88% to 69%, Python from 26% to 8%, and JS from 24 to 7 known CVEs. Use it only when the user asks
+for high-signal findings only and accepts missing real issues — and say so in
+the report. The brief already saves tokens without it (below).
+
+**Secrets in the git history are not searched by default** — only the current
+files. On the user's own repository, add `--secrets-history` at least once (a
+full clone, not `--depth 1`): a credential deleted from the code still works
+until it is rotated. It is slower on long histories, so for a quick re-check
+after a fix leave it off.
 
 - **The first run takes several minutes** (vulnerability databases, ~2 GB, and
   the collector image are downloaded or built once). Use a long command
@@ -50,15 +64,22 @@ repository set or suppressed something itself, tell the user. Add `--diff origin
   | `scan_error` | 3 | the scan did not complete (Docker, a crashed engine): **there is no result to report**; tell the user what failed |
 
 - Reports land in `./appsec-reports/` (the JSON gives the absolute paths).
+- `metrics` in the JSON says what reading costs before you read:
+  `metrics.brief.approx_tokens` is the brief's size. Over ~20k, read it in
+  parts as below (gating findings first); for a change, `--diff` is smaller.
 
 ## 3. Read the results — in this order
 
 1. **`review-brief.md`** (`review_brief` in the JSON). Written for you: scope,
    **blind spots**, gating findings first with the flagged code, dependencies
    grouped per component with the version to upgrade to. Secret values are
-   already masked. On a large project it is long: read Scope and Blind spots,
-   then the findings in order — gating ones come first — and stop when you
-   have what the report needs.
+   already masked. It is already compact: a rule matching many times shows
+   its first 3 matches with code and the rest one line each (*More of the same
+   rules*: one verdict usually covers them all — do not open each), and
+   non-gating low-confidence rules are one line each (*Low-confidence rules*:
+   skip unless the user wants leads). On a large project read Scope and Blind
+   spots, then the findings in order — gating ones come first — and stop when
+   you have what the report needs.
 2. **`findings.json`** (`findings_json`) only for detail the brief leaves out —
    it follows [schemas/findings.schema.json](schemas/findings.schema.json):
    `components` for dependencies, `findings` for everything, `fingerprint` as
@@ -70,7 +91,8 @@ Do not parse `native/*.sarif`; those are for ASPM upload.
 
 Lead with the verdict, then what to do. A good report, in this order:
 
-1. **Verdict** — pass / fail, how many findings gate, against which threshold.
+1. **Verdict** — pass / fail, how many findings gate, against which threshold
+   (and `--min-confidence`, if the user asked for it).
 2. **Dependencies** — the vulnerable components, worst first:
    `package@version → upgrade to X` (or "no fix known"), how many
    vulnerabilities and the worst severity. A malicious package is not
@@ -80,7 +102,8 @@ Lead with the verdict, then what to do. A good report, in this order:
    read the code and confirm (or doubt) a finding, say which.
 4. **What was not checked** — always include the brief's blind spots, in one
    or two lines: scanners match patterns; authorization, business logic and
-   cross-file data flow need a human or a deeper review.
+   cross-file data flow need a human or a deeper review. If the git history
+   was not searched for secrets, say so and offer a `--secrets-history` run.
 5. **Next steps** — the few concrete fixes that clear the most.
 
 Rules:
@@ -95,6 +118,10 @@ Rules:
   spots are.
 - Keep it short; offer the full list (`summary.html`, `findings.json`) rather
   than pasting it.
+- If the run looks wrong — an engine took minutes, a report is missing or
+  incomplete, a database is days old — say so, and quote the **Run metrics**
+  block from the end of stderr (also `metrics` in the JSON): counts and
+  timings only, safe to paste into an appsec-compose issue.
 
 ## 5. Optional: triage and suppress
 

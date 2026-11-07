@@ -84,6 +84,17 @@ async def scan(
     fail_on: Annotated[Threshold | None, Field(
         description="Override the gate threshold for this run (default: the project "
                     "config, normally `high`). `none` reports without gating.")] = None,
+    min_confidence: Annotated[Literal["low", "medium", "high"] | None, Field(
+        description="Gate only on findings from rules at least this confident. "
+                    "Leave unset unless the user asks: `medium` drops Semgrep's "
+                    "LOW-confidence rules from the gate, and with them a large share of "
+                    "real findings (Java detection 88% -> 69% on the benchmark). "
+                    "Default: the project config, normally `low` = everything gates.")] = None,
+    secrets_history: Annotated[bool, Field(
+        description="Also search the git history for secrets, not only the current "
+                    "files: a credential deleted from the code still works until it is "
+                    "rotated. Slower on long histories; run it at least once on the "
+                    "user's own repository.")] = False,
 ) -> str:
     """Scan a repository for security issues (SAST, vulnerable dependencies,
     secrets, IaC misconfigurations). Use it first, before reviewing a codebase or
@@ -100,6 +111,7 @@ async def scan(
     try:
         diff_base = core.validate_diff_base(diff_base)
         fail_on = core.validate_fail_on(fail_on)
+        min_confidence = core.validate_min_confidence(min_confidence)
     except core.UserError as exc:
         raise ToolError(str(exc)) from None
 
@@ -125,6 +137,8 @@ async def scan(
         try:
             result = await core.scan(target, diff_base=diff_base, fail_on=fail_on,
                                      no_repo_config=no_repo_config,
+                                     min_confidence=min_confidence,
+                                     secrets_history=secrets_history,
                                      on_line=on_line)
         except core.UserError as exc:
             raise ToolError(str(exc)) from None
@@ -172,7 +186,8 @@ def profile(path: PathArg) -> str:
     """What a repository is made of — languages, frameworks from its manifests,
     IaC and CI files, dependency manifests and whether they have lock files —
     and the few config changes that fit it, each with its reason (e.g. enable
-    OSV-Scanner when dependencies have no lock file). Instant, no containers.
+    OSV-Scanner when dependencies have no lock file), plus one-off scans worth
+    running (`run_once`, e.g. scan(secrets_history=true) once). Instant, no containers.
     Use it before the first scan to plan the review, or to explain a gap;
     record a recommendation only with the user's agreement."""
     from dataclasses import asdict
@@ -180,9 +195,11 @@ def profile(path: PathArg) -> str:
     target = _target(path)
     prof = pp.scan(str(target), pp.DEFAULT_EXCLUDES)
     recs = pp.recommend(prof)
+    history = pp.git_history(str(target))
     return _json({"profile": {**asdict(prof), "ci": prof.ci},
                   "recommendations": [asdict(r) for r in recs],
-                  "config": pp.overlay(recs) if recs else None})
+                  "config": pp.overlay(recs) if recs else None,
+                  "git": history, "run_once": pp.run_once(history)})
 
 
 @mcp.tool(annotations=ToolAnnotations(title="List vulnerable components", read_only_hint=True),

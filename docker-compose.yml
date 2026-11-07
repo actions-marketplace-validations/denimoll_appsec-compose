@@ -71,7 +71,7 @@ x-sh: &sh
 services:
   # ---- SAST -------------------------------------------------------------
   semgrep:
-    image: ${SEMGREP_IMAGE:-semgrep/semgrep:1.174.0}
+    image: ${SEMGREP_IMAGE:-semgrep/semgrep:1.183.0}
     <<: *sh
     # SEMGREP_CONFIGS = one or more `--config <ref>` built by render-env from
     # scan-config.yml (default pack, custom registry refs, `auto` stack-detect,
@@ -97,7 +97,7 @@ services:
   # (ASS_DIFF_SCA), over the whole repo; the config scan reads only the changed
   # IaC files, mounted at /iac (ASS_DIFF_IAC).
   trivy:
-    image: ${TRIVY_IMAGE:-aquasec/trivy:0.74.0}
+    image: ${TRIVY_IMAGE:-aquasec/trivy:0.76.1}
     <<: *sh
     command:
       - |
@@ -141,8 +141,9 @@ services:
   gitleaks:
     image: ${GITLEAKS_IMAGE:-zricethezav/gitleaks:v8.30.1}
     <<: *sh
-    # GITLEAKS_CMD = "dir" (working tree only, default) or "git" to scan the
-    # git history (needs a .git in the repo). --exit-code 0 keeps it green.
+    # The working tree (`dir`) always; with secrets_history (ASS_SECRETS_HISTORY)
+    # a second pass walks the commits of the real repo at /repo (narrowed by
+    # GITLEAKS_HISTORY_OPTS = secrets_history_range). --exit-code 0 keeps it green.
     # Do not go back to `detect`: it survives as a deprecated alias that exits 0
     # and writes an empty report, i.e. it silently finds nothing.
     # --redact: this SARIF is uploaded to code scanning and kept as a CI
@@ -154,14 +155,15 @@ services:
     command:
       - >-
         set -f;
-        gitleaks $$GITLEAKS_CMD /code --config=/excludes/gitleaks.toml $$GITLEAKS_LOG_OPTS
+        gitleaks $$GITLEAKS_CMD /code --config=/excludes/gitleaks.toml
         --redact --report-format=sarif --report-path=/reports/native/gitleaks.sarif --exit-code=0;
-        [ -z "$$ASS_DIFF_LOG_OPTS" ] ||
-        gitleaks git /repo --config=/excludes/gitleaks.toml $$ASS_DIFF_LOG_OPTS
+        [ -z "$$ASS_DIFF_LOG_OPTS$$ASS_SECRETS_HISTORY" ] ||
+        gitleaks git /repo --config=/excludes/gitleaks.toml $$ASS_DIFF_LOG_OPTS $$GITLEAKS_HISTORY_OPTS
         --redact --report-format=sarif --report-path=/reports/native/gitleaks-history.sarif --exit-code=0
     environment:
       GITLEAKS_CMD: ${GITLEAKS_CMD:-dir}
-      GITLEAKS_LOG_OPTS: ${GITLEAKS_LOG_OPTS:-}
+      GITLEAKS_HISTORY_OPTS: ${GITLEAKS_LOG_OPTS:-}
+      ASS_SECRETS_HISTORY: ${ASS_SECRETS_HISTORY:-}
       ASS_DIFF_LOG_OPTS: ${ASS_DIFF_LOG_OPTS:-}
     volumes:
       - *diff-code-mount
@@ -171,7 +173,7 @@ services:
 
   # ---- IaC (deeper policy coverage than Trivy config) -------------------
   checkov:
-    image: ${CHECKOV_IMAGE:-bridgecrew/checkov:3.3.13}
+    image: ${CHECKOV_IMAGE:-bridgecrew/checkov:3.4.0}
     <<: *sh
     # checkov prints an ASCII banner to stdout, so we can't redirect stdout to
     # the report. Write to a dir (clean `results_sarif.sarif`) and rename it.
@@ -206,7 +208,7 @@ services:
 
   # ---- SCA (alternative) -----------------------------------------------
   grype:
-    image: ${GRYPE_IMAGE:-anchore/grype:v0.117.0}
+    image: ${GRYPE_IMAGE:-anchore/grype:v0.121.0}
     # entrypoint is `grype`; default exit code is 0. SARIF is the native ASPM
     # artifact; the JSON carries relatedVulnerabilities (GHSA<->CVE aliases) and
     # package info that the collector uses for cross-tool SCA de-duplication.
@@ -233,7 +235,7 @@ services:
 
   # ---- Secrets (alternative) -------------------------------------------
   trufflehog:
-    image: ${TRUFFLEHOG_IMAGE:-trufflesecurity/trufflehog:3.97.0}
+    image: ${TRUFFLEHOG_IMAGE:-trufflesecurity/trufflehog:3.99.7}
     <<: *sh
     # TruffleHog has no SARIF output; it emits JSON lines. We keep the raw JSON
     # as the native report and the collector generates trufflehog.sarif from it.
@@ -251,7 +253,7 @@ services:
   # ---- SBOM (alternative generator) ------------------------------------
   # Emits both CycloneDX and SPDX. Target is dir:/code or a container image.
   syft:
-    image: ${SYFT_IMAGE:-anchore/syft:v1.51.0}
+    image: ${SYFT_IMAGE:-anchore/syft:v1.55.0}
     command:
       - "scan"
       - "${ASS_SYFT_TARGET:-dir:/code}"
@@ -284,7 +286,7 @@ services:
 
   # ---- SCA (alternative, OSV database) ---------------------------------
   osv:
-    image: ${OSV_IMAGE:-ghcr.io/google/osv-scanner:v2.5.1}
+    image: ${OSV_IMAGE:-ghcr.io/google/osv-scanner:v2.7.0}
     <<: *sh
     # OSV ruleId is the CVE, so findings de-duplicate against Trivy/Grype.
     # Needs network (queries the OSV database); not for offline mode.
@@ -363,7 +365,11 @@ services:
       ASS_IMAGE_TAR: ${ASS_IMAGE_TAR:-}
       ASS_ENABLED: ${ASS_ENABLED:-}
       ASS_STRICT: ${ASS_STRICT:-}
+      ASS_MIN_CONFIDENCE: ${ASS_MIN_CONFIDENCE:-}
+      ASS_SECRETS_HISTORY: ${ASS_SECRETS_HISTORY:-}
       ASS_EXCLUDES: ${ASS_EXCLUDES:-}
+      ASS_GITIGNORED: ${ASS_GITIGNORED:-}
+      ASS_REPORTS_HOST: ${ASS_REPORTS_HOST:-}
       # Key for the CVE-PaaS enrichment; passed through from the host env so it
       # never has to live in scan-config.yml.
       CVE_PAAS_API_KEY: ${CVE_PAAS_API_KEY:-}

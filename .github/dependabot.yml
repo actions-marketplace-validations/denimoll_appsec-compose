@@ -12,3 +12,23 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # The collector's base image and the Python dependencies of the collector,
+  # the MCP server and the tests. Scanner engines are not here: they are
+  # moved by .github/workflows/engine-updates.yml, which also re-pins their
+  # digests and runs the benchmark.
+  - package-ecosystem: docker
+    directory: /orchestrator
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: pip
+    directories: [/orchestrator, /appsec_mcp, /tests]
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      python:
+        patterns: ["*"]

@@ -17,6 +17,9 @@ SEVERITY_ORDER = ["info", "low", "medium", "high", "critical"]
 
 _VALID_FAIL_ON = set(SEVERITY_ORDER) | {"none"}
 
+# Rule confidence, lowest -> highest (see normalize.Finding.confidence).
+CONFIDENCE_ORDER = ["low", "medium", "high"]
+
 # Finding categories a per-category `fail_on` may address.
 CATEGORIES = ["sast", "sca", "secrets", "iac"]
 
@@ -26,6 +29,9 @@ class Config:
     fail_on: str = "high"                 # default gate threshold
     fail_on_by_category: dict = field(default_factory=dict)   # category -> level
     unknown_severity: str = "medium"
+    # Findings whose rule states a lower confidence are reported but do not
+    # gate. "low" (the default) gates on everything, as before.
+    min_confidence: str = "low"
     dedup: bool = True
     baseline: bool = False
     strict: bool = False
@@ -84,6 +90,7 @@ def load_config(path: str = "/app/scan-config.yml") -> Config:
         fail_on=fail_on,
         fail_on_by_category=per_category,
         unknown_severity=str(raw.get("unknown_severity", "medium")).lower(),
+        min_confidence=str(raw.get("min_confidence", "low")).lower(),
         dedup=bool(raw.get("dedup", True)),
         baseline=bool(raw.get("baseline", False)),
         strict=bool(raw.get("strict", False)),
@@ -101,6 +108,15 @@ def load_config(path: str = "/app/scan-config.yml") -> Config:
     if env_fail_on:
         cfg.fail_on = env_fail_on
         cfg.fail_on_by_category = {}
+
+    env_confidence = os.environ.get("ASS_MIN_CONFIDENCE", "").strip().lower()
+    if env_confidence:
+        cfg.min_confidence = env_confidence
+
+    # run.sh exports what render-env decided (config or --secrets-history,
+    # off for a target without .git): the brief must not claim more.
+    if "ASS_SECRETS_HISTORY" in os.environ:
+        cfg.secrets_history = os.environ["ASS_SECRETS_HISTORY"].strip() == "1"
 
     env_strict = os.environ.get("ASS_STRICT", "").strip()
     if env_strict:
@@ -121,5 +137,10 @@ def load_config(path: str = "/app/scan-config.yml") -> Config:
         raise ValueError(
             f"Invalid unknown_severity={cfg.unknown_severity!r}; "
             f"expected one of {SEVERITY_ORDER}"
+        )
+    if cfg.min_confidence not in CONFIDENCE_ORDER:
+        raise ValueError(
+            f"Invalid min_confidence={cfg.min_confidence!r}; "
+            f"expected one of {CONFIDENCE_ORDER}"
         )
     return cfg

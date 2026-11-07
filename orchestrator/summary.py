@@ -106,7 +106,7 @@ _Exploitability: {{ enrichment.resolved }}/{{ enrichment.requested }} CVE(s) res
 
 _appsec-compose {{ provenance.appsec_compose }} · {{ provenance.target }} target{% if provenance.offline %} · offline{% endif %}{% if scope %} · {{ scope.label() }}{% endif %}_
 
-{% if timing_label %}Time: {{ timing_label }}
+{% if timing_label %}Time: {{ timing_label }}{% if brief_label %} · {{ brief_label }}{% endif %}
 
 {% endif %}
 {% for tool, ref in provenance.engines.items() %}- **{{ tool }}**: `{{ ref }}`
@@ -217,7 +217,7 @@ _HTML_TEMPLATE = """<!doctype html>
 </style></head><body>
 <header><div class="wrap">
   <div class="brand"><span class="dot"></span>appsec-compose</div>
-  <div class="sub">appsec-compose {{ provenance.appsec_compose }} &middot; generated {{ generated }} UTC &middot; policy fail_on = {{ policy.label }}{% if stats.removed %} &middot; {{ total }} unique of {{ stats.raw }} ({{ stats.removed }} merged){% endif %}{% if suppressed_count %} &middot; {{ suppressed_count }} suppressed{% endif %}{% if delta %} &middot; {{ delta.new | length }} new / {{ delta.known | length }} known{% if delta.fixed is not none %} / {{ delta.fixed }} fixed{% endif %}{% endif %}{% if scope %} &middot; {{ scope.label() }}{% endif %}{% if enrichment and enrichment.exploitable %} &middot; {{ enrichment.exploitable }} exploitable{% endif %}{% if timing_label %} &middot; {{ timing_label }}{% endif %}</div>
+  <div class="sub">appsec-compose {{ provenance.appsec_compose }} &middot; generated {{ generated }} UTC &middot; policy fail_on = {{ policy.label }}{% if stats.removed %} &middot; {{ total }} unique of {{ stats.raw }} ({{ stats.removed }} merged){% endif %}{% if suppressed_count %} &middot; {{ suppressed_count }} suppressed{% endif %}{% if delta %} &middot; {{ delta.new | length }} new / {{ delta.known | length }} known{% if delta.fixed is not none %} / {{ delta.fixed }} fixed{% endif %}{% endif %}{% if scope %} &middot; {{ scope.label() }}{% endif %}{% if enrichment and enrichment.exploitable %} &middot; {{ enrichment.exploitable }} exploitable{% endif %}{% if timing_label %} &middot; {{ timing_label }}{% endif %}{% if brief_label %} &middot; {{ brief_label }}{% endif %}</div>
   <div class="pill {{ 'fail' if policy.exit_code else 'pass' }}">
     <span class="big">{{ '✗' if policy.exit_code else '✓' }} {{ verdict }}</span>
     &middot; {{ policy.breaching }} at/above threshold
@@ -451,11 +451,15 @@ def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
 def render(result: ScanResult, policy: PolicyResult, findings: list[Finding],
            stats: DedupStats, out_dir: str = "/reports",
            suppressed_count: int = 0, delta=None, coverage=None,
-           enrichment=None, expired=None, provenance=None, scope=None) -> None:
+           enrichment=None, expired=None, provenance=None, scope=None,
+           brief_tokens: int | None = None) -> None:
     # Markdown: HTML-escaping would corrupt it. The HTML report below escapes.
     env = Environment(autoescape=False, trim_blocks=True, lstrip_blocks=True)  # nosemgrep: direct-use-of-jinja2
     ctx = _context(result, policy, findings, stats, suppressed_count, delta,
                    coverage, enrichment, expired, provenance, scope)
+    ctx["brief_label"] = (f"review-brief.md ~{brief_tokens / 1000:.1f}k tokens"
+                          if brief_tokens and brief_tokens >= 1000
+                          else f"review-brief.md ~{brief_tokens} tokens" if brief_tokens else "")
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.md").write_text(env.from_string(_MD_TEMPLATE).render(**ctx))

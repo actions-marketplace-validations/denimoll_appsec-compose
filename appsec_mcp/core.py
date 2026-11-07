@@ -183,9 +183,23 @@ def validate_fail_on(level: str | None) -> str | None:
     return level
 
 
+CONFIDENCES = ("low", "medium", "high")
+
+
+def validate_min_confidence(level: str | None) -> str | None:
+    if level is None or not str(level).strip():
+        return None
+    level = str(level).strip().lower()
+    if level not in CONFIDENCES:
+        raise UserError(f"min_confidence must be one of {list(CONFIDENCES)}")
+    return level
+
+
 def build_argv(cli: Cli, target: Path, reports_dir: Path, *,
                diff_base: str | None = None, fail_on: str | None = None,
-               no_repo_config: bool = False) -> list[str]:
+               no_repo_config: bool = False,
+               min_confidence: str | None = None,
+               secrets_history: bool = False) -> list[str]:
     """An argv list — never a shell string, so no path or ref is ever parsed
     by a shell."""
     argv = [*cli.argv, str(target), "--reports", str(reports_dir)]
@@ -202,6 +216,10 @@ def build_argv(cli: Cli, target: Path, reports_dir: Path, *,
         argv += ["--baseline", str(baseline)]
     if fail_on:
         argv += ["--fail-on", fail_on]
+    if min_confidence:
+        argv += ["--min-confidence", min_confidence]
+    if secrets_history:
+        argv.append("--secrets-history")
     if diff_base:
         if not cli.supports_diff:
             raise UserError("diff mode needs a newer appsec-compose "
@@ -344,7 +362,8 @@ def _read_json(path: Path) -> dict | None:
 
 async def scan(target: Path, *, diff_base: str | None = None,
                fail_on: str | None = None, on_line: LineSink | None = None,
-               cli: Cli | None = None, no_repo_config: bool = False) -> dict:
+               cli: Cli | None = None, no_repo_config: bool = False,
+               min_confidence: str | None = None, secrets_history: bool = False) -> dict:
     """Run one scan and return the compact result handed to the agent."""
     cli = cli or detect_cli()
     sdir = state_dir(target)
@@ -355,7 +374,8 @@ async def scan(target: Path, *, diff_base: str | None = None,
     (reports / "native").mkdir(parents=True, exist_ok=True)
     os.chmod(sdir, 0o700)  # nosemgrep: insecure-file-permissions -- owner only
     argv = build_argv(cli, target, reports, diff_base=diff_base, fail_on=fail_on,
-                      no_repo_config=no_repo_config)
+                      no_repo_config=no_repo_config, min_confidence=min_confidence,
+                      secrets_history=secrets_history)
 
     # Another server process (a second agent session) scanning the same target
     # would share this reports dir and compose project name.
@@ -426,6 +446,12 @@ def summarize(record: dict, doc: dict | None, payload: dict, outcome: Outcome) -
                    else policy.get("fail_on", "high"))
     if policy.get("fail_on_exploitable"):
         out["gate"] += " + exploitable"
+    if policy.get("min_confidence") not in (None, "low"):
+        out["gate"] += f"; rules of {policy['min_confidence']} confidence and above"
+    brief_size = ((doc.get("metrics") or {}).get("brief") or {})
+    if brief_size.get("approx_tokens") is not None:
+        # What reading the brief costs, before anyone opens it.
+        out["brief_tokens"] = brief_size["approx_tokens"]
 
     base = payload.get("baseline") or doc.get("baseline") or {}
     if base.get("enabled"):

@@ -28,7 +28,7 @@ then scan any directory — by hand or as the first step of an AI agent's review
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
 # or, reading it first / pinning a version:
 curl -fsSLO https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh
-bash install.sh --ref v.1.4.0          # or APPSEC_COMPOSE_VERSION=v.1.4.0 bash install.sh
+bash install.sh --ref v.1.5.0          # or APPSEC_COMPOSE_VERSION=v.1.5.0 bash install.sh
 ```
 
 [`install.sh`](../install.sh) checks the [requirements](#requirements) and names
@@ -81,7 +81,8 @@ line, written on exit for **every** exit code, usage errors included:
  "findings_json": "/home/me/src/api/appsec-reports/findings.json",
  "review_brief": "/home/me/src/api/appsec-reports/review-brief.md",
  "severity_counts": {"info": 0, "low": 2, "medium": 8, "high": 4, "critical": 1},
- "breaching": 5, "baseline": null}
+ "breaching": 5, "baseline": null,
+ "metrics": {"time_s": {"total": 41}, "brief": {"approx_tokens": 12300}, "...": "..."}}
 ```
 
 | Field | Type | Meaning |
@@ -94,6 +95,7 @@ line, written on exit for **every** exit code, usage errors included:
 | `severity_counts` | object \| null | `findings.json`'s `severity_counts` (gating view: after suppressions), or `null` |
 | `breaching` | int \| null | `findings.json`'s `policy.breaching`: findings at/above `fail_on` |
 | `baseline` | object \| null | `findings.json`'s `baseline` (`enabled`, `new`, `known`, `fixed`, `legacy_format`) when a baseline was in force, else `null` |
+| `metrics` | object \| null | `findings.json`'s [`metrics`](reports.md#run-metrics): time, reports, how findings were reduced, the brief's size (`brief.approx_tokens`), database age |
 
 A path is only ever this run's: reports left by an earlier run are never
 reported (an early usage error yields `null`s). Fields are only added, never
@@ -161,6 +163,11 @@ config changes that fit, each with its reason:
 - no GitHub workflows, actions or dependabot config → zizmor off.
 - generated or vendored directories the default `exclude:` misses
   (`.next`, `coverage`, `third_party`, …) → named for you to review.
+
+Then, under **Run once**, scans worth running once rather than settings to
+keep: a git repository with history gets `--secrets-history` (scans search the
+current files only, and a deleted credential still works until it is
+rotated); a shallow clone is told that its history is mostly not there.
 
 `--write` creates `.appsec-compose.yml` with only those changes and their
 reasons as comments; an existing file is never overwritten. `--json` gives the

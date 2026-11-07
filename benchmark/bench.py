@@ -412,6 +412,18 @@ def score(suite: str, truth, findings_doc: dict, reports: Path) -> dict:
                                      "categories": {k: lenient["categories"][k]
                                                     for k in ("codeinj", "hash")
                                                     if k in lenient["categories"]}}
+        # What `min_confidence: medium` costs: the same score without the
+        # findings of rules that call themselves LOW confidence.
+        sure = [f for f in findings if f.get("confidence") != "low"]
+        if suite == "sast-js":
+            result["at_min_confidence_medium"] = {
+                "totals": scoring.score_cve_pairs(truth, sure)["totals"]}
+        else:
+            medium = scoring.score_owasp_benchmark(truth, sure)
+            result["at_min_confidence_medium"] = {"average": medium["average"],
+                                                  "totals": medium["totals"]}
+        result["low_confidence_findings"] = sum(1 for f in findings
+                                                if f.get("confidence") == "low")
         result.update(_semgrep_rules_loaded(reports))
         result["semgrep_notifications"] = semgrep_notifications(reports)
         sast = [f for f in findings if f["category"] == "sast"]
@@ -540,6 +552,8 @@ def main(argv: list[str] | None = None) -> int:
             if crash:   # only reachable with --rescore: run_scan retries or raises
                 raise RuntimeError(f"{suite}/{name}: Semgrep crashed in this run: {crash}")
             runs[name] = {**run_meta, "provenance": doc["provenance"],
+                          # What the result costs a reader: review-brief.md's size.
+                          "brief": (doc.get("metrics") or {}).get("brief"),
                           "score": score(suite, truth, doc, run_dir / "reports")}
             log(f"{suite}/{name}: {report.headline(suite, runs[name]['score'])}")
         # --rescore re-reads an old scan: it keeps the stamp of the run that made it.
