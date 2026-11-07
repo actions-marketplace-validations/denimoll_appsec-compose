@@ -32,6 +32,13 @@ _CONTEXT = 2           # lines of code either side of a SAST/IaC finding
 # 2,800 lines long. The first lines locate it; the file has the rest.
 _MAX_FLAGGED = 8
 _MAX_LINE = 240        # minified code makes for useless context
+# One rule matching in many places is one decision, not many: the first few
+# are shown with code, the rest as one line each (file:line, fingerprint).
+REPEAT_DETAIL = 3
+_MAX_COMPACT = 60      # one-line entries per rule before "…and N more"
+# A reader's context is measured in tokens; ~4 characters each for this mix of
+# prose, code and hex, close enough to budget by.
+_CHARS_PER_TOKEN = 4
 
 _LANGUAGES = projectprofile.LANGUAGES     # one table for every reader of the repo
 _MAX_WALK = 20_000
@@ -184,6 +191,8 @@ def _labels(f: Finding, gating: bool, new: bool | None) -> str:
         tags.append("MALICIOUS PACKAGE")
     if f.exploitable:
         tags.append("EXPLOITABLE")
+    if f.confidence in ("low", "medium"):
+        tags.append(f"{f.confidence} confidence")
     return " · ".join(tags)
 
 
@@ -206,6 +215,28 @@ def _finding(f: Finding, gating: bool, new: bool | None, source: _Source,
     if snippet:
         out += ["", "```", snippet, "```"]
     return out + [""]
+
+
+def _compact(items: list[Finding], gates, is_new) -> list[str]:
+    """One line per finding, grouped by rule: where, how bad, its fingerprint."""
+    by_rule: dict[str, list[Finding]] = {}
+    for f in items:
+        by_rule.setdefault(f.rule_id, []).append(f)
+    out = []
+    for rule, group in by_rule.items():
+        message = " ".join(group[0].message.split())[:200]
+        out += [f"#### {rule} — {len(group)}", ""]
+        if message:
+            out += [f"{message}", ""]
+        for f in group[:_MAX_COMPACT]:
+            where = f"{_norm_file(f.file)}:{f.line}" if f.line else _norm_file(f.file)
+            tags = [f.severity] + (["GATING"] if gates(f) else []) \
+                + (["NEW"] if is_new(f) else [])
+            out.append(f"- `{where}` · {' · '.join(tags)} · `{f.fingerprint}`")
+        if len(group) > _MAX_COMPACT:
+            out.append(f"- …and {len(group) - _MAX_COMPACT} more in findings.json")
+        out.append("")
+    return out
 
 
 MAX_COMPONENTS = 60
@@ -259,7 +290,7 @@ def _components(comps, gates, is_new) -> list[str]:
 def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
            coverage, provenance: dict, code_dir: str, excludes: set[str],
            image_mode: bool, new_fps: set[str] | None, scope=None,
-           license_stats=None, incomplete=None, suppressed_by_repo=0) -> None:
+           license_stats=None, incomplete=None, suppressed_by_repo=0) -> dict:
     source = _Source(None if image_mode else code_dir)
     secrets = {(_norm_file(f.file), f.line): f for f in findings
                if f.category == "secrets" and f.line}
@@ -270,12 +301,23 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
     def gates(f: Finding) -> bool:
         return breaches(f, cfg) and is_new(f) is not False
 
-    # SCA is listed per component below; this ordering covers the rest.
+    # SCA is listed per component below; this ordering covers the rest. Within
+    # each band a low-confidence rule comes after the rules sure of themselves.
     ordered = sorted((f for f in findings if f.category != "sca"), key=lambda f: (
         not gates(f), not is_new(f), not getattr(f, "on_changed_line", None),
-        -_SEVERITY_RANK.get(f.severity, 0),
+        f.confidence == "low", -_SEVERITY_RANK.get(f.severity, 0),
         f.category, _norm_file(f.file), f.line or 0))
-    shown, rest = ordered[:MAX_DETAILED], ordered[MAX_DETAILED:]
+    # What earns its code: not a low-confidence rule that does not gate (a
+    # lead, often wrong), and not the fourth match of a rule already shown.
+    detailed, repeated, doubtful = [], [], []
+    seen: Counter = Counter()
+    for f in ordered:
+        if f.confidence == "low" and not gates(f):
+            doubtful.append(f)
+            continue
+        seen[f.rule_id] += 1
+        (detailed if seen[f.rule_id] <= REPEAT_DETAIL else repeated).append(f)
+    shown, rest = detailed[:MAX_DETAILED], detailed[MAX_DETAILED:]
     gating = sum(1 for f in findings if gates(f))
 
     engines = provenance.get("engines") or {}
@@ -327,7 +369,9 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
                      + (", ".join(fws) or "none"))
     lines += [f"- Gate: fail_on {cfg.threshold_label()}"
               + (" + exploitable" if cfg.fail_on_exploitable else "")
-              + (" (new findings only)" if new_fps is not None else ""), ""]
+              + (" (new findings only)" if new_fps is not None else "")
+              + (f"; rules of {cfg.min_confidence} confidence and above"
+                 if cfg.min_confidence != "low" else ""), ""]
 
     lines += ["## Blind spots", "",
               "What this scan did not or could not check. Absence of findings here "
@@ -388,6 +432,23 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
         lines += [f"…and {len(rest)} more, not detailed here "
                   f"({', '.join(f'{n} {s} {c}' for (c, s), n in sorted(left.items()))}). "
                   "All of them are in findings.json.", ""]
+    if repeated:
+        lines += ["### More of the same rules", "",
+                  f"{len(repeated)} further match(es) of rules already shown above "
+                  "with code. The same rule usually means the same verdict: decide "
+                  "on the ones above, then check these locations only where the "
+                  "code around them differs.", ""]
+        lines += _compact(repeated, gates, is_new)
+    if doubtful:
+        lines += ["### Low-confidence rules (not gating)", "",
+                  f"{len(doubtful)} finding(s) from rules their authors mark LOW "
+                  "confidence: leads, frequently false positives, listed without "
+                  "code. They do not gate this run"
+                  + (f" (`min_confidence: {cfg.min_confidence}`)"
+                     if cfg.min_confidence != "low" else "")
+                  + ". Look at one only when its location is code you are "
+                  "reviewing anyway.", ""]
+        lines += _compact(doubtful, gates, is_new)
 
     lines += [
         "## Recording a verdict", "",
@@ -402,4 +463,10 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
         "    expires: <YYYY-MM-DD>",
         "```", "",
     ]
-    Path(out_dir, "review-brief.md").write_text("\n".join(lines))
+    text = "\n".join(lines)
+    Path(out_dir, "review-brief.md").write_text(text)
+    return {"bytes": len(text.encode()),
+            "approx_tokens": round(len(text) / _CHARS_PER_TOKEN),
+            "detailed": len(shown), "one_line": len(repeated) + len(doubtful),
+            "repeated": len(repeated), "low_confidence": len(doubtful),
+            "counted_only": len(rest)}

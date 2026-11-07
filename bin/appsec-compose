@@ -69,12 +69,12 @@ Project conventions (explicit flags win):
   <path>/.appsec-baseline.json   baseline       (--baseline)
   ./appsec-reports               reports dir    (--reports)
 
-Scan flags are run.sh's: --fail-on L, --strict, --require-pinned,
+Scan flags are run.sh's: --fail-on L, --min-confidence L, --strict, --require-pinned,
 --update-baseline, --config F, --profile F, --baseline F, --reports D, --name N, --json,
 --image REF, --build CTX [--dockerfile F]. For an image, omit <path>.
 
 --json: stdout is one JSON object (exit_code, verdict, reports_dir,
-findings_json, review_brief, severity_counts, breaching, baseline); all other
+findings_json, review_brief, severity_counts, breaching, baseline, metrics); all other
 output goes to stderr.
 
 Exit codes: 0 pass, 1 policy fail, 2 usage/config error, 3 scan did not complete.

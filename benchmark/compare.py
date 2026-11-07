@@ -24,11 +24,13 @@ HEADLINES = {
                 ("Secrets precision", ("merged", "precision"), True)],
     "sca": [("SCA recall", ("recall",), True)],
 }
+# Read from the run rather than its score: what the result costs to read.
+RUN_HEADLINES = [("brief ~tokens", ("brief", "approx_tokens"), False)]
 
 
-def _get(doc: dict, suite: str, path: tuple):
+def _get(doc: dict, suite: str, path: tuple, in_score: bool = True):
     node = (((doc.get("suites") or {}).get(suite) or {}).get("runs") or {}).get("default") or {}
-    node = node.get("score") or {}
+    node = (node.get("score") or {}) if in_score else node
     for key in path:
         node = node.get(key) if isinstance(node, dict) else None
     return node if isinstance(node, (int, float)) else None
@@ -37,8 +39,10 @@ def _get(doc: dict, suite: str, path: tuple):
 def compare(old: dict, new: dict) -> list[dict]:
     rows = []
     for suite, metrics in HEADLINES.items():
-        for label, path, higher_better in metrics:
-            a, b = _get(old, suite, path), _get(new, suite, path)
+        run_metrics = [(f"{suite} {label}", path, hb, False) for label, path, hb in RUN_HEADLINES]
+        for label, path, higher_better, in_score in [*((l, p, h, True) for l, p, h in metrics),
+                                                     *run_metrics]:
+            a, b = _get(old, suite, path, in_score), _get(new, suite, path, in_score)
             if a is None or b is None:
                 continue
             delta = b - a

@@ -95,3 +95,10 @@ def test_compare_flags_a_drop():
     rows = {r["metric"]: r for r in cmp.compare(old, new)}
     assert rows["Secrets recall"]["worse"] and not rows["Secrets precision"]["worse"]
     assert "| Secrets recall | 88.0% | 80.0% | worse |" in cmp.markdown(cmp.compare(old, new))
+
+
+def test_compare_flags_a_longer_brief():
+    run = lambda tokens: {"suites": {"sca": {"runs": {"default": {
+        "brief": {"approx_tokens": tokens}, "score": {"recall": .9}}}}}}
+    rows = {r["metric"]: r for r in cmp.compare(run(1000), run(1500))}
+    assert rows["sca brief ~tokens"]["worse"] and not rows["SCA recall"]["worse"]

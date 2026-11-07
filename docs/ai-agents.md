@@ -43,3 +43,21 @@ they cannot see. A run gives it both halves:
 Without MCP the same loop works from a shell: `--json` for the verdict,
 `findings.json` for the findings (stable [`fingerprint`s](configuration.md#baseline-gate-on-new-findings)),
 and `ignore:` entries by fingerprint in `.appsec-compose.yml`.
+
+## Spending fewer tokens
+
+The scan is deterministic and free; the agent's reading is what costs. Out of
+the box the brief already folds what a reader would otherwise pay for twice —
+repeats of one rule, non-gating low-confidence rules — into one line each, and
+says what it costs before anyone opens it (`metrics.brief.approx_tokens` in the
+JSON result, `brief_tokens` from the MCP `scan`). From there:
+
+| Setting | Effect | When |
+|---|---|---|
+| `--min-confidence medium` (`min_confidence:` in config, `min_confidence` on MCP `scan`) | Semgrep's LOW-confidence rules stop gating and move to one-line entries | a first pass; a large or legacy codebase; whenever the brief is long |
+| `--diff origin/main` | only what the branch changed is scanned, gated and briefed | reviewing a change, re-checking a fix |
+| baseline (`--update-baseline` once) | gate on new findings only; the backlog is marked, not re-triaged | a codebase with a known backlog |
+| `fail_on:` per category | e.g. `iac: none` keeps lint-grade IaC off the gate | a category the review does not cover |
+
+None of these hides a finding: everything stays in `findings.json` and the
+summaries. They decide what gates and what the brief spends code on.

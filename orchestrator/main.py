@@ -28,7 +28,7 @@ from converters import trufflehog_json_to_sarif
 from dedup import merge
 from normalize import load_findings, finding_to_dict, expected_reports, relativize_sarif
 from policy import evaluate, resolve_unknown
-from summary import render, timing_label
+from summary import render
 from suppress import Suppressed, apply as apply_ignore
 
 REPORTS_DIR = "/reports"
@@ -40,7 +40,7 @@ DIFF_SCOPE_PATH = "/diff/scope.json"
 # Version of the findings.json contract (schemas/findings.schema.json). Bump
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
-SCHEMA_VERSION = "1.4"
+SCHEMA_VERSION = "1.5"
 
 # Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
 # way of not reaching a verdict maps elsewhere, so a caller never mistakes a
@@ -49,6 +49,14 @@ EXIT_PASS = 0      # the policy gate passed
 EXIT_POLICY = 1    # the policy gate failed
 EXIT_USAGE = 2     # invalid configuration: fix scan-config.yml
 EXIT_SCAN = 3      # the scan is incomplete or unreadable: no trustworthy verdict
+
+
+def _json_env_dict(name: str) -> dict:
+    try:
+        value = json.loads(os.environ.get(name) or "{}")
+    except json.JSONDecodeError:
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 def _provenance(cfg, image_mode: bool, scope=None) -> dict:
@@ -104,6 +112,78 @@ def _timings(engines: dict) -> dict:
 
 
 _STARTED = time.monotonic()
+
+
+def _db_age_days(databases: dict, now: datetime | None = None) -> dict:
+    """How old each vulnerability DB is: a week-old DB misses a week of CVEs."""
+    now = now or datetime.now(timezone.utc)
+    ages = {}
+    for name, stamp in (databases or {}).items():
+        try:
+            built = datetime.fromisoformat(str(stamp)[:19]).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        ages[name] = max(0, (now - built).days)
+    return ages
+
+
+def _metrics(provenance: dict, result, stats, ignored: int, in_source: int,
+             kept: list, policy, brief_stats: dict) -> dict:
+    """What this run did, in numbers: for the reader, how much there is and
+    how much of it to read; for a bug report, where the time and the findings
+    went. Counts only, never content."""
+    timings = provenance.get("timings") or {}
+    return {
+        "time_s": {"total": timings.get("total_s"), "scanners": timings.get("scanners_s"),
+                   "collector": timings.get("collector_s"),
+                   "engines": timings.get("engines") or {}},
+        "reports": {"read": len(result.reports_found), "missing": len(result.reports_missing),
+                    "errored": len(result.reports_errored)},
+        # raw -> unique (merged) -> minus ignore: entries = reported. Results
+        # suppressed in the code never reach the merge; they are counted apart.
+        "findings": {"raw": stats.raw, "unique": stats.unique, "merged": stats.removed,
+                     "ignored": ignored, "suppressed_in_source": in_source,
+                     "reported": len(kept),
+                     "gating": policy.breaching,
+                     "low_confidence": sum(1 for f in kept if f.confidence == "low")},
+        "brief": brief_stats,
+        "database_age_days": _db_age_days(provenance.get("databases") or {}),
+    }
+
+
+def _metrics_lines(m: dict) -> list[str]:
+    t, r, f, b = m["time_s"], m["reports"], m["findings"], m["brief"]
+    engines = ", ".join(f"{e} {v:g} s" for e, v in list(t["engines"].items())[:3])
+    time_line = " — ".join(x for x in [
+        f"{t['total']} s total" if t["total"] is not None else "",
+        (f"scanners {t['scanners']} s" if t["scanners"] is not None else "scanners")
+        + (f" ({engines})" if engines else ""),
+        f"collector {t['collector']:g} s" if t["collector"] is not None else ""] if x)
+    reports = f"{r['read']} read"
+    if r["missing"] or r["errored"]:
+        reports += f", {r['missing']} missing, {r['errored']} incomplete"
+    out = [f"  time      : {time_line}",
+           f"  reports   : {reports}",
+           f"  findings  : {f['raw']} raw -> {f['unique']} unique ({f['merged']} merged)"
+           + (f" -> {f['ignored']} ignored" if f["ignored"] else "")
+           + f" -> {f['reported']} reported, {f['gating']} gating"
+           + (f"; {f['suppressed_in_source']} suppressed in the code"
+              if f["suppressed_in_source"] else "")]
+    if f["low_confidence"]:
+        out.append(f"  confidence: {f['low_confidence']} from low-confidence rules")
+    if b:
+        kb = b["bytes"] / 1024
+        tokens = b["approx_tokens"]
+        size = f"{kb:.0f} KB" if kb >= 10 else f"{kb:.1f} KB"
+        tok = f"~{tokens / 1000:.1f}k tokens" if tokens >= 1000 else f"~{tokens} tokens"
+        folded = (f", {b['one_line']} one line each ({b['repeated']} repeats, "
+                  f"{b['low_confidence']} low-confidence)" if b["one_line"] else "")
+        counted = f", {b['counted_only']} counted only" if b["counted_only"] else ""
+        out.append(f"  brief     : {size}, {tok} — {b['detailed']} with code{folded}{counted}")
+    if m["database_age_days"]:
+        out.append("  databases : " + ", ".join(
+            f"{n} {d} d old" for n, d in sorted(m["database_age_days"].items())))
+    return out
 
 
 def main() -> int:
@@ -262,6 +342,7 @@ def main() -> int:
             "fail_on": policy.threshold,
             "fail_on_by_category": policy.thresholds,
             "fail_on_exploitable": cfg.fail_on_exploitable,
+            "min_confidence": cfg.min_confidence,
             "strict": cfg.strict,
             "breaching": policy.breaching,
             "exploitable_breaching": policy.exploitable_breaching,
@@ -320,14 +401,12 @@ def main() -> int:
         "suppressed": [{**finding_to_dict(s.finding), "reason": s.reason}
                        for s in suppressed],
     }
-    Path(REPORTS_DIR, "findings.json").write_text(json.dumps(consolidated, indent=2))
-
     provenance = consolidated["provenance"]
     render(result, policy, kept, stats, REPORTS_DIR,
            suppressed_count=len(suppressed), delta=delta, coverage=coverage,
            enrichment=enrichment, expired=expired, provenance=provenance,
            scope=scope)
-    brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
+    brief_stats = brief.render(REPORTS_DIR, kept, cfg, enabled, coverage, provenance,
                  CODE_DIR, excludes, image_mode, new_fps if delta else None,
                  scope=scope, license_stats=license_stats,
                  incomplete=result.reports_errored,
@@ -336,6 +415,11 @@ def main() -> int:
                  + sum(1 for s in suppressed
                        if not s.reason.startswith("suppressed in source")
                        and "ignore" in ((provenance.get("repo_config") or {}).get("applied") or [])))
+    provenance["timings"] = _timings(_json_env_dict("ASS_ENGINE_TIMINGS"))   # collector time so far
+    metrics = _metrics(provenance, result, stats, len(suppressed) - len(in_source),
+                       len(in_source), kept, policy, brief_stats or {})
+    consolidated["metrics"] = metrics
+    Path(REPORTS_DIR, "findings.json").write_text(json.dumps(consolidated, indent=2))
 
     # Console summary.
     total = sum(policy.severity_counts.values())
@@ -343,9 +427,6 @@ def main() -> int:
     version = os.environ.get("ASS_VERSION", "")
     if version:
         print(f"appsec-compose {version}")
-    label = timing_label(provenance.get("timings"))
-    if label:
-        print(f"  {label}")
     dup_note = (f" ({stats.removed} duplicate(s) merged)"
                 if cfg.dedup and stats.removed else "")
     print(f"appsec-compose: {total} unique finding(s) across "
@@ -412,6 +493,9 @@ def main() -> int:
     gate_scope = "new " if delta is not None else ""
     print(f"Policy fail_on={policy.label} -> {verdict} "
           f"({policy.breaching} {gate_scope}at/above threshold)")
+    print("Run metrics (also in findings.json; include them when reporting a problem):")
+    for line in _metrics_lines(metrics):
+        print(line)
     sboms = sorted(p.name for p in Path(REPORTS_DIR).glob("sbom.*.json"))
     sbom_note = (" | " + " | ".join(sboms)) if sboms else ""
     print(f"Reports: {REPORTS_DIR}/summary.md | summary.html | findings.json"

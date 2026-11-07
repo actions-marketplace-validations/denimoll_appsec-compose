@@ -39,7 +39,7 @@ ASS_RUN_START="$(date +%s)"; export ASS_RUN_START   # provenance: total run time
 trap 'echo "Error: scan aborted: \`$BASH_COMMAND\` failed (line $LINENO)" >&2; exit $EXIT_SCAN' ERR
 
 usage() {
-  echo "Usage: $0 <path-to-repo> [--fail-on L] [--strict] [--require-pinned] [--update-baseline]" >&2
+  echo "Usage: $0 <path-to-repo> [--fail-on L] [--min-confidence L] [--strict] [--require-pinned] [--update-baseline]" >&2
   echo "       $0 <path-to-repo> --diff <base-ref> [--fail-on L] [--strict]" >&2
   echo "       $0 <path-to-repo> [--profile <file>] [--config <file>] [--baseline <file>] [--reports <dir>] [--name <slug>]" >&2
   echo "       $0 --image <ref> [--registry-user U --registry-pass P] [--fail-on L]" >&2
@@ -93,6 +93,7 @@ while [[ $# -gt 0 ]]; do
     --reports) REPORTS_DIR="${2:-}"; shift 2 ;;
     --name) PROJECT_NAME="${2:-}"; shift 2 ;;
     --fail-on) FAIL_ON_OVERRIDE="${2:-}"; shift 2 ;;
+    --min-confidence) export ASS_MIN_CONFIDENCE="${2:-}"; shift 2 ;;
     --strict) export ASS_STRICT=1; shift ;;
     --require-pinned) export ASS_REQUIRE_PINNED=1; shift ;;
     --update-baseline) export ASS_UPDATE_BASELINE=1; shift ;;
@@ -365,6 +366,7 @@ echo "Scanners : ${RUN_ENGINES:-none}"
 [[ -n "$DIFF_SUMMARY" ]] && echo "$DIFF_SUMMARY"
 echo "Mode     : $([[ "$ASS_OFFLINE" == "1" ]] && echo offline || echo online)"
 [[ -n "${FAIL_ON_OVERRIDE}" ]] && echo "fail_on  : $FAIL_ON_OVERRIDE (override)"
+[[ -n "${ASS_MIN_CONFIDENCE:-}" ]] && echo "gate     : rules of ${ASS_MIN_CONFIDENCE} confidence and above"
 [[ "${ASS_STRICT:-}" == "1" ]] && echo "strict   : a missing scanner report fails the run"
 [[ "${ASS_UPDATE_BASELINE:-}" == "1" ]] && echo "baseline : updating snapshot"
 

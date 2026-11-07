@@ -81,7 +81,8 @@ line, written on exit for **every** exit code, usage errors included:
  "findings_json": "/home/me/src/api/appsec-reports/findings.json",
  "review_brief": "/home/me/src/api/appsec-reports/review-brief.md",
  "severity_counts": {"info": 0, "low": 2, "medium": 8, "high": 4, "critical": 1},
- "breaching": 5, "baseline": null}
+ "breaching": 5, "baseline": null,
+ "metrics": {"time_s": {"total": 41}, "brief": {"approx_tokens": 12300}, "...": "..."}}
 ```
 
 | Field | Type | Meaning |
@@ -94,6 +95,7 @@ line, written on exit for **every** exit code, usage errors included:
 | `severity_counts` | object \| null | `findings.json`'s `severity_counts` (gating view: after suppressions), or `null` |
 | `breaching` | int \| null | `findings.json`'s `policy.breaching`: findings at/above `fail_on` |
 | `baseline` | object \| null | `findings.json`'s `baseline` (`enabled`, `new`, `known`, `fixed`, `legacy_format`) when a baseline was in force, else `null` |
+| `metrics` | object \| null | `findings.json`'s [`metrics`](reports.md#run-metrics): time, reports, how findings were reduced, the brief's size (`brief.approx_tokens`), database age |
 
 A path is only ever this run's: reports left by an earlier run are never
 reported (an early usage error yields `null`s). Fields are only added, never

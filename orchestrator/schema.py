@@ -18,7 +18,7 @@ CATEGORIES = ["sast", "sca", "secrets", "iac"]
 TOP_LEVEL = {
     "scanners", "sbom", "sbom_formats", "secrets_history",
     "secrets_history_range", "exclude", "enrich", "fail_on",
-    "unknown_severity", "dedup", "strict", "require_pinned", "baseline",
+    "unknown_severity", "min_confidence", "dedup", "strict", "require_pinned", "baseline",
     "ignore", "offline", "licenses",
 }
 SCANNER = {"enabled", "version", "rules", "verify", "frameworks", "guidelines"}

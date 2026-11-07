@@ -24,6 +24,7 @@ from . import core
 from ._orchestrator import baseline, dedup
 
 _RANK = {s: i for i, s in enumerate(core.SEVERITIES)}
+_CONFIDENCE = list(core.CONFIDENCES)
 _MAX_LINE = 240
 _FP_PREFIX = re.compile(r"^[0-9a-f]{8,40}$")
 
@@ -108,6 +109,11 @@ class Report:
         threshold = (p.get("fail_on_by_category") or {}).get(
             f.get("category"), p.get("fail_on", "high"))
         if threshold == "none" or threshold not in _RANK:
+            return False
+        # min_confidence: a rule less sure than asked reports but does not gate.
+        conf, floor = f.get("confidence") or "", p.get("min_confidence") or "low"
+        if conf in _CONFIDENCE and _CONFIDENCE.index(conf) < _CONFIDENCE.index(
+                floor if floor in _CONFIDENCE else "low"):
             return False
         return _RANK.get(f.get("severity"), 0) >= _RANK[threshold]
 

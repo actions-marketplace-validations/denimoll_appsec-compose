@@ -139,6 +139,17 @@ the first step of an AI agent's security review. CI integrations come later.
       actions from zizmor, Semgrep and Checkov merge where their regions
       overlap; distinct steps stay distinct, baselines keep working.
 
+## Fewer tokens per review
+
+- [x] **Rule confidence** — every finding carries its rule's stated
+      confidence; `min_confidence` (`--min-confidence`) keeps less sure rules
+      off the gate.
+- [x] **A compact brief** — repeats of one rule after the third, and
+      non-gating low-confidence rules, are one line each, without code.
+- [x] **Run metrics** — time, reports, raw → unique → reported, the brief's
+      size in ~tokens and database age, at the end of every run and in
+      `findings.json`.
+
 ## Maintenance
 
 - [x] **Engines kept current** — weekly pull request moving every engine to its

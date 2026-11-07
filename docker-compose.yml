@@ -363,6 +363,7 @@ services:
       ASS_IMAGE_TAR: ${ASS_IMAGE_TAR:-}
       ASS_ENABLED: ${ASS_ENABLED:-}
       ASS_STRICT: ${ASS_STRICT:-}
+      ASS_MIN_CONFIDENCE: ${ASS_MIN_CONFIDENCE:-}
       ASS_EXCLUDES: ${ASS_EXCLUDES:-}
       # Key for the CVE-PaaS enrichment; passed through from the host env so it
       # never has to live in scan-config.yml.

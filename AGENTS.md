@@ -36,6 +36,13 @@ counts, and a clean result means little. If the brief's blind spots say the
 repository set or suppressed something itself, tell the user. Add `--diff origin/main` to check only what a branch changed
 (the target must be a git repository with that ref fetched).
 
+**Spend tokens on what the rules are sure of.** Add `--min-confidence medium`
+for a first pass — always on a large or legacy codebase, and whenever the
+user has not asked for an exhaustive review. Semgrep marks ~40% of its rules
+LOW confidence; with this flag they are still reported but do not gate, and
+the brief lists them one line each instead of with code. Tell the user you
+used it. Drop it only when they want every lead.
+
 - **The first run takes several minutes** (vulnerability databases, ~2 GB, and
   the collector image are downloaded or built once). Use a long command
   timeout — at least 20 minutes — or run it in the background. Do not kill it
@@ -50,15 +57,23 @@ repository set or suppressed something itself, tell the user. Add `--diff origin
   | `scan_error` | 3 | the scan did not complete (Docker, a crashed engine): **there is no result to report**; tell the user what failed |
 
 - Reports land in `./appsec-reports/` (the JSON gives the absolute paths).
+- `metrics` in the JSON says what reading costs before you read:
+  `metrics.brief.approx_tokens` is the brief's size. Over ~20k, rerun with
+  `--min-confidence medium` (if you had not), or `--diff`, or read the brief
+  in parts as below.
 
 ## 3. Read the results — in this order
 
 1. **`review-brief.md`** (`review_brief` in the JSON). Written for you: scope,
    **blind spots**, gating findings first with the flagged code, dependencies
    grouped per component with the version to upgrade to. Secret values are
-   already masked. On a large project it is long: read Scope and Blind spots,
-   then the findings in order — gating ones come first — and stop when you
-   have what the report needs.
+   already masked. It is already compact: a rule matching many times shows
+   its first 3 matches with code and the rest one line each (*More of the same
+   rules*: one verdict usually covers them all — do not open each), and
+   non-gating low-confidence rules are one line each (*Low-confidence rules*:
+   skip unless the user wants leads). On a large project read Scope and Blind
+   spots, then the findings in order — gating ones come first — and stop when
+   you have what the report needs.
 2. **`findings.json`** (`findings_json`) only for detail the brief leaves out —
    it follows [schemas/findings.schema.json](schemas/findings.schema.json):
    `components` for dependencies, `findings` for everything, `fingerprint` as
@@ -70,7 +85,8 @@ Do not parse `native/*.sarif`; those are for ASPM upload.
 
 Lead with the verdict, then what to do. A good report, in this order:
 
-1. **Verdict** — pass / fail, how many findings gate, against which threshold.
+1. **Verdict** — pass / fail, how many findings gate, against which threshold
+   (and `--min-confidence`, if you used it).
 2. **Dependencies** — the vulnerable components, worst first:
    `package@version → upgrade to X` (or "no fix known"), how many
    vulnerabilities and the worst severity. A malicious package is not
@@ -95,6 +111,10 @@ Rules:
   spots are.
 - Keep it short; offer the full list (`summary.html`, `findings.json`) rather
   than pasting it.
+- If the run looks wrong — an engine took minutes, a report is missing or
+  incomplete, a database is days old — say so, and quote the **Run metrics**
+  block from the end of stderr (also `metrics` in the JSON): counts and
+  timings only, safe to paste into an appsec-compose issue.
 
 ## 5. Optional: triage and suppress
 

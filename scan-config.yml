@@ -140,6 +140,11 @@ fail_on: high              # critical | high | medium | low | none  (none = repo
                            #   default: high      # categories not listed
                            # (./run.sh --fail-on L overrides the whole map.)
 unknown_severity: medium   # how to rank findings that carry no severity
+min_confidence: low        # low | medium | high: findings from rules less sure
+                           # than this are reported, but do not gate. Semgrep
+                           # marks ~40% of its rules LOW confidence; `medium`
+                           # gates on the rest. A finding whose engine states
+                           # no confidence always gates. (--min-confidence L)
 dedup: true                # merge duplicate findings across tools
                            # (e.g. Trivy CVE == Grype GHSA via aliases)
 strict: false              # true => a scanner that ran but produced no readable

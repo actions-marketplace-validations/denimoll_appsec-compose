@@ -50,6 +50,8 @@ def result(exit_code: int, reports_dir: str, fresh: bool) -> dict:
         "breaching": policy.get("breaching"),
         # Only a baseline that was in force says anything about "new".
         "baseline": baseline if baseline and baseline.get("enabled") else None,
+        # Time, reduction and the brief's size (~tokens) — what reading it costs.
+        "metrics": data.get("metrics") if isinstance(data.get("metrics"), dict) else None,
     }
 
 

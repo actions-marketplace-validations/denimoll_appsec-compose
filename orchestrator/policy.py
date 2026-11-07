@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from config import Config, SEVERITY_ORDER
+from config import CONFIDENCE_ORDER, Config, SEVERITY_ORDER
 from normalize import Finding
 
 _RANK = {s: i for i, s in enumerate(SEVERITY_ORDER)}
@@ -46,10 +46,23 @@ def resolve_unknown(findings: list[Finding], unknown_severity: str) -> int:
 _bump_unknown = resolve_unknown
 
 
+def below_confidence(finding: Finding, cfg: Config) -> bool:
+    """The rule itself says it is less sure than `min_confidence` asks.
+
+    A finding whose engine states no confidence is never below it: an absent
+    signal must not quietly take a finding off the gate.
+    """
+    if finding.confidence not in CONFIDENCE_ORDER:
+        return False
+    return (CONFIDENCE_ORDER.index(finding.confidence)
+            < CONFIDENCE_ORDER.index(cfg.min_confidence))
+
+
 def breaches_severity(finding: Finding, cfg: Config) -> bool:
-    """True when a finding is at or above the threshold for its category."""
+    """True when a finding is at or above the threshold for its category,
+    from a rule at least as confident as `min_confidence`."""
     threshold = cfg.threshold_for(finding.category)
-    if threshold == "none":
+    if threshold == "none" or below_confidence(finding, cfg):
         return False
     return _RANK[finding.severity] >= _RANK[threshold]
 

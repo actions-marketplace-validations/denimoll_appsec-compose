@@ -243,6 +243,36 @@ def _provenance(results: dict) -> list[str]:
     return out
 
 
+def _reading_cost(results: dict) -> list[str]:
+    """The brief's size per suite, and what min_confidence: medium trades."""
+    rows = []
+    for suite_name, suite in results["suites"].items():
+        r = suite["runs"].get("default") or {}
+        b, s = r.get("brief") or {}, r.get("score") or {}
+        if not b:
+            continue
+        medium = s.get("at_min_confidence_medium") or {}
+        if "average" in s and medium.get("average"):
+            trade = (f"score {signed(s['average']['score'])} → "
+                     f"{signed(medium['average']['score'])}, TPR {pct(s['average']['tpr'])} → "
+                     f"{pct(medium['average']['tpr'])}, FPR {pct(s['average']['fpr'])} → "
+                     f"{pct(medium['average']['fpr'])}")
+        elif "totals" in s and medium.get("totals"):
+            trade = f"detected {s['totals'].get('tp')} → {medium['totals'].get('tp')}"
+        else:
+            trade = "—"
+        rows.append([suite_name, f"~{b['approx_tokens']:,}", b["detailed"], b["one_line"],
+                     s.get("low_confidence_findings", "—"), trade])
+    if not rows:
+        return []
+    return ["### Reading cost", "",
+            "What `review-brief.md` costs a reader (≈ tokens; findings with code, and "
+            "one line each), and what `min_confidence: medium` — dropping LOW-confidence "
+            "rules from the gate — would trade on the SAST suites.", "",
+            *_table(["Suite", "Brief", "With code", "One line", "Low-confidence",
+                     "With `min_confidence: medium`"], rows), ""]
+
+
 def render(results: dict) -> str:
     parts: list[str] = []
     s = results["suites"]
@@ -257,6 +287,7 @@ def render(results: dict) -> str:
         parts += _secrets(s["secrets"]) + [""]
     if "sca" in s:
         parts += _sca(s["sca"]) + [""]
+    parts += _reading_cost(results)
     parts += _provenance(results)
     return "\n".join(parts)
 

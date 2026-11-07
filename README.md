@@ -63,7 +63,9 @@ and merged across engines: [engines](docs/engines.md).
 | `findings.json` | tools and agents: a versioned contract ([schema](schemas/findings.schema.json)), stable fingerprints |
 | `native/*.sarif`, `sbom.*.json` | ASPM upload (DefectDojo, Dependency-Track, GitHub code scanning, …) |
 
-Every report records the tool version, engine images and database dates.
+Every report records the tool version, engine images and database dates, and
+every run ends with a few lines of metrics — where the time went, how far
+merging cut the raw output, what the brief costs to read (~tokens).
 [Reports](docs/reports.md).
 
 ## Exit codes
@@ -83,6 +85,7 @@ what differs — it is laid over the defaults:
 
 ```yaml
 fail_on: { secrets: low, default: high }   # gate per category
+min_confidence: medium                     # Semgrep's LOW-confidence rules report, but don't gate
 exclude: [vendor, fixtures]
 ignore:
   - fingerprint: 3f9a…                     # one finding, from findings.json

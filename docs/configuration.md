@@ -135,6 +135,28 @@ fail_on:
 Each finding is compared against the threshold for its own category.
 `./run.sh --fail-on <level>` overrides the whole map with a single level.
 
+## Rule confidence (`min_confidence`)
+
+Rule authors say how often their rule is right. Semgrep marks each rule
+`HIGH`, `MEDIUM` or `LOW` confidence — about 40% of its default rules are
+`LOW`: a pattern worth a look, often a false positive — and zizmor rates each
+result. Every finding carries that as `confidence` (`""` when its engine
+states none).
+
+```yaml
+min_confidence: medium   # low (default) | medium | high
+```
+
+Findings from rules less sure than `min_confidence` are still reported, in
+every report, but **do not gate**; the review brief lists the non-gating
+low-confidence ones one line each, without code. A finding whose engine states
+no confidence (Gitleaks, Trivy, Checkov) always gates — a missing signal never
+takes a finding off the gate. `--min-confidence L` sets it for one run.
+
+`medium` is the setting for a first look at a large or legacy codebase, and
+for an AI agent's first pass: the gate and the brief then hold the findings
+the rules are sure of.
+
 ## Failing loudly (`strict`)
 
 Scanners always exit `0`, so a crashed engine would otherwise look like a clean

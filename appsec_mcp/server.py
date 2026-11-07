@@ -84,6 +84,11 @@ async def scan(
     fail_on: Annotated[Threshold | None, Field(
         description="Override the gate threshold for this run (default: the project "
                     "config, normally `high`). `none` reports without gating.")] = None,
+    min_confidence: Annotated[Literal["low", "medium", "high"] | None, Field(
+        description="Gate only on findings from rules at least this confident "
+                    "(`medium` drops Semgrep's LOW-confidence rules from the gate; "
+                    "they are still reported). Default: the project config, "
+                    "normally `low` = everything gates.")] = None,
 ) -> str:
     """Scan a repository for security issues (SAST, vulnerable dependencies,
     secrets, IaC misconfigurations). Use it first, before reviewing a codebase or
@@ -100,6 +105,7 @@ async def scan(
     try:
         diff_base = core.validate_diff_base(diff_base)
         fail_on = core.validate_fail_on(fail_on)
+        min_confidence = core.validate_min_confidence(min_confidence)
     except core.UserError as exc:
         raise ToolError(str(exc)) from None
 
@@ -125,6 +131,7 @@ async def scan(
         try:
             result = await core.scan(target, diff_base=diff_base, fail_on=fail_on,
                                      no_repo_config=no_repo_config,
+                                     min_confidence=min_confidence,
                                      on_line=on_line)
         except core.UserError as exc:
             raise ToolError(str(exc)) from None
