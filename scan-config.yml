@@ -13,7 +13,7 @@ scanners:
   # -- SAST -----------------------------------------------------------
   semgrep:                 # source code vulnerabilities
     enabled: true
-    version: "1.174.0"
+    version: "1.183.0"
     # Optional rule sources (each becomes a `--config`). Omit for the default
     # pack. Entries: "default" (curated pack), "auto" (detect the repo's stack
     # and pull matching registry packs), a registry ref ("p/python", "r/..."),
@@ -24,13 +24,13 @@ scanners:
   # -- SCA  (dependency vulnerabilities) — Trivy / Grype / OSV ---------
   trivy:                   # also covers IaC (config) + SBOM (see below)
     enabled: true
-    version: "0.74.0"
+    version: "0.76.1"
   grype:                   # alternative SCA engine (Anchore)
     enabled: false
-    version: "v0.117.0"
+    version: "v0.121.0"
   osv:                     # alternative SCA engine (Google OSV) — needs network
     enabled: false
-    version: "v2.5.1"
+    version: "v2.7.0"
 
   # -- Secrets — Gitleaks and/or TruffleHog ---------------------------
   gitleaks:                # fast pattern-based secret scanning
@@ -38,7 +38,7 @@ scanners:
     version: "v8.30.1"
   trufflehog:              # detector-based, can verify secrets
     enabled: false
-    version: "3.97.0"
+    version: "3.99.7"
     verify: false          # true => send each candidate secret to its issuer's
                            # API to check it is live (outbound; opt in knowingly)
 
@@ -49,7 +49,7 @@ scanners:
                            # for (terraform, dockerfile, kubernetes, ...)
     # guidelines: true     # fetch Prisma Cloud doc links per finding (~25 s
                            # of network per scan; findings are the same)
-    version: "3.3.13"
+    version: "3.4.0"
   hadolint:                # Dockerfile linter / best-practices
     enabled: false
     version: "v2.15.1-alpine"
@@ -62,7 +62,7 @@ scanners:
   # -- SBOM generator — Syft (Trivy also emits one via `sbom:` below) --
   syft:                    # CycloneDX SBOM (Anchore) -> reports/sbom.syft.cdx.json
     enabled: false
-    version: "v1.51.0"
+    version: "v1.55.0"
 
 # ---- Extra artifacts -------------------------------------------------
 sbom: true                 # generate an SBOM via Trivy (when `trivy` is enabled)

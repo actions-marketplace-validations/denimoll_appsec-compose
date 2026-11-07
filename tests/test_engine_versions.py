@@ -75,12 +75,14 @@ def test_apply_moves_all_three_places_or_none(tmp_path, monkeypatch):
         (tmp_path / rel_path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(ROOT / rel_path, tmp_path / rel_path)
     monkeypatch.setattr(up, "ROOT", tmp_path)
-    up.apply([{"engine": "semgrep", "from": "1.174.0", "to": "1.185.0"},
-              {"engine": "hadolint", "from": "v2.15.1-alpine", "to": "v2.16.0-alpine"}])
+    # Whatever is pinned today: this test must not break on the next upgrade.
+    have = {name: ver for name, (_, ver) in up.current_versions().items()}
+    up.apply([{"engine": "semgrep", "from": have["semgrep"], "to": "9.0.0"},
+              {"engine": "hadolint", "from": have["hadolint"], "to": "v9.0.0-alpine"}])
     config, renderer, compose = versions_everywhere(tmp_path)
-    assert config["semgrep"]["version"] == "1.185.0" and renderer["semgrep"][1] == "1.185.0"
-    assert "semgrep/semgrep:1.185.0}" in compose and "hadolint/hadolint:v2.16.0-alpine}" in compose
-    assert config["trivy"]["version"] == "0.74.0"                    # neighbours untouched
+    assert config["semgrep"]["version"] == "9.0.0" and renderer["semgrep"][1] == "9.0.0"
+    assert "semgrep/semgrep:9.0.0}" in compose and "hadolint/hadolint:v9.0.0-alpine}" in compose
+    assert config["trivy"]["version"] == have["trivy"]               # neighbours untouched
     before = (tmp_path / "scan-config.yml").read_text()
     try:
         up.apply([{"engine": "trivy", "from": "0.0.1", "to": "0.0.2"}])

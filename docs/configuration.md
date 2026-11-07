@@ -11,10 +11,10 @@ enabled scanners.
 
 ```yaml
 scanners:
-  semgrep:  { enabled: true, version: "1.174.0" }    # SAST
-  trivy:    { enabled: true, version: "0.74.0" }     # SCA + IaC + SBOM
+  semgrep:  { enabled: true, version: "1.183.0" }    # SAST
+  trivy:    { enabled: true, version: "0.76.1" }     # SCA + IaC + SBOM
   gitleaks: { enabled: true, version: "v8.30.1" }    # secrets
-  checkov:  { enabled: true, version: "3.3.13" }     # IaC
+  checkov:  { enabled: true, version: "3.4.0" }     # IaC
 
 sbom: true                 # SBOM via Trivy
 sbom_formats: [cyclonedx]  # any of: cyclonedx, spdx
@@ -88,7 +88,7 @@ or let it pick rules for the repo's stack via `scanners.semgrep.rules`:
 scanners:
   semgrep:
     enabled: true
-    version: "1.174.0"
+    version: "1.183.0"
     rules:
       - default                      # the curated p/default pack
       - auto                         # detect the stack -> matching registry packs

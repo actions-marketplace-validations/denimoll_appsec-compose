@@ -53,15 +53,15 @@ LOCK = ROOT / "image-digests.lock"
 
 # tool -> (docker repo, default version, env-var prefix)
 TOOLS = {
-    "semgrep": ("semgrep/semgrep", "1.174.0", "SEMGREP"),
-    "trivy": ("aquasec/trivy", "0.74.0", "TRIVY"),
+    "semgrep": ("semgrep/semgrep", "1.183.0", "SEMGREP"),
+    "trivy": ("aquasec/trivy", "0.76.1", "TRIVY"),
     "gitleaks": ("zricethezav/gitleaks", "v8.30.1", "GITLEAKS"),
-    "checkov": ("bridgecrew/checkov", "3.3.13", "CHECKOV"),
-    "grype": ("anchore/grype", "v0.117.0", "GRYPE"),
-    "trufflehog": ("trufflesecurity/trufflehog", "3.97.0", "TRUFFLEHOG"),
-    "syft": ("anchore/syft", "v1.51.0", "SYFT"),
+    "checkov": ("bridgecrew/checkov", "3.4.0", "CHECKOV"),
+    "grype": ("anchore/grype", "v0.121.0", "GRYPE"),
+    "trufflehog": ("trufflesecurity/trufflehog", "3.99.7", "TRUFFLEHOG"),
+    "syft": ("anchore/syft", "v1.55.0", "SYFT"),
     "hadolint": ("hadolint/hadolint", "v2.15.1-alpine", "HADOLINT"),
-    "osv": ("ghcr.io/google/osv-scanner", "v2.5.1", "OSV"),
+    "osv": ("ghcr.io/google/osv-scanner", "v2.7.0", "OSV"),
     "zizmor": ("ghcr.io/zizmorcore/zizmor", "1.31.1", "ZIZMOR"),
 }
 
