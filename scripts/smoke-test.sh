@@ -21,7 +21,7 @@ FIXTURE="$SCRIPT_DIR/tests/fixtures/vulnerable-repo"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# All ten engines, report-only: the point is coverage, not the verdict.
+# Every engine, report-only: the point is coverage, not the verdict.
 # Only the scanners are switched on — enrichment stays off, so the smoke test
 # never depends on a CVE-PaaS instance being reachable.
 python3 - "$WORK/config.yml" <<'PYCFG'
@@ -58,7 +58,7 @@ check(not data["reports_errored"], f"unreadable reports: {data['reports_errored'
 # Each engine must find something in a fixture built to trip it. A silent zero
 # here means its command line broke, which is exactly what we are guarding.
 tools = data["tool_counts"]
-for engine in ("semgrep", "trivy", "gitleaks", "checkov", "hadolint", "osv", "zizmor"):
+for engine in ("semgrep", "trivy", "gitleaks", "checkov", "hadolint", "osv", "zizmor", "kics"):
     check(tools.get(engine, 0) > 0, f"{engine} reported nothing")
 
 # zizmor must read the planted workflow, not merely write an empty SARIF.

@@ -10,3 +10,4 @@ anchore/syft:v1.55.0 anchore/syft@sha256:4cc92b64ca74ffca4c94d4c8fcc01f217731375
 hadolint/hadolint:v2.15.1-alpine hadolint/hadolint@sha256:a1d49ae1a4e83c1dbad26b8c1ad7588c8bd1e04f4866b34ad3cac50335198552
 ghcr.io/google/osv-scanner:v2.7.0 ghcr.io/google/osv-scanner@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0
 ghcr.io/zizmorcore/zizmor:1.31.1 ghcr.io/zizmorcore/zizmor@sha256:42d409dbb851d4c5d35a058cf042b828bea1e3f2884378c526eb0974780e18d9
+checkmarx/kics:v2.2.0 checkmarx/kics@sha256:ef29dbac14b046b1ef65f3280646112e927a61781c5f01bca1aeb723e0b96003

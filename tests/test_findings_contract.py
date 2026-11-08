@@ -92,7 +92,7 @@ def test_a_line_shift_does_not_make_known_findings_new(run):
     native.write_text(json.dumps(sarif))
     exit_code, doc = run()
     assert doc["baseline"] == {"enabled": True, "new": 0, "known": 3, "fixed": 0,
-                               "legacy_format": False}
+                               "legacy_format": False, "fixed_findings": []}
     assert exit_code == 0
 
 
@@ -319,3 +319,40 @@ def test_every_run_ends_with_its_metrics(run, capsys):
     assert m["reports"] == {"read": 4, "missing": 0, "errored": 0}
     assert m["findings"]["reported"] == len(doc["findings"])
     assert SECRET not in json.dumps(m)
+
+
+def test_the_delta_names_what_was_fixed(run):
+    assert run(update_baseline=True)[0] == 0
+    # Fix the command injection: the engine no longer reports it.
+    native = Path(main.NATIVE_DIR) / "semgrep.sarif"
+    sarif = json.loads(native.read_text())
+    sarif["runs"][0]["results"] = []
+    native.write_text(json.dumps(sarif))
+    _, doc = run()
+    jsonschema.validate(doc, SCHEMA)
+    fixed = doc["baseline"]["fixed_findings"]
+    assert doc["baseline"]["fixed"] == 1 and [e["rule_id"] for e in fixed] == ["py.exec"]
+    assert fixed[0]["file"] == "app.py" and fixed[0]["line"] == 2
+    html = (Path(main.REPORTS_DIR) / "summary.html").read_text()
+    md = (Path(main.REPORTS_DIR) / "summary.md").read_text()
+    assert "Since the baseline" in html and "py.exec" in html.split("Since the baseline")[1][:3000]
+    assert "Fixed since the baseline" in md
+    # A secret's baseline entry keeps its rule and place, never its message.
+    entries = json.loads((Path(main.BASELINE_PATH)).read_text())["entries"]
+    secret = next(e for e in entries.values() if e["category"] == "secrets")
+    assert "title" not in secret and SECRET not in json.dumps(entries)
+
+
+def test_a_baseline_from_before_1_6_still_counts_but_cannot_name(run):
+    assert run(update_baseline=True)[0] == 0
+    path = Path(main.BASELINE_PATH)
+    old = json.loads(path.read_text())
+    old.pop("entries")
+    path.write_text(json.dumps(old))
+    native = Path(main.NATIVE_DIR) / "semgrep.sarif"
+    sarif = json.loads(native.read_text())
+    sarif["runs"][0]["results"] = []
+    native.write_text(json.dumps(sarif))
+    _, doc = run()
+    assert doc["baseline"]["fixed"] == 1 and doc["baseline"]["fixed_findings"] is None
+    assert "--update-baseline" in (Path(main.REPORTS_DIR) / "summary.html").read_text()

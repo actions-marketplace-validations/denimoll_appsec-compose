@@ -63,6 +63,7 @@ TOOLS = {
     "hadolint": ("hadolint/hadolint", "v2.15.1-alpine", "HADOLINT"),
     "osv": ("ghcr.io/google/osv-scanner", "v2.7.0", "OSV"),
     "zizmor": ("ghcr.io/zizmorcore/zizmor", "1.31.1", "ZIZMOR"),
+    "kics": ("checkmarx/kics", "v2.2.0", "KICS"),
 }
 
 # Registry pack fetched offline by preload.sh; used as a local file when offline.
@@ -180,6 +181,7 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
     """
     semgrep, trivy, checkov, anchore, osv, hadolint = [], [], [], [], [], []
     zizmor: list[str] = []
+    kics: list[str] = []
     # Trivy separates directory and file exclusions; a glob may name either, so
     # a glob entry goes to both lists.
     for raw in patterns:
@@ -204,6 +206,13 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
             osv.append(f"--experimental-exclude={pat}")
         hadolint.extend(["-not", "-path", f"*/{pat}/*"])
         zizmor.extend(["-not", "-path", f"*/{pat}/*"])
+        # KICS matches absolute globs only (`/code/**/x/**`); `**` spans zero dirs.
+        if is_glob:
+            kics.extend(["-e", f"/code/{pat}", "-e", f"/code/**/{pat}"])
+        elif "/" in pat:
+            kics.extend(["-e", f"/code/{pat}", "-e", f"/code/{pat}/**"])
+        else:
+            kics.extend(["-e", f"/code/**/{pat}", "-e", f"/code/**/{pat}/**"])
     return {
         "SEMGREP_EXCLUDES": " ".join(semgrep),
         "TRIVY_SKIP_DIRS": " ".join(trivy),
@@ -217,6 +226,7 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
         # zizmor honours .gitignore but takes no exclusion flag, so compose
         # collects its inputs with find and prunes them with these.
         "ZIZMOR_PRUNE": " ".join(zizmor),
+        "KICS_EXCLUDES": " ".join(kics),
     }
 
 

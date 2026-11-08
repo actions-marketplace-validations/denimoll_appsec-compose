@@ -125,6 +125,7 @@ ENGINE_PARTS = {
     "syft": ("sca",),             # SBOM only — meaningless without SCA
     "checkov": ("iac",),
     "hadolint": ("iac",),
+    "kics": ("iac",),
     # Skipped unless an IaC/workflow file changed, but not narrowed: zizmor is
     # quick and must see the repo's own zizmor.yml even when that is unchanged;
     # the collector keeps only findings in changed files.
@@ -142,6 +143,7 @@ ENGINE_REPORTS = {
     "syft": {"sca": []},
     "checkov": {"iac": ["checkov.sarif"]},
     "hadolint": {"iac": ["hadolint.sarif"]},
+    "kics": {"iac": ["kics.sarif"]},
     "zizmor": {"iac": ["zizmor.sarif"]},
 }
 SKIP_REASONS = {

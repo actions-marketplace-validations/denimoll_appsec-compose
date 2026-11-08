@@ -22,6 +22,7 @@ import components
 import coverage as cov
 import diffscope
 import enrich as enr
+import iacunits
 import licenses as lic
 import placeholders as ph
 from config import load_config
@@ -41,7 +42,7 @@ DIFF_SCOPE_PATH = "/diff/scope.json"
 # Version of the findings.json contract (schemas/findings.schema.json). Bump
 # the major for anything a consumer could break on: a removed or renamed field,
 # a changed meaning; the minor for additions.
-SCHEMA_VERSION = "1.5"
+SCHEMA_VERSION = "1.6"
 
 # Exit codes, shared with run.sh. 1 is reserved for a verdict of "fail": every
 # way of not reaching a verdict maps elsewhere, so a caller never mistakes a
@@ -291,7 +292,8 @@ def main() -> int:
     in_source = [f for f in result.findings if getattr(f, "source_suppression", None)]
     reported = [f for f in result.findings if not getattr(f, "source_suppression", None)]
 
-    merged, stats = merge(reported, enabled=cfg.dedup)
+    units = None if image_mode else iacunits.Units(bl._Source(CODE_DIR))
+    merged, stats = merge(reported, enabled=cfg.dedup, units=units)
     # Fingerprints exist before suppression, so an ignore entry can name one.
     bl.assign(merged, CODE_DIR)
     bl.assign(in_source, CODE_DIR)     # apart: never shifts a reported finding's id
@@ -337,6 +339,7 @@ def main() -> int:
             # A baseline entry outside the changed files was not looked for,
             # so "not seen" no longer means "fixed".
             delta.fixed = None
+            delta.fixed_findings = None
     gate_findings = delta.new if delta is not None else None
     policy = evaluate(kept, cfg, raw_findings=result.findings, gate_findings=gate_findings)
     new_fps = {f.fingerprint for f in delta.new} if delta else set()
@@ -381,6 +384,9 @@ def main() -> int:
             "new": len(delta.new) if delta else None,
             "known": len(delta.known) if delta else None,
             "fixed": delta.fixed if delta else None,
+            # 1.6: what was fixed, as the baseline recorded it (null for a
+            # baseline saved before 1.6, or in diff mode).
+            "fixed_findings": delta.fixed_findings if delta else None,
             "legacy_format": delta.legacy if delta else None,
         },
         "coverage": {

@@ -193,6 +193,9 @@ a plain `scan` stays stateless and never touches it. A "project" = a name + a ta
 ## Integrations & extras (backlog)
 
 - [ ] **ASPM/ASOC push** — DefectDojo (API import), DependencyTrack (SBOM upload).
-- [ ] Richer **delta report** in HTML (new/fixed diff beyond the baseline NEW flag).
-- [ ] More engines as needed (e.g. KICS).
-- [ ] Extend the IaC equivalence map beyond Dockerfile rules (Terraform, K8s).
+- [x] Richer **delta report** — "Since the baseline": new and fixed findings by
+      name in both summaries; `baseline.fixed_findings` in `findings.json`.
+- [x] **KICS** as an opt-in IaC engine (offline, secrets pass off).
+- [x] IaC equivalence map beyond Dockerfile rules: 44 Terraform/Kubernetes
+      policies merged per resource across Checkov, Trivy and KICS.
+- [ ] More engines as needed.

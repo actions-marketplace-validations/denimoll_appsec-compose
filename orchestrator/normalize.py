@@ -28,6 +28,7 @@ SOURCES = [
     # CI/CD workflows are infrastructure-as-code for the pipeline; the
     # findings.json category enum is a published contract, so no new category.
     ("zizmor.sarif", "zizmor", "iac", "sarif"),
+    ("kics.sarif", "kics", "iac", "sarif"),
 ]
 
 # Which report file(s) each configured scanner is expected to produce.
@@ -43,6 +44,7 @@ SCANNER_FILES = {
     "hadolint": ["hadolint.sarif"],
     "osv": ["osv.sarif"],
     "zizmor": ["zizmor.sarif"],
+    "kics": ["kics.sarif"],
 }
 
 
@@ -204,6 +206,12 @@ def _cwes(rule: dict, res: dict) -> list[str]:
     tags = [*((rule.get("properties") or {}).get("tags") or []),
             *((res.get("properties") or {}).get("tags") or [])]
     found = {f"CWE-{m}" for tag in tags for m in _CWE.findall(str(tag))}
+    # KICS names its CWE as a SARIF relationship to the CWE taxonomy instead.
+    for rel in rule.get("relationships") or []:
+        target = (rel or {}).get("target") or {}
+        if ((target.get("toolComponent") or {}).get("name") == "CWE"
+                and str(target.get("id", "")).isdigit()):
+            found.add(f"CWE-{target['id']}")
     return sorted(found, key=lambda c: int(c[4:]))
 
 
@@ -283,6 +291,9 @@ def _clean_path(uri: str) -> str:
     p = unquote(uri)
     if p.startswith("file://"):
         p = p[len("file://"):]
+    # KICS reports relative to its output directory: "../../code/x".
+    while p.startswith("../"):
+        p = p[3:]
     # Most tools report "/code/x"; checkov drops the leading slash ("code/x").
     stripped = p.lstrip("/")
     if stripped.startswith("code/"):
@@ -387,6 +398,9 @@ def _parse_sarif(path: Path, tool: str, category: str) -> list[Finding]:
                        else floor)
 
             msg = ((res.get("message") or {}).get("text") or "").strip()
+            if tool == "kics" and rule.get("name"):
+                # KICS ids are UUIDs; its query's name is what a reader needs.
+                msg = f"{rule['name']}: {msg}" if msg else rule["name"]
             confidence = _confidence(rule, res)
             doubt = str((res.get("properties") or {}).get(_RESULT_CONFIDENCE_KEY) or "")
             if msg and doubt and doubt.lower() != "high":

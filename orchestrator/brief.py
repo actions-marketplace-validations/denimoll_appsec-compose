@@ -47,7 +47,7 @@ _CATEGORY_NAMES = {"sast": "SAST", "sca": "SCA", "secrets": "Secrets", "iac": "I
 _ENGINE_CATEGORIES = {
     "semgrep": {"sast"}, "trivy": {"sca", "iac"}, "grype": {"sca"}, "osv": {"sca"},
     "gitleaks": {"secrets"}, "trufflehog": {"secrets"},
-    "checkov": {"iac"}, "hadolint": {"iac"}, "zizmor": {"iac"},
+    "checkov": {"iac"}, "hadolint": {"iac"}, "zizmor": {"iac"}, "kics": {"iac"},
 }
 
 

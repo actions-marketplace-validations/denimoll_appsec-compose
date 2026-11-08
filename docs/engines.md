@@ -13,6 +13,7 @@ What each engine checks, how findings are ranked and merged. Back to the [README
 | IaC | [Trivy config](https://trivy.dev) | on | `trivy-config.sarif` |
 | IaC | [Checkov](https://www.checkov.io) | on | `checkov.sarif` |
 | IaC (alt) | [Hadolint](https://github.com/hadolint/hadolint) | off | `hadolint.sarif` (Dockerfiles) |
+| IaC (alt) | [KICS](https://kics.io) | off | `kics.sarif` (Terraform, K8s, CloudFormation, Ansible, Helm, Dockerfile, compose, OpenAPI, …; offline) |
 | IaC — CI/CD | [zizmor](https://docs.zizmor.sh) | on | `zizmor.sarif` (GitHub Actions workflows) |
 | Secrets | [Gitleaks](https://github.com/gitleaks/gitleaks) | on | `gitleaks.sarif` |
 | Secrets (alt) | [TruffleHog](https://github.com/trufflesecurity/trufflehog) | off | `trufflehog.json` + `trufflehog.sarif`\* |
@@ -304,15 +305,28 @@ the summary (the raw native reports are left untouched for ASPM import):
   Trivy's `CVE-2018-1000656` and Grype's `GHSA-562c-5r94-xh97` merge because
   Grype's `relatedVulnerabilities` lists that CVE — so CVE/GHSA aliases collapse.
 - **IaC** — engines use different ids for the same policy (a Dockerfile with no
-  `USER` is Trivy's `DS-0002`, Checkov's `CKV_DOCKER_3` and Hadolint's `DL3002`),
-  so findings whose rule maps to a known equivalence class merge per file.
-  Unmapped rules keep their own `(rule, file, line)` identity.
+  `USER` is Trivy's `DS-0002`, Checkov's `CKV_DOCKER_3`, Hadolint's `DL3002`
+  and a KICS query UUID), so findings whose rule maps to a known equivalence
+  class merge: **per file** for Dockerfiles (one image), **per resource** for
+  Terraform and Kubernetes, where one file holds many — two S3 buckets without
+  versioning stay two findings, each merging Checkov's `CKV_AWS_21`, Trivy's
+  `AWS-0090` and KICS's query. A resource is a top-level `resource`/`data`/
+  `module` block in a `.tf` file, or a YAML document named by its `kind` and
+  `metadata.name`. The map ([`orchestrator/dedup.py`](../orchestrator/dedup.py))
+  covers 10 Dockerfile and 44 Terraform/Kubernetes policies (AWS, Azure,
+  Alibaba Cloud; pod security, resources, probes, images), each confirmed by
+  running the engines over TerraGoat and Kubernetes Goat: the rules fire on
+  the same resources and say the same thing. Look-alikes that differ in
+  strictness are left apart. Unmapped rules keep their own `(rule, file, line)`
+  identity. On those corpora the merge cuts IaC findings by 13% (Terraform)
+  and 39% (Kubernetes) with all three engines on.
 - **SAST** — same rule at the same `(file, line)`.
 - **CI workflows** — one flaw in a workflow, reported by different engines,
   merges where their regions overlap: template injection (zizmor
-  `template-injection`, Semgrep `run-shell-injection`, Checkov `CKV_GHA_2`) and
-  unpinned actions (zizmor `unpinned-uses`, Semgrep
-  `github-actions-mutable-action-tag`). Semgrep flags a whole `run:` step and
+  `template-injection`, Semgrep `run-shell-injection`, Checkov `CKV_GHA_2`,
+  KICS "Run Block Injection") and unpinned actions (zizmor `unpinned-uses`,
+  Semgrep `github-actions-mutable-action-tag`, KICS "Unpinned Actions Full
+  Length Commit SHA"). Semgrep flags a whole `run:` step and
   zizmor the expression inside it, so two injections in one step are one thing
   to fix, and two steps stay two findings. The result is an `iac` finding, under
   that category's gate. A finding only one engine reported is left as it is.

@@ -18,12 +18,13 @@ import hashlib
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from dedup import _norm_file, iac_class
-from normalize import Finding
+from dedup import _norm_file, iac_class, iac_resource_class
+from iacunits import Units
+from normalize import Finding, _SEVERITY_RANK
 
 FINGERPRINT_VERSION = 2
 
@@ -85,6 +86,13 @@ class _Source:
             return None
         return lines[line - 1]
 
+    def lines(self, path: str) -> list[str] | None:
+        if not self.root or not path:
+            return None
+        if path not in self._cache:
+            self._cache[path] = self._read(path)
+        return self._cache[path]
+
     def _read(self, path: str) -> list[str] | None:
         full = os.path.realpath(os.path.join(self.root, _norm_file(path)))
         # A symlink in the scanned repo must not reach outside it.
@@ -114,7 +122,7 @@ def _mask_secret(f: Finding, text: str) -> str:
     return _TOKEN.sub("*", _QUOTED.sub("*", text))
 
 
-def _identity(f: Finding, source: _Source) -> list[str]:
+def _identity(f: Finding, source: _Source, units: Units | None = None) -> list[str]:
     path = _norm_file(f.file)
     if f.category == "sca":
         return ["sca", _vuln_key(f), _package_name(f.package), path]
@@ -123,6 +131,11 @@ def _identity(f: Finding, source: _Source) -> list[str]:
         # Equivalent IaC policies merge per file (engines disagree on the
         # line), so the line plays no part in their identity either.
         return ["iac", cls, path]
+    rcls = iac_resource_class(f.rule_id) if f.category == "iac" else None
+    unit = units.label(path, f.line) if rcls and units else None
+    if unit:
+        # Per resource, by the resource's own name: stable when lines move.
+        return ["iac", rcls, path, unit]
 
     text = source.line(f.file, f.line)
     if text is None:
@@ -144,9 +157,10 @@ def assign(findings: list[Finding], code_dir: str | None = None) -> None:
     survives lines being added or removed elsewhere.
     """
     source = _Source(code_dir)
+    units = Units(source) if code_dir else None
     seen: dict[str, int] = {}
     for f in sorted(findings, key=lambda f: (_norm_file(f.file), f.line or 0)):
-        key = "|".join(_identity(f, source))
+        key = "|".join(_identity(f, source, units))
         n = seen.get(key, 0)
         seen[key] = n + 1
         if n:
@@ -159,6 +173,9 @@ def assign(findings: list[Finding], code_dir: str | None = None) -> None:
 class Baseline:
     fingerprints: set[str]
     version: int = FINGERPRINT_VERSION
+    # fingerprint -> what it was (rule, severity, place): what makes "fixed" a
+    # list rather than a number. Baselines saved before 1.6 have none.
+    entries: dict = field(default_factory=dict)
 
     @property
     def legacy(self) -> bool:
@@ -171,6 +188,9 @@ class Delta:
     known: list[Finding]
     fixed: int           # baseline fingerprints not seen in this run
     legacy: bool = False  # matched against a v1 baseline
+    # The fixed ones, as the baseline recorded them; None when it recorded
+    # only fingerprints (saved before 1.6) or "fixed" cannot be known (diff).
+    fixed_findings: list[dict] | None = None
 
 
 def load(path: str) -> Baseline:
@@ -182,8 +202,10 @@ def load(path: str) -> Baseline:
     except json.JSONDecodeError:
         return Baseline(set())
     # A file without a version predates v2.
+    entries = data.get("entries")
     return Baseline(set(data.get("fingerprints", [])),
-                    int(data.get("version", 1)))
+                    int(data.get("version", 1)),
+                    entries if isinstance(entries, dict) else {})
 
 
 def classify(findings: list[Finding], baseline: Baseline) -> Delta:
@@ -193,15 +215,37 @@ def classify(findings: list[Finding], baseline: Baseline) -> Delta:
         fp = key(f)
         seen.add(fp)
         (known if fp in baseline.fingerprints else new).append(f)
-    fixed = len(baseline.fingerprints - seen)
-    return Delta(new=new, known=known, fixed=fixed, legacy=baseline.legacy)
+    gone = baseline.fingerprints - seen
+    fixed_findings = None
+    if baseline.entries and not baseline.legacy:
+        fixed_findings = sorted(
+            ({"fingerprint": fp, **baseline.entries[fp]} for fp in gone
+             if isinstance(baseline.entries.get(fp), dict)),
+            key=lambda e: (-_SEVERITY_RANK.get(e.get("severity"), 0),
+                           str(e.get("file", "")), e.get("line") or 0))
+    return Delta(new=new, known=known, fixed=len(gone), legacy=baseline.legacy,
+                 fixed_findings=fixed_findings)
+
+
+def _entry(f: Finding) -> dict:
+    """What a baseline keeps about a finding: enough to say what was fixed.
+    Never a message for a secret — only its rule and place."""
+    entry = {"rule_id": f.rule_id, "category": f.category, "severity": f.severity,
+             "file": _norm_file(f.file), "line": f.line}
+    if f.package:
+        entry["package"] = f.package
+    if f.category != "secrets":
+        entry["title"] = " ".join(f.message.split())[:160]
+    return entry
 
 
 def save(path: str, findings: list[Finding]) -> int:
     fps = sorted({f.fingerprint for f in findings})
+    entries = {f.fingerprint: _entry(f) for f in findings}
     Path(path).write_text(json.dumps({
         "version": FINGERPRINT_VERSION,
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "fingerprints": fps,
+        "entries": {fp: entries[fp] for fp in fps},
     }, indent=2))
     return len(fps)

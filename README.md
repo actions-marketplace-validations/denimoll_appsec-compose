@@ -47,7 +47,7 @@ use. More: [usage](docs/usage.md).
 | SAST | Semgrep | — |
 | Dependencies (SCA) + SBOM | Trivy | Grype, OSV-Scanner, Syft |
 | Secrets | Gitleaks (+ Trivy) | TruffleHog |
-| IaC | Checkov, Trivy config | Hadolint |
+| IaC | Checkov, Trivy config | Hadolint, KICS |
 | CI/CD workflows | zizmor | — |
 
 Malicious packages are ranked critical whatever their score; a dependency
