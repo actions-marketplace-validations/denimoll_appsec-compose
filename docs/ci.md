@@ -27,7 +27,9 @@ jobs:
 ```
 
 It caches the vulnerability DBs, uploads every tool's SARIF to code scanning
-(one category per tool), keeps the reports as the `appsec-reports` artifact,
+(one category per tool; results the code suppresses — `# nosemgrep`, a
+Checkov skip — are left out, since code scanning ignores SARIF's
+`suppressions`), keeps the reports as the `appsec-reports` artifact,
 writes the verdict to the job summary and then fails the step on a policy
 breach. Outputs: `exit-code`, `findings` (path to `findings.json`),
 `reports-dir`. Inputs and details: [`action.yml`](../action.yml).
