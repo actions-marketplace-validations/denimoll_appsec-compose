@@ -141,6 +141,13 @@ tree — say, to check local `.env` files for live credentials:
 respect_gitignore: false
 ```
 
+Other **git worktrees** of the repository that sit inside it — an AI agent's
+`.claude/worktrees/<name>`, a `git worktree add` into a subdirectory — are
+always skipped, whatever `.gitignore` says: each is a full copy of the code,
+and scanning it repeats every finding (on one repository, 16 of 29). They
+come from `git worktree list`, so a submodule, which is the repository's own
+code, is never one of them.
+
 ## Policy per category
 
 `fail_on` may be a single level or a map, so each practice gets the gate it

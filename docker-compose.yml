@@ -389,6 +389,7 @@ services:
       ASS_SECRETS_HISTORY: ${ASS_SECRETS_HISTORY:-}
       ASS_EXCLUDES: ${ASS_EXCLUDES:-}
       ASS_GITIGNORED: ${ASS_GITIGNORED:-}
+      ASS_WORKTREES: ${ASS_WORKTREES:-}
       ASS_REPORTS_HOST: ${ASS_REPORTS_HOST:-}
       # Key for the CVE-PaaS enrichment; passed through from the host env so it
       # never has to live in scan-config.yml.
