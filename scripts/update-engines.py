@@ -45,6 +45,7 @@ ENGINES = {
     "hadolint": ("hadolint/hadolint", lambda t: "v" + t.lstrip("v") + "-alpine"),
     "osv": ("google/osv-scanner", lambda t: "v" + t.lstrip("v")),
     "zizmor": ("zizmorcore/zizmor", lambda t: t.lstrip("v")),
+    "kics": ("Checkmarx/kics", lambda t: "v" + t.lstrip("v")),
 }
 
 _NUM = re.compile(r"(\d+)")

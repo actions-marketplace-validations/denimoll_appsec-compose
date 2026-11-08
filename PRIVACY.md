@@ -19,8 +19,9 @@ a scan can make, and what it carries.
 Telemetry and update checks of the engines are switched off: Trivy runs with
 `TRIVY_DISABLE_TELEMETRY` and `TRIVY_SKIP_VERSION_CHECK`, Grype and Syft with
 their app-update checks disabled, Semgrep with `--metrics off`, Checkov with
-`--skip-download`. `offline: true` (after `appsec-compose preload`) makes a scan
-use no network at all.
+`--skip-download`. KICS (opt-in) needs no network at all — verified by running
+it with `--network none`. `offline: true` (after `appsec-compose preload`) makes
+a scan use no network at all.
 
 ## Only if you turn it on
 

@@ -100,7 +100,18 @@
         "fixed": {"type": ["integer", "null"],
                   "description": "Null in diff mode: a baseline entry outside the changed files was not looked for."},
         "legacy_format": {"type": ["boolean", "null"],
-                          "description": "True when matched against a v1 (line-number) baseline."}
+                          "description": "True when matched against a v1 (line-number) baseline."},
+        "fixed_findings": {
+          "type": ["array", "null"],
+          "description": "1.6: the baseline's findings not seen in this run, as the baseline recorded them, worst first. Null in diff mode and for a baseline saved before 1.6 (it recorded fingerprints only; re-snapshot with --update-baseline).",
+          "items": {"type": "object", "required": ["fingerprint", "rule_id", "severity"],
+                    "properties": {
+                      "fingerprint": {"type": "string"}, "rule_id": {"type": "string"},
+                      "category": {"type": "string"}, "severity": {"type": "string"},
+                      "file": {"type": "string"}, "line": {"type": ["integer", "null"]},
+                      "package": {"type": "string"},
+                      "title": {"type": "string", "description": "absent for secrets"}}}
+        }
       }
     },
     "coverage": {

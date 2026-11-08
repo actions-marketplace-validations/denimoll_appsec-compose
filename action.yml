@@ -14,7 +14,7 @@ branding:
 #     security-events: write        # only for upload-sarif
 #   steps:
 #     - uses: actions/checkout@v5
-#     - uses: denimoll/appsec-compose@v.1.5.0
+#     - uses: denimoll/appsec-compose@v.1.6.0
 #       with:
 #         config: .github/scan-config.yml
 #
@@ -132,9 +132,14 @@ runs:
       shell: bash
       env:
         REPORTS: ${{ steps.prep.outputs.reports-dir }}
+      # Code scanning ignores SARIF `suppressions`, so what the code suppresses
+      # (# nosemgrep, ...) is left out of the copies it gets; native/ stays whole.
       run: |
+        mkdir -p "$REPORTS/code-scanning"
         for tool in semgrep trivy-fs trivy-config gitleaks checkov grype trufflehog hadolint osv zizmor; do
           if [[ -s "$REPORTS/native/$tool.sarif" ]]; then
+            python3 "$GITHUB_ACTION_PATH/scripts/sarif-for-upload.py" \
+              "$REPORTS/native/$tool.sarif" "$REPORTS/code-scanning/$tool.sarif"
             echo "$tool=true" >> "$GITHUB_OUTPUT"
           fi
         done
@@ -143,43 +148,43 @@ runs:
     - name: Upload Semgrep SARIF
       if: always() && steps.sarif.outputs.semgrep == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/semgrep.sarif", category: semgrep }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/semgrep.sarif", category: semgrep }
     - name: Upload Trivy (fs) SARIF
       if: always() && steps.sarif.outputs.trivy-fs == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trivy-fs.sarif", category: trivy-fs }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/trivy-fs.sarif", category: trivy-fs }
     - name: Upload Trivy (config) SARIF
       if: always() && steps.sarif.outputs.trivy-config == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trivy-config.sarif", category: trivy-config }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/trivy-config.sarif", category: trivy-config }
     - name: Upload Gitleaks SARIF
       if: always() && steps.sarif.outputs.gitleaks == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/gitleaks.sarif", category: gitleaks }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/gitleaks.sarif", category: gitleaks }
     - name: Upload Checkov SARIF
       if: always() && steps.sarif.outputs.checkov == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/checkov.sarif", category: checkov }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/checkov.sarif", category: checkov }
     - name: Upload Grype SARIF
       if: always() && steps.sarif.outputs.grype == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/grype.sarif", category: grype }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/grype.sarif", category: grype }
     - name: Upload TruffleHog SARIF
       if: always() && steps.sarif.outputs.trufflehog == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/trufflehog.sarif", category: trufflehog }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/trufflehog.sarif", category: trufflehog }
     - name: Upload Hadolint SARIF
       if: always() && steps.sarif.outputs.hadolint == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/hadolint.sarif", category: hadolint }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/hadolint.sarif", category: hadolint }
     - name: Upload OSV SARIF
       if: always() && steps.sarif.outputs.osv == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/osv.sarif", category: osv }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/osv.sarif", category: osv }
     - name: Upload zizmor SARIF
       if: always() && steps.sarif.outputs.zizmor == 'true'
       uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
-      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/native/zizmor.sarif", category: zizmor }
+      with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/zizmor.sarif", category: zizmor }
 
     - name: Upload reports artifact
       if: always() && inputs.artifact-name != ''

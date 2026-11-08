@@ -23,7 +23,7 @@ from types import ModuleType
 ORCHESTRATOR_DIR = Path(__file__).resolve().parent.parent / "orchestrator"
 
 # Dependency order: each only imports names earlier in the list.
-_MODULES = ("normalize", "dedup", "baseline", "schema", "suppress", "projectprofile")
+_MODULES = ("normalize", "dedup", "iacunits", "baseline", "schema", "suppress", "projectprofile")
 
 
 def _load() -> dict[str, ModuleType]:

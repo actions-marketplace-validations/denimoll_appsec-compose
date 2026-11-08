@@ -63,6 +63,7 @@ TOOLS = {
     "hadolint": ("hadolint/hadolint", "v2.15.1-alpine", "HADOLINT"),
     "osv": ("ghcr.io/google/osv-scanner", "v2.7.0", "OSV"),
     "zizmor": ("ghcr.io/zizmorcore/zizmor", "1.31.1", "ZIZMOR"),
+    "kics": ("checkmarx/kics", "v2.2.0", "KICS"),
 }
 
 # Registry pack fetched offline by preload.sh; used as a local file when offline.
@@ -171,6 +172,34 @@ def gitignored(target: str) -> tuple[list[str], str]:
     return entries, note
 
 
+def linked_worktrees(target: str) -> list[str]:
+    """Other worktrees of this repository that live inside it — an agent's
+    `.claude/worktrees/<name>`, a hand-made `git worktree add`. Each is a full
+    copy of the code, so scanning it repeats every finding of the real tree.
+    `git worktree list` names only worktrees, never submodules (which are the
+    repository's own code)."""
+    if not target or not (Path(target) / ".git").exists():
+        return []
+    try:
+        proc = subprocess.run(["git", "-C", target, "worktree", "list", "--porcelain"],
+                              capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if proc.returncode != 0:
+        return []
+    root = Path(target).resolve()
+    found = []
+    for line in proc.stdout.splitlines():
+        if not line.startswith("worktree "):
+            continue
+        path = Path(line[len("worktree "):]).resolve()
+        if path != root and root in path.parents:
+            rel = path.relative_to(root).as_posix()
+            if _SAFE_PATH.match(rel):
+                found.append(rel)
+    return sorted(found)
+
+
 def _exclude_flags(patterns: list[str]) -> dict[str, str]:
     """Translate exclude entries into each engine's own exclusion syntax.
 
@@ -180,6 +209,7 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
     """
     semgrep, trivy, checkov, anchore, osv, hadolint = [], [], [], [], [], []
     zizmor: list[str] = []
+    kics: list[str] = []
     # Trivy separates directory and file exclusions; a glob may name either, so
     # a glob entry goes to both lists.
     for raw in patterns:
@@ -204,6 +234,13 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
             osv.append(f"--experimental-exclude={pat}")
         hadolint.extend(["-not", "-path", f"*/{pat}/*"])
         zizmor.extend(["-not", "-path", f"*/{pat}/*"])
+        # KICS matches absolute globs only (`/code/**/x/**`); `**` spans zero dirs.
+        if is_glob:
+            kics.extend(["-e", f"/code/{pat}", "-e", f"/code/**/{pat}"])
+        elif "/" in pat:
+            kics.extend(["-e", f"/code/{pat}", "-e", f"/code/{pat}/**"])
+        else:
+            kics.extend(["-e", f"/code/**/{pat}", "-e", f"/code/**/{pat}/**"])
     return {
         "SEMGREP_EXCLUDES": " ".join(semgrep),
         "TRIVY_SKIP_DIRS": " ".join(trivy),
@@ -217,6 +254,7 @@ def _exclude_flags(patterns: list[str]) -> dict[str, str]:
         # zizmor honours .gitignore but takes no exclusion flag, so compose
         # collects its inputs with find and prunes them with these.
         "ZIZMOR_PRUNE": " ".join(zizmor),
+        "KICS_EXCLUDES": " ".join(kics),
     }
 
 
@@ -477,6 +515,9 @@ def main(argv: list[str] | None = None) -> int:
     excludes = excludes + [e for e in os.environ.get("ASS_EXTRA_EXCLUDES", "").splitlines()
                            if e.strip() and e not in excludes]
     ignored, ignored_note = [], ""
+    # A worktree inside the target is a copy of it: never scanned twice.
+    worktrees = [] if (image or tar) else linked_worktrees(os.environ.get("SCAN_TARGET", ""))
+    excludes = excludes + [w for w in worktrees if w not in excludes]
     if cfg.get("respect_gitignore", True) and not (image or tar):
         ignored, ignored_note = gitignored(os.environ.get("SCAN_TARGET", ""))
         excludes = excludes + [e for e in ignored if e not in excludes]
@@ -570,6 +611,7 @@ def main(argv: list[str] | None = None) -> int:
                                    if str(e).strip())
     # Which of them came from .gitignore: the brief lists those apart.
     env["ASS_GITIGNORED"] = " ".join(ignored)
+    env["ASS_WORKTREES"] = " ".join(worktrees)
 
     # Single-quote every value: several of them contain spaces (SEMGREP_CONFIGS,
     # TRIVY_DB_FLAGS, ASS_TAGREFS) and pin.sh/preload.sh `.` this file as shell.

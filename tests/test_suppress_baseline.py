@@ -155,7 +155,9 @@ def test_save_then_load_roundtrips(tmp_path):
     bl.assign([a])
     bl.assign([b])
     assert bl.save(path, [a, b]) == 1          # same finding twice dedupes
-    assert bl.load(path) == bl.Baseline({a.fingerprint})
+    loaded = bl.load(path)
+    assert loaded.fingerprints == {a.fingerprint}
+    assert loaded.entries[a.fingerprint]["rule_id"] == a.rule_id     # 1.6: what it was
     assert json.loads(open(path).read())["version"] == bl.FINGERPRINT_VERSION
 
 

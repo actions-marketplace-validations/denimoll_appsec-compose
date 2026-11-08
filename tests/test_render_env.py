@@ -324,3 +324,18 @@ def test_history_is_a_second_pass_and_needs_a_repository(tmp_path):
     assert "ASS_SECRETS_HISTORY=''" in rendered                      # no .git, no history
     rendered = _render(tmp_path, 'secrets_history_range: "a..b"\n', SCAN_TARGET=str(repo))
     assert "GITLEAKS_LOG_OPTS='--log-opts=a..b'" in rendered and "ASS_SECRETS_HISTORY='1'" in rendered
+
+
+def test_a_worktree_inside_the_repository_is_not_scanned_again(renv, tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.py").write_text("x = 1\n")
+    _git(repo, "init", "-q")
+    _git(repo, "add", "a.py")
+    _git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "c")
+    _git(repo, "worktree", "add", "-q", "--detach", ".claude/worktrees/w1")
+    _git(repo, "worktree", "add", "-q", "--detach", str(tmp_path / "outside"))
+    assert renv.linked_worktrees(str(repo)) == [".claude/worktrees/w1"]   # not the outside one
+    assert renv.linked_worktrees(str(tmp_path / "outside")) == []
+    rendered = _render(tmp_path, "offline: false\n", SCAN_TARGET=str(repo))
+    assert "ASS_WORKTREES='.claude/worktrees/w1'" in rendered

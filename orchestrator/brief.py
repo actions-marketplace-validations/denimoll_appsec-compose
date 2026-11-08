@@ -47,7 +47,7 @@ _CATEGORY_NAMES = {"sast": "SAST", "sca": "SCA", "secrets": "Secrets", "iac": "I
 _ENGINE_CATEGORIES = {
     "semgrep": {"sast"}, "trivy": {"sca", "iac"}, "grype": {"sca"}, "osv": {"sca"},
     "gitleaks": {"secrets"}, "trufflehog": {"secrets"},
-    "checkov": {"iac"}, "hadolint": {"iac"}, "zizmor": {"iac"},
+    "checkov": {"iac"}, "hadolint": {"iac"}, "zizmor": {"iac"}, "kics": {"iac"},
 }
 
 
@@ -362,9 +362,13 @@ def render(out_dir: str, findings: list[Finding], cfg, enabled: set[str],
             lines.append("- Frameworks (from the manifests): " + ", ".join(frameworks)
                          + " — review framework-specific risks the generic rules miss")
         ignored = set(os.environ.get("ASS_GITIGNORED", "").split())
-        configured = sorted(set(excludes) - ignored)
+        worktrees = sorted(os.environ.get("ASS_WORKTREES", "").split())
+        configured = sorted(set(excludes) - ignored - set(worktrees))
         if configured:
             lines.append("- Not scanned (excluded): " + ", ".join(f"`{e}`" for e in configured))
+        if worktrees:
+            lines.append("- Not scanned (other git worktrees of this repository, copies of "
+                         "its code): " + ", ".join(f"`{w}`" for w in worktrees))
         if ignored:
             shown_ignored = sorted(ignored)[:15]
             more = f" and {len(ignored) - 15} more" if len(ignored) > 15 else ""

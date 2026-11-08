@@ -284,6 +284,26 @@ services:
       HADOLINT_PRUNE: ${HADOLINT_PRUNE:-}
     volumes: *iac-volumes
 
+  kics:
+    image: ${KICS_IMAGE:-checkmarx/kics:v2.2.0}
+    <<: *sh
+    # Checkmarx KICS: a second IaC policy engine. Runs without network
+    # (verified with --network none). --disable-secrets: Gitleaks and Trivy
+    # own secrets. --ignore-on-exit all: findings never fail the container.
+    # It honours .gitignore itself. Reports land in a scratch dir and are
+    # renamed, as with Checkov.
+    command:
+      - >-
+        set -f;
+        kics scan -p /code -o /reports/native/_kics --report-formats sarif
+        --output-name kics --ignore-on-exit all --disable-secrets
+        --no-progress --ci --no-color $$KICS_EXCLUDES >/dev/null 2>&1 || true;
+        mv /reports/native/_kics/kics.sarif /reports/native/kics.sarif 2>/dev/null || true;
+        rm -rf /reports/native/_kics
+    environment:
+      KICS_EXCLUDES: ${KICS_EXCLUDES:-}
+    volumes: *iac-volumes
+
   # ---- SCA (alternative, OSV database) ---------------------------------
   osv:
     image: ${OSV_IMAGE:-ghcr.io/google/osv-scanner:v2.7.0}
@@ -369,6 +389,7 @@ services:
       ASS_SECRETS_HISTORY: ${ASS_SECRETS_HISTORY:-}
       ASS_EXCLUDES: ${ASS_EXCLUDES:-}
       ASS_GITIGNORED: ${ASS_GITIGNORED:-}
+      ASS_WORKTREES: ${ASS_WORKTREES:-}
       ASS_REPORTS_HOST: ${ASS_REPORTS_HOST:-}
       # Key for the CVE-PaaS enrichment; passed through from the host env so it
       # never has to live in scan-config.yml.

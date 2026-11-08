@@ -53,6 +53,10 @@ scanners:
   hadolint:                # Dockerfile linter / best-practices
     enabled: false
     version: "v2.15.1-alpine"
+  kics:                    # IaC, second opinion (Checkmarx KICS): Terraform,
+    enabled: false         # K8s, CloudFormation, Ansible, Helm, Dockerfile,
+    version: "v2.2.0"      # compose, OpenAPI... Offline; its secrets pass is
+                           # off (Gitleaks owns secrets).
   zizmor:                  # CI/CD: GitHub Actions workflows + composite actions
     enabled: true          # (template injection, pull_request_target, broad
     version: "1.31.1"      # permissions, unpinned actions...) -> category iac.

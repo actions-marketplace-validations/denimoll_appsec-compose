@@ -24,7 +24,7 @@ Needs Docker with Compose v2, Python 3.9+ with PyYAML, and bash.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
-# or pin a release:  bash install.sh --ref v.1.5.0
+# or pin a release:  bash install.sh --ref v.1.6.0
 ```
 
 ```bash
@@ -47,7 +47,7 @@ use. More: [usage](docs/usage.md).
 | SAST | Semgrep | — |
 | Dependencies (SCA) + SBOM | Trivy | Grype, OSV-Scanner, Syft |
 | Secrets | Gitleaks (+ Trivy) | TruffleHog |
-| IaC | Checkov, Trivy config | Hadolint |
+| IaC | Checkov, Trivy config | Hadolint, KICS |
 | CI/CD workflows | zizmor | — |
 
 Malicious packages are ranked critical whatever their score; a dependency
@@ -115,7 +115,7 @@ a human to review with the code. [AI agents](docs/ai-agents.md) ·
 
 ## In CI
 
-`uses: denimoll/appsec-compose@v.1.5.0` in GitHub Actions, or an `include:` of
+`uses: denimoll/appsec-compose@v.1.6.0` in GitHub Actions, or an `include:` of
 the GitLab template: [CI/CD](docs/ci.md).
 
 ## Documentation

@@ -10,7 +10,7 @@ from jinja2 import Environment
 from components import group
 from config import SEVERITY_ORDER
 from dedup import DedupStats
-from normalize import Finding, ScanResult
+from normalize import Finding, ScanResult, _SEVERITY_RANK
 from policy import PolicyResult
 
 # Severities shown high -> low in the summary.
@@ -37,6 +37,21 @@ _Suppressed by ignore rules: {{ suppressed_count }} (excluded from the gate)._
 {% endif %}
 {% if delta %}
 _Baseline: **{{ delta.new | length }} new**, {{ delta.known | length }} known{% if delta.fixed is not none %}, {{ delta.fixed }} fixed{% endif %} (gate applies to new only)._
+
+{% if delta_new %}**New since the baseline:**
+{% for f in delta_new %}- {{ f.severity }} `{{ f.rule_id }}` — {{ f.package or f.file }}{% if f.line and not f.package %}:{{ f.line }}{% endif %}
+
+{% endfor %}{% if delta.new | length > delta_new | length %}- …and {{ delta.new | length - delta_new | length }} more
+
+{% endif %}{% endif %}
+{% if delta_fixed %}**Fixed since the baseline:**
+{% for e in delta_fixed %}- ~~{{ e.severity }} `{{ e.rule_id }}` — {{ e.package or e.file }}{% if e.line and not e.package %}:{{ e.line }}{% endif %}~~
+
+{% endfor %}{% if delta.fixed_findings | length > delta_fixed | length %}- …and {{ delta.fixed_findings | length - delta_fixed | length }} more (findings.json: `baseline.fixed_findings`)
+
+{% endif %}{% elif delta.fixed and delta.fixed_findings is none %}_The baseline records fingerprints only (saved before 1.6), so the fixed ones cannot be named; re-snapshot it with `--update-baseline`._
+
+{% endif %}
 {% endif %}
 {% if enrichment and enrichment.requested %}
 _Exploitability: {{ enrichment.resolved }}/{{ enrichment.requested }} CVE(s) resolved via CVE-PaaS, **{{ enrichment.exploitable }} exploitable** (KEV / public PoC / Nuclei template){% if enrichment.reprioritized %}, {{ enrichment.reprioritized }} reprioritized{% endif %}._
@@ -213,6 +228,10 @@ _HTML_TEMPLATE = """<!doctype html>
  table.inner{margin:.4rem 0 0;width:auto} table.inner td{padding:.2rem .5rem;border:0;vertical-align:top}
  code,.loc{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
  .loc{color:var(--muted)} .tool{font-weight:600}
+ .delta{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:6px 0 18px}
+ .delta ul{list-style:none;margin:0;padding:0} .delta li{margin:6px 0;line-height:1.35}
+ .delta .fixed .sev{opacity:.55} .delta .more{color:var(--muted)}
+ @media (max-width:760px){.delta{grid-template-columns:1fr}}
  footer{color:var(--muted);font-size:12px;margin-top:26px}
 </style></head><body>
 <header><div class="wrap">
@@ -256,6 +275,22 @@ _HTML_TEMPLATE = """<!doctype html>
   <div class="alert-t">&#9888; Exploitability data unavailable</div>
   <div>CVE-PaaS could not be reached: {{ enrichment.error }}</div>
   <div class="alert-a">Severities are the scanners' own; no exploitability gate was applied.</div>
+</div>
+{% endif %}
+{% if delta %}
+<h2>Since the baseline</h2>
+<div class="delta">
+  <div class="panel"><h3>New &mdash; {{ delta.new | length }}{% if delta.new %} (these gate){% endif %}</h3>
+    <ul>{% for f in delta_new %}<li><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span> <code>{{ f.rule_id }}</code><br><span class="loc">{{ f.package or f.file }}{% if f.line and not f.package %}:{{ f.line }}{% endif %}</span></li>
+    {% else %}<li class="loc">Nothing new.</li>{% endfor %}
+    {% if delta.new | length > delta_new | length %}<li class="more">&hellip;and {{ delta.new | length - delta_new | length }} more (NEW in the findings below).</li>{% endif %}</ul>
+  </div>
+  <div class="panel fixed"><h3>Fixed &mdash; {% if delta.fixed is none %}not determinable in a diff scan{% else %}{{ delta.fixed }}{% endif %}</h3>
+    <ul>{% if delta.fixed_findings is not none %}{% for e in delta_fixed %}<li><span class="sev sev-{{ e.severity }}">{{ e.severity }}</span> <code>{{ e.rule_id }}</code><br><span class="loc">{{ e.package or e.file }}{% if e.line and not e.package %}:{{ e.line }}{% endif %}</span></li>
+    {% else %}<li class="loc">Nothing fixed since the baseline.</li>{% endfor %}
+    {% if delta.fixed_findings | length > delta_fixed | length %}<li class="more">&hellip;and {{ delta.fixed_findings | length - delta_fixed | length }} more (findings.json: <code>baseline.fixed_findings</code>).</li>{% endif %}
+    {% elif delta.fixed %}<li class="loc">The baseline records fingerprints only (saved before 1.6), so what was fixed cannot be named. Re-snapshot it with <code>--update-baseline</code>.</li>{% endif %}</ul>
+  </div>
 </div>
 {% endif %}
 <h2>Severity overview</h2>
@@ -404,6 +439,9 @@ def timing_label(timings: dict | None) -> str:
     return " ".join(parts)
 
 
+_DELTA_SHOWN = 50
+
+
 def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
              stats: DedupStats, suppressed_count: int, delta,
              coverage=None, enrichment=None, expired=None,
@@ -423,6 +461,10 @@ def _context(result: ScanResult, policy: PolicyResult, findings: list[Finding],
         "stats": stats,
         "suppressed_count": suppressed_count,
         "delta": delta,
+        # Worst first, capped: the full lists are in findings.json.
+        "delta_new": sorted(delta.new, key=lambda f: -_SEVERITY_RANK.get(f.severity, 0))[:_DELTA_SHOWN]
+                     if delta else [],
+        "delta_fixed": (delta.fixed_findings or [])[:_DELTA_SHOWN] if delta else [],
         "coverage": coverage,
         "enrichment": enrichment,
         "expired": expired or [],

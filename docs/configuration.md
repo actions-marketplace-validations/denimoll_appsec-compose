@@ -120,7 +120,7 @@ exclude:
 An explicit empty list (`exclude: []`) scans everything. Entries are translated
 into each engine's own mechanism (`--exclude`, `--skip-dirs`, `--skip-path`, a
 generated Gitleaks allowlist, a TruffleHog regex file, a pruned input list for
-zizmor, …), so one list covers all ten.
+zizmor, KICS, …), so one list covers every engine.
 
 ### What git ignores (`respect_gitignore`)
 
@@ -140,6 +140,13 @@ tree — say, to check local `.env` files for live credentials:
 ```yaml
 respect_gitignore: false
 ```
+
+Other **git worktrees** of the repository that sit inside it — an AI agent's
+`.claude/worktrees/<name>`, a `git worktree add` into a subdirectory — are
+always skipped, whatever `.gitignore` says: each is a full copy of the code,
+and scanning it repeats every finding (on one repository, 16 of 29). They
+come from `git worktree list`, so a submodule, which is the repository's own
+code, is never one of them.
 
 ## Policy per category
 
@@ -275,7 +282,7 @@ sits, so adding a line above a known finding does not make it new:
 | Category | Identity |
 |---|---|
 | SAST, IaC | rule + file + the flagged line's code (whitespace-normalized) |
-| IaC with a cross-engine equivalent | policy class + file |
+| IaC with a cross-engine equivalent | policy class + file (Dockerfile), or + the resource's name (Terraform, Kubernetes) |
 | Secrets | file + the line with the secret masked out — no secret material is ever hashed |
 | SCA | vulnerability (CVE preferred over aliases) + package name + manifest |
 
@@ -290,6 +297,14 @@ the old scheme, and the run asks you to re-snapshot with `--update-baseline`.
 Runs report `new` / `known` / `fixed` counts (in the console, summary and
 `findings.json`), and `fail_on` applies to **new** findings only. Re-run
 `--update-baseline` to re-accept the current state.
+
+The summaries open with **Since the baseline**: the new findings and the fixed
+ones, by name — rule, severity, file and line (worst first, 50 of each; the
+rest in `findings.json`, `baseline.fixed_findings`). To name what was fixed,
+the baseline keeps a short record of each finding: rule, category, severity,
+place, package and title — for a secret only its rule and place, never its
+message. A baseline saved before 1.6 holds fingerprints only: it still gates
+and counts, and the summary asks for one `--update-baseline` to name fixes.
 
 ## Configuration errors
 
