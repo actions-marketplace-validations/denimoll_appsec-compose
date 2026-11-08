@@ -28,7 +28,7 @@ then scan any directory — by hand or as the first step of an AI agent's review
 curl -fsSL https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh | bash
 # or, reading it first / pinning a version:
 curl -fsSLO https://raw.githubusercontent.com/denimoll/appsec-compose/main/install.sh
-bash install.sh --ref v.1.5.0          # or APPSEC_COMPOSE_VERSION=v.1.5.0 bash install.sh
+bash install.sh --ref v.1.6.0          # or APPSEC_COMPOSE_VERSION=v.1.6.0 bash install.sh
 ```
 
 [`install.sh`](../install.sh) checks the [requirements](#requirements) and names

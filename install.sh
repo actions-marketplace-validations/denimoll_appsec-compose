@@ -2,8 +2,8 @@
 # appsec-compose installer — no clone, no sudo, nothing outside your home.
 #
 #   ./install.sh                            # the latest release
-#   ./install.sh --ref v.1.5.0              # a release tag (or branch / commit)
-#   APPSEC_COMPOSE_VERSION=v.1.5.0 ./install.sh
+#   ./install.sh --ref v.1.6.0              # a release tag (or branch / commit)
+#   APPSEC_COMPOSE_VERSION=v.1.6.0 ./install.sh
 #   ./install.sh --from /path/to/checkout   # a local checkout, as it is on disk
 #
 # Documented one-liner (it runs exactly this file — read it first if you like):
