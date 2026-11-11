@@ -147,43 +147,43 @@ runs:
     # One upload per tool: code scanning needs a distinct category per SARIF run.
     - name: Upload Semgrep SARIF
       if: always() && steps.sarif.outputs.semgrep == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/semgrep.sarif", category: semgrep }
     - name: Upload Trivy (fs) SARIF
       if: always() && steps.sarif.outputs.trivy-fs == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/trivy-fs.sarif", category: trivy-fs }
     - name: Upload Trivy (config) SARIF
       if: always() && steps.sarif.outputs.trivy-config == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/trivy-config.sarif", category: trivy-config }
     - name: Upload Gitleaks SARIF
       if: always() && steps.sarif.outputs.gitleaks == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/gitleaks.sarif", category: gitleaks }
     - name: Upload Checkov SARIF
       if: always() && steps.sarif.outputs.checkov == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/checkov.sarif", category: checkov }
     - name: Upload Grype SARIF
       if: always() && steps.sarif.outputs.grype == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/grype.sarif", category: grype }
     - name: Upload TruffleHog SARIF
       if: always() && steps.sarif.outputs.trufflehog == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/trufflehog.sarif", category: trufflehog }
     - name: Upload Hadolint SARIF
       if: always() && steps.sarif.outputs.hadolint == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/hadolint.sarif", category: hadolint }
     - name: Upload OSV SARIF
       if: always() && steps.sarif.outputs.osv == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/osv.sarif", category: osv }
     - name: Upload zizmor SARIF
       if: always() && steps.sarif.outputs.zizmor == 'true'
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26  # v4
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4
       with: { sarif_file: "${{ steps.prep.outputs.reports-dir }}/code-scanning/zizmor.sarif", category: zizmor }
 
     - name: Upload reports artifact
